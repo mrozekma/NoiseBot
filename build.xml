@@ -1,0 +1,29 @@
+<?xml version="1.0" ?>
+<project name="NoiseBot" default="compile">
+  <path id="build.classpath">
+	<fileset dir="lib" includes="**/*" />
+  </path>
+
+  <path id="run.classpath">
+	<path refid="build.classpath" />
+	<path location="bin" />
+  </path>
+
+  <target name="clean">
+    <delete dir="bin" />
+  </target>
+
+  <target name="compile">
+    <mkdir dir="bin" />
+    <javac srcdir="src" destdir="bin" classpathref="build.classpath" debug="on" />
+  </target>
+
+  <target name="run" depends="compile">
+	<java fork="true" classname="main.NoiseBot">
+	  <classpath refid="run.classpath" />
+	  <jvmarg value="-ea" />
+	  <jvmarg value="-Xms32m" />
+	  <jvmarg value="-Xmx512m" />
+	</java>
+  </target>
+</project>

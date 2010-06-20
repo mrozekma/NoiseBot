@@ -1,0 +1,33 @@
+package main;
+
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLEncoder;
+import java.util.Scanner;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+/**
+ * Utilities
+ *
+ * @author Michael Mrozek
+ *         Created Jun 16, 2009.
+ */
+public class Utilities {
+	public static String urlEncode(String text) {
+		try {
+			return URLEncoder.encode(text, "UTF-8");
+		} catch(UnsupportedEncodingException e) {
+			throw new RuntimeException("UTF-8 unsupported");
+		}
+	}
+	
+	public static JSONObject getJSON(String url) throws IOException, JSONException {
+		final URLConnection c = new URL(url).openConnection();
+		final Scanner s = new Scanner(c.getInputStream());
+		return new JSONObject(s.nextLine());
+	}
+}
