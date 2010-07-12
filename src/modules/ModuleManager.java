@@ -41,6 +41,11 @@ public class ModuleManager extends NoiseModule {
 	@Command("\\.unload (" + MODULE_REGEX + ")")
 	public void unloadModules(Message message, String moduleNames) {
 		for(String moduleName : moduleNames.split(" ")) {
+			if(moduleName.equals("ModuleManager")) {
+				this.bot.sendNotice(COLOR_ERROR + ".unload cannot unload the ModuleManager");
+				continue;
+			}
+			
 			try {
 				this.bot.unloadModule(moduleName);
 				this.bot.sendNotice("Module " + Help.COLOR_MODULE + moduleName + NORMAL + " unloaded");
@@ -85,11 +90,14 @@ public class ModuleManager extends NoiseModule {
 			for(String moduleName : moduleNames) {
 				try {
 					this.bot.unloadModule(moduleName);
-					this.bot.loadModule(moduleName);
-				} catch(ModuleUnloadException e) {
-					throw new Git.SyncException("Unable to unload module " + moduleName);
-				} catch(ModuleLoadException e) {
-					throw new Git.SyncException("Unable to load module " + moduleName);
+				} catch(ModuleUnloadException e) {}
+
+				if(!moduleName.equals("ModuleManager")) {
+					try {
+						this.bot.loadModule(moduleName);
+					} catch(ModuleLoadException e) {
+						throw new Git.SyncException("Unable to load module " + moduleName);
+					}
 				}
 			}
 			

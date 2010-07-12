@@ -8,4 +8,5 @@ package main;
  */
 public class ModuleUnloadException extends Exception {
 	public ModuleUnloadException(String message) {super(message);}
+	public ModuleUnloadException(ModuleLoadException e) {super(e);}
 }

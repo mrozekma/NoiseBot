@@ -201,10 +201,6 @@ public class NoiseBot extends PircBot {
 	}
 	
 	public void unloadModule(String moduleName) throws ModuleUnloadException {
-		if(moduleName.equals("ModuleManager")) {
-			throw new ModuleUnloadException("Can't unload the module manager");
-		}
-		
 		final Class c;
 		try {
 			c = getModuleLoader().loadClass("modules." + moduleName);
@@ -218,6 +214,15 @@ public class NoiseBot extends PircBot {
 			this.modules.remove(moduleName);
 		} else {
 			throw new ModuleUnloadException("Unable to unload module " + moduleName + ": Module not loaded");
+		}
+
+		// Immediately reload the module manager
+		if(moduleName.equals("ModuleManager")) {
+			try {
+				loadModule(moduleName);
+			} catch(ModuleLoadException e) {
+				throw new ModuleUnloadException(e);
+			}
 		}
 	}
 
