@@ -10,6 +10,8 @@ import java.util.Scanner;
 import main.Message;
 import main.NoiseModule;
 
+//TODO Fix line splitting
+
 /**
  * QDB
  *
@@ -23,7 +25,10 @@ public class QDB extends NoiseModule {
 	@Command("\\.(?:qdb|quote) ([0-9]+)")
 	public void show(Message message, int id) {
 		try {
-			final URLConnection c = new URL("http://mrozekma.com/qdb.php?id=" + id).openConnection();
+			String url = "http://mrozekma.com/qdb.php";
+			if(id > 0)
+				url += "?id=" + id;
+			final URLConnection c = new URL(url).openConnection();
 			final Scanner s = new Scanner(c.getInputStream());
 			while(s.hasNextLine()) {
 				final String line = s.nextLine();
@@ -35,10 +40,16 @@ public class QDB extends NoiseModule {
 		}
 	}
 
+	@Command("\\.(?:qdb|quote)")
+	public void showRandom(Message message) {
+		show(message, 0);
+	}
+
 	@Override public String getFriendlyName() {return "QDB";}
 	@Override public String getDescription() {return "Displays quotes from the RHLUG Quote Database at http://lug.rose-hulman.edu/qdb/";}
 	@Override public String[] getExamples() {
 		return new String[] {
+				".qdb -- Shows a random short quote",
 				".qdb _id_ -- Shows quote _id_",
 				".quote _id_ -- Same as .qdb"
 		};
