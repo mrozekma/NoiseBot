@@ -37,10 +37,30 @@ public class Wikipedia extends NoiseModule {
 	
 	@Command("\\.(?:wik|wp) (.*)")
 	public void wikipedia(Message message, String term) {
-		//TODO Reimplement
-		this.bot.reply(message, "This module is broken right now -_-");
-		if(true) return;
+		try {
+			final String url = "http://en.wikipedia.org/wiki/" + term.replace(" ", "_");
+			final URLConnection c = new URL("http://mrozekma.com/wikipedia.php?term=" + urlEncode(term.replace(" ", "_"))).openConnection();
+			final Scanner s = new Scanner(c.getInputStream());
+			String text = s.nextLine();
+			
+			if(text.charAt(0) == '!') {
+				this.bot.reply(message, text.substring(1));
+				return;
+			}
+			
+			while(text.length() + url.length() + 4 > MAXIMUM_MESSAGE_LENGTH && text.contains(" ")) {
+				text = text.substring(0, text.lastIndexOf(' '));
+			}
+			if(!text.endsWith("...")) {text += "...";}
+			System.out.println(text.length() + ", " + url.length());
+			
+			this.bot.reply(message, text + " " + url);
+		} catch(IOException e) {
+			this.bot.reply(message, COLOR_ERROR + "Unable to connect to Wikipedia");
+			e.printStackTrace();
+		}
 		
+		/*
 		try {
 			final JSONObject json = getJSON("http://js-wp.dg.cx/json/" + urlEncode(term.replace(" ", "_")));
 			if(json.isNull("text")) {
@@ -63,6 +83,7 @@ public class Wikipedia extends NoiseModule {
 		} catch(JSONException e) {
 			this.bot.reply(message, COLOR_ERROR + "Problem parsing Wikipedia response");
 		}
+		*/
 	}
 	
 	@Command("\\.featured")
