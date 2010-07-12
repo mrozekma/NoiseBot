@@ -22,6 +22,9 @@ public class ModuleManager extends NoiseModule {
 	private static final String MODULE_REGEX = "[a-zA-Z0-9_ -]+";
 	
 	private static final String COLOR_ERROR = RED + REVERSE;
+	private static final String COLOR_HASH = BLUE;
+	private static final String COLOR_AUTHOR = BLUE;
+	private static final String COLOR_DESCRIPTION = RED;
 	
 	@Command("\\.load (" + MODULE_REGEX + ")")
 	public void loadModules(Message message, String moduleNames) {
@@ -98,6 +101,12 @@ public class ModuleManager extends NoiseModule {
 			this.bot.sendNotice(COLOR_ERROR + e.getMessage());
 		}
 	}
+	
+	@Command("\\.rev")
+	public void rev(Message message) {
+		final Git.Revision rev = this.bot.revision;
+		this.bot.reply(message, "Currently on revision " + COLOR_HASH + rev.getHash() + NORMAL + " by " + COLOR_AUTHOR + rev.getAuthor() + NORMAL + " -- " + COLOR_DESCRIPTION + rev.getDescription() + NORMAL);
+	}
 
 	@Override public String getDescription() {return "Manages modules";}
 	@Override public String getFriendlyName() {return "Module Manager";}
@@ -107,7 +116,8 @@ public class ModuleManager extends NoiseModule {
 				".unload _module_ -- Unloads the specified module",
 				".reload _module_ -- Unloads and then loads the specified module",
 				".sync _branch_ -- Fast-forward to the specified branch, and reload any modified modules",
-				".co _branch_ -- Same as .sync"
+				".co _branch_ -- Same as .sync",
+				".rev -- Show the current revision"
 		};
 	}
 	@Override public String getOwner() {return "Morasique";}
