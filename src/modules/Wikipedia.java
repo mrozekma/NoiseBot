@@ -37,6 +37,10 @@ public class Wikipedia extends NoiseModule {
 	
 	@Command("\\.(?:wik|wp) (.*)")
 	public void wikipedia(Message message, String term) {
+		//TODO Reimplement
+		this.bot.reply(message, "This module is broken right now -_-");
+		if(true) return;
+		
 		try {
 			final JSONObject json = getJSON("http://js-wp.dg.cx/json/" + urlEncode(term.replace(" ", "_")));
 			if(json.isNull("text")) {
