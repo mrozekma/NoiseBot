@@ -105,7 +105,9 @@ public class ModuleManager extends NoiseModule {
 		return new String[] {
 				".load _module_ -- Loads the specified module",
 				".unload _module_ -- Unloads the specified module",
-				".reload _module_ -- Unloads and then loads the specified module"
+				".reload _module_ -- Unloads and then loads the specified module",
+				".sync _branch_ -- Fast-forward to the specified branch, and reload any modified modules",
+				".co _branch_ -- Same as .sync"
 		};
 	}
 	@Override public String getOwner() {return "Morasique";}
