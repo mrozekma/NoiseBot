@@ -22,7 +22,6 @@ import org.xml.sax.SAXException;
 
 import main.Message;
 import main.NoiseModule;
-import static main.Utilities.getJSON;
 import static main.Utilities.urlEncode;
 
 /**
