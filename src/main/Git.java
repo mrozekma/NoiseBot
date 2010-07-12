@@ -15,18 +15,21 @@ public class Git {
 	
 	public static class Revision {
 		private String hash;
+		private String author;
 		private String description;
 
-		public Revision(String hash) {this(hash, null);}
-		public Revision(String hash, String description) {
+		public Revision(String hash) {this(hash, null, null);}
+		public Revision(String hash, String author, String description) {
 			this.hash = hash;
+			this.author = author;
 			this.description = description;
 		}
 
 		public String getHash() {return this.hash;}
+		public String getAuthor() {return this.author;}
 		public String getDescription() {return this.description != null ? this.description : "";}
 
-		@Override public String toString() {return this.getHash().substring(0, 7) + " -- " + this.getDescription();}
+		@Override public String toString() {return this.getHash().substring(0, 7) + " by "+ getAuthor() + " -- " + this.getDescription();}
 		@Override public boolean equals(Object other) {
 			return (other instanceof Revision) && (((Revision)other).getHash().equals(this.getHash()));
 		}
@@ -41,11 +44,11 @@ public class Git {
 		final String to = toRev != null ? toRev : "";
 		final Vector<Revision> revs = new Vector<Revision>();
 		try {
-			final Process p = Runtime.getRuntime().exec("git log --format=oneline " + from + ".." + to);
+			final Process p = Runtime.getRuntime().exec("git log --format=format:%H:%an:%s " + from + ".." + to);
 			final Scanner s = new Scanner(p.getInputStream());
 			while(s.hasNext()) {
-				String[] parts = s.nextLine().split(" ", 2);
-				revs.add(new Revision(parts[0], parts[1]));
+				String[] parts = s.nextLine().split(":", 3);
+				revs.add(new Revision(parts[0], parts[1], parts[2]));
 			}
 		} catch(IOException e) {
 			e.printStackTrace();
