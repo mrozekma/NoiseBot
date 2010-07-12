@@ -66,6 +66,7 @@ public class NoiseBot extends PircBot {
 //	private static final String CHAN = "#morasique";
 	public static final String ME = "Morasique";
 
+	public Git.Revision revision = Git.head();
 	private Map<String, NoiseModule> modules = new HashMap<String, NoiseModule>();
 	
 	public void quit() {
@@ -143,6 +144,7 @@ public class NoiseBot extends PircBot {
 				}
 			}, 0);
 			
+			this.sendNotice("NoiseBot revision " + this.revision.getHash());
 			this.sendNotice("Done loading " + moduleCount + " modules watching for " + patternCount + " patterns");
 		}
 	}
