@@ -136,7 +136,8 @@ public class Wikipedia extends NoiseModule {
 	@Override public String[] getExamples() {
 		return new String[] {
 				".wik _term_ -- Returns the beginning of the wikipedia article for _term_",
-				".wp _term_ -- Same as above"
+				".wp _term_ -- Same as above",
+				".featured -- Show the wikipedia definition for the current featured article"
 		};
 	}
 	@Override public String getOwner() {return "Morasique";}
