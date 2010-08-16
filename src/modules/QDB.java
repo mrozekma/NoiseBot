@@ -73,7 +73,7 @@ public class QDB extends NoiseModule {
 		} catch(IOException e) {return;}
 		
 		if(this.curID == 0) {
-			this.curID = maxID - 1;
+			this.curID = maxID;
 			System.out.println("Initial QDB poll; set current ID to " + this.curID);
 			return;
 		}
