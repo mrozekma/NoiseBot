@@ -14,8 +14,6 @@ import main.Message;
 import main.NoiseBot;
 import main.NoiseModule;
 
-//TODO Fix line splitting
-
 /**
  * QDB
  *
@@ -36,7 +34,7 @@ public class QDB extends NoiseModule {
 			@Override public void run() {
 				QDB.this.checkForNewQuotes();
 			}
-		}, 0, PERIOD);
+		}, 0, PERIOD * 1000);
 	}
 
 	@Override public void unload() {
