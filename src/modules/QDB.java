@@ -73,14 +73,16 @@ public class QDB extends NoiseModule {
 		} catch(IOException e) {return;}
 		
 		if(this.curID == 0) {
-			this.curID = maxID;
+			this.curID = maxID - 1;
+			System.out.println("Initial QDB poll; set current ID to " + this.curID);
 			return;
 		}
 		
+		System.out.println("QDB poll; old ID was " + this.curID + ", new ID is " + maxID);
 		if(maxID <= this.curID)
 			return;
-		
-		for(; this.curID < maxID; this.curID++) {
+	
+		for(this.curID++; this.curID <= maxID; this.curID++) {
 			boolean skippedLineMarker = false;
 			try {
 				for(String line : getQuote(this.curID)) {
