@@ -18,7 +18,7 @@ public class Ping extends NoiseModule {
 		this.bot.sendMessage(message.getSender() + "!");
 	}
 	
-	@Command("(?:hi|hello|hey) " + NoiseBot.NICK)
+	@Command("(?:[hH]i|[hH]ello|[hH]ey) " + NoiseBot.NICK)
 	public void indirect(Message message) {
 		this.bot.sendMessage(getRandom(new String[] {"Hi", "Hello", "Hey"}) + " " + message.getSender());
 	}
