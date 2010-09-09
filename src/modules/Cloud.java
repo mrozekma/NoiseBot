@@ -16,9 +16,16 @@ import static panacea.Panacea.*;
  *         Created Aug 16, 2010.
  */
 public class Cloud extends NoiseModule {
+	private static String[] swords = {
+		"==|--------",
+		"--|========-",
+		"==|_________/",
+		"()==={::::::::::::::::::::>"
+	};
+
 	@Command("\\.kill (.*)")
 	public void kill(Message message, String target) {
-		this.bot.sendMessage("==|--------  " + target);
+		this.bot.sendMessage(getRandom(swords) + "  " + target);
 	}
 	
 	@Command("\\.kill")
