@@ -30,9 +30,16 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 	protected static @interface Command {
 		String value();
 	}
+
+	@Retention(RetentionPolicy.RUNTIME)
+	@Target(ElementType.METHOD)
+	protected static @interface PM {
+		String value();
+	}
 	
 	protected transient NoiseBot bot;
 	protected transient Map<Pattern, Method> patterns = new HashMap<Pattern, Method>();
+	protected transient Map<Pattern, Method> pmPatterns = new HashMap<Pattern, Method>();
 	
 	public void init(NoiseBot bot) {
 		this.bot = bot;
@@ -43,6 +50,13 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 				final Pattern pattern = Pattern.compile(command.value());
 				System.out.println(this + " - Added pattern " + command.value() + " for method " + method);
 				this.patterns.put(pattern, method);
+			}
+
+			final PM pm = method.getAnnotation(PM.class);
+			if(pm != null) {
+				final Pattern pattern = Pattern.compile(pm.value());
+				System.out.println(this + " - Added PM pattern " + pm.value() + " for method " + method);
+				this.pmPatterns.put(pattern, method);
 			}
 		}
 	}
@@ -81,12 +95,12 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 	
 	public void processMessage(Message message) {
 		System.out.println(this + " - Processing message: " + message);
-		for(Pattern pattern : this.patterns.keySet()) {
+		for(Pattern pattern : (message.isPM() ? this.pmPatterns : this.patterns).keySet()) {
 			System.out.println("Trying pattern: " + pattern);
 			final Matcher matcher = pattern.matcher(message.getMessage());
 			if(matcher.matches()) {
 				System.out.println("Matched");
-				final Method method = this.patterns.get(pattern);
+				final Method method = (message.isPM() ? this.pmPatterns : this.patterns).get(pattern);
 				final Class[] params = method.getParameterTypes();
 				if(matcher.groupCount() == params.length - 1) {
 					Object[] args = new Object[params.length];

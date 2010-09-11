@@ -63,7 +63,7 @@ public class NoiseBot extends PircBot {
 	public static final String PASSWORD = "7wrafAunerab(on";
 	public static final String CHAN = "#rhnoise";
 //	public static final String NICK = "Morasique-test";
-//	private static final String CHAN = "#morasique";
+//	public static final String CHAN = "#morasique";
 	public static final String ME = "Morasique";
 
 	public Git.Revision revision = Git.head();
@@ -257,7 +257,7 @@ public class NoiseBot extends PircBot {
 			if(module.isPrivate() && !sender.equals(ME)) {continue;}
 			
 			try {
-				module.processMessage(new Message(message, sender));
+				module.processMessage(new Message(message, sender, false));
 			} catch(Exception e) {
 				this.sendNotice(e.getMessage());
 				e.printStackTrace();
@@ -266,15 +266,17 @@ public class NoiseBot extends PircBot {
 	}
 	
 	@Override protected void onPrivateMessage(String sender, String login, String hostname, String message) {
-		if(message.equals(".info")) {
-			this.sendMessage(sender, "I am currently in the channel " + Colors.GREEN + CHAN);
-			this.sendMessage(sender, "The following modules are loaded:");
-			for(NoiseModule module : sorted(this.getModules())) {
-				if(module.isPrivate()) {continue;}
-				this.sendMessage(sender, Help.COLOR_MODULE + module.getFriendlyName() + Colors.NORMAL + " -- " + module.getDescription());
+		System.out.println("Received PM from " + sender + " (" + login + " @ " + hostname + "): " + message);
+
+		for(NoiseModule module : this.modules.values()) {
+			if(module.isPrivate() && !sender.equals(ME)) {continue;}
+			
+			try {
+				module.processMessage(new Message(message, sender, true));
+			} catch(Exception e) {
+				this.sendNotice(sender, e.getMessage());
+				e.printStackTrace();
 			}
-		} else {
-			this.sendMessage(sender, "The only command available via PM is .info");
 		}
 	}
 
