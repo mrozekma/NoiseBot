@@ -61,7 +61,7 @@ public class SO extends NoiseModule {
 				c.setTime(new Date(post.getInt("creation_date") * 1000L));
 				created = c.get(Calendar.DAY_OF_MONTH) + " " + c.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.US) + " " + c.get(Calendar.YEAR);
 			}
-			this.bot.sendMessage(COLOR_INFO + post.getString("title") + " (" + (isAnswer ? "answered" : "asked") + " by " + post.getJSONObject("owner").getString("display_name") + " on " + created + ", +" + post.getInt("up_vote_count") + "/-" + post.getInt("down_vote_count") + ", " + pluralize(post.getInt("view_count"), "view", "views") + (isAnswer ? "" : ", " + pluralize(post.getInt("answer_count"), "answer", "answers") + ")"));
+			this.bot.sendMessage(COLOR_INFO + post.getString("title") + " (" + (isAnswer ? "answered" : "asked") + " by " + post.getJSONObject("owner").getString("display_name") + " on " + created + ", +" + post.getInt("up_vote_count") + "/-" + post.getInt("down_vote_count") + ", " + pluralize(post.getInt("view_count"), "view", "views") + (isAnswer ? "" : ", " + pluralize(post.getInt("answer_count"), "answer", "answers")) + ")");
 		} catch(Exception e) {
 			this.bot.sendMessage(COLOR_ERROR + "Problem parsing Stack Overflow data");
 		}
