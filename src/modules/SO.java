@@ -26,7 +26,7 @@ import static panacea.Panacea.*;
  *         Created Aug 29, 2010.
  */
 public class SO extends NoiseModule {
-	private static final String SO_URL_PATTERN = "http://stackoverflow.com/questions/([0-9]+)";
+	private static final String SO_URL_PATTERN = "http://stackoverflow.com/questions/([0-9]+)(?:/.*/([0-9]+))?";
 	
 	private static final String COLOR_INFO = PURPLE;
 	private static final String COLOR_ERROR = RED + REVERSE;
@@ -46,21 +46,22 @@ public class SO extends NoiseModule {
 	}
 
 	@Command(".*" + SO_URL_PATTERN + ".*")
-	public void so(Message message, int questionID) {
+	public void so(Message message, String questionID, String answerID) {
 		try {
-			final JSONObject j = getJSON("http://api.stackoverflow.com/1.0/questions/" + questionID);
+			final boolean isAnswer = (answerID != null);
+			final JSONObject j = getJSON("http://api.stackoverflow.com/1.0/" + (isAnswer ? ("answers/" + answerID) : ("questions/" + questionID)));
 			if(j.getInt("total") == 0) {
 				this.bot.sendMessage(COLOR_INFO + "No SO question with ID " + questionID);
 				return;
 			}
-			final JSONObject question = j.getJSONArray("questions").getJSONObject(0);
+			final JSONObject post = j.getJSONArray(isAnswer ? "answers" : "questions").getJSONObject(0);
 			final String created;
 			{
 				final Calendar c = new GregorianCalendar();
-				c.setTime(new Date(question.getInt("creation_date") * 1000L));
+				c.setTime(new Date(post.getInt("creation_date") * 1000L));
 				created = c.get(Calendar.DAY_OF_MONTH) + " " + c.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.US) + " " + c.get(Calendar.YEAR);
 			}
-			this.bot.sendMessage(COLOR_INFO + question.getString("title") + " (posted by " + question.getJSONObject("owner").getString("display_name") + " on " + created + ", +" + question.getInt("up_vote_count") + "/-" + question.getInt("down_vote_count") + ", " + pluralize(question.getInt("view_count"), "view", "views") + ", " + pluralize(question.getInt("answer_count"), "answer", "answers") + ")");
+			this.bot.sendMessage(COLOR_INFO + post.getString("title") + " (" + (isAnswer ? "answered" : "asked") + " by " + post.getJSONObject("owner").getString("display_name") + " on " + created + ", +" + post.getInt("up_vote_count") + "/-" + post.getInt("down_vote_count") + ", " + pluralize(post.getInt("view_count"), "view", "views") + (isAnswer ? "" : ", " + pluralize(post.getInt("answer_count"), "answer", "answers") + ")"));
 		} catch(Exception e) {
 			this.bot.sendMessage(COLOR_ERROR + "Problem parsing Stack Overflow data");
 		}
