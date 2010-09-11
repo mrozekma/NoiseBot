@@ -7,6 +7,7 @@ import panacea.MapFunction;
 import main.Git;
 import main.Message;
 import main.ModuleLoadException;
+import main.ModuleSaveException;
 import main.ModuleUnloadException;
 import main.NoiseModule;
 import main.Git.SyncException;
@@ -31,6 +32,12 @@ public class ModuleManager extends NoiseModule {
 		for(String moduleName : moduleNames.split(" ")) {
 			try {
 				this.bot.loadModule(moduleName);
+				try {
+					this.bot.saveModules();
+				} catch(ModuleSaveException e) {
+					e.printStackTrace();
+				}
+				
 				this.bot.sendNotice("Module " + Help.COLOR_MODULE + moduleName + NORMAL + " loaded");
 			} catch(ModuleLoadException e) {
 				this.bot.sendNotice(COLOR_ERROR + e.getMessage());
@@ -48,6 +55,12 @@ public class ModuleManager extends NoiseModule {
 			
 			try {
 				this.bot.unloadModule(moduleName);
+				try {
+					this.bot.saveModules();
+				} catch(ModuleSaveException e) {
+					e.printStackTrace();
+				}
+
 				this.bot.sendNotice("Module " + Help.COLOR_MODULE + moduleName + NORMAL + " unloaded");
 			} catch(ModuleUnloadException e) {
 				this.bot.sendNotice(COLOR_ERROR + e.getMessage());
