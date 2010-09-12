@@ -50,7 +50,7 @@ public class Backronym extends NoiseModule {
 		}
 	}
 
-	@Command("\\.backronym ([A-Za-z]+)")
+	@Command("\\.b(?:ackronym)? ([A-Za-z]+)")
 	public void backronym(Message message, String letters) {
 		if(letters.length() > 16) {
 			this.bot.reply(message, COLOR_ERROR + "Maximum length: 16");
