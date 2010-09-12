@@ -65,7 +65,7 @@ public class Backronym extends NoiseModule {
 		this.bot.sendMessage(implode(choices, " "));
 	}
 	
-	@Command("\\.backronym")
+	@Command("\\.b(?:ackronym)?")
 	public void backronymDefault(Message message) {this.backronym(message, message.getSender());}
 	
 	@Override public String getFriendlyName() {return "Backronym";}
@@ -73,7 +73,8 @@ public class Backronym extends NoiseModule {
 	@Override public String[] getExamples() {
 		return new String[] {
 				".backronym -- Display a backronym for the sending user",
-				".backronym __css__ -- Display a backronym for \"css\""
+				".backronym __css__ -- Display a backronym for \"css\"",
+				".b -- Same as .backronym"
 		};
 	}
 	@Override public String getOwner() {return "Morasique";}
