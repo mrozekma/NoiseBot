@@ -62,8 +62,8 @@ public class NoiseBot extends PircBot {
 	public static final String NICK = "rhnoise";
 	public static final String PASSWORD = "7wrafAunerab(on";
 	public static final String CHAN = "#rhnoise";
-//	public static final String NICK = "Morasique-test";
-//	public static final String CHAN = "#morasique";
+	// public static final String NICK = "Morasique-test";
+	// public static final String CHAN = "#morasique";
 	public static final String ME = "Morasique";
 
 	public Git.Revision revision = Git.head();
@@ -257,7 +257,7 @@ public class NoiseBot extends PircBot {
 			if(module.isPrivate() && !sender.equals(ME)) {continue;}
 			
 			try {
-				module.processMessage(new Message(message, sender, false));
+				module.processMessage(new Message(message.trim(), sender, false));
 			} catch(Exception e) {
 				this.sendNotice(e.getMessage());
 				e.printStackTrace();
@@ -272,7 +272,7 @@ public class NoiseBot extends PircBot {
 			if(module.isPrivate() && !sender.equals(ME)) {continue;}
 			
 			try {
-				module.processMessage(new Message(message, sender, true));
+				module.processMessage(new Message(message.trim(), sender, true));
 			} catch(Exception e) {
 				this.sendNotice(sender, e.getMessage());
 				e.printStackTrace();
