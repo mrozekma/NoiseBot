@@ -5,6 +5,7 @@ import static org.jibble.pircbot.Colors.*;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.Vector;
@@ -58,6 +59,8 @@ public class Lebowski extends NoiseModule {
 	private int lastNickMatches = 0;
 	private int lastLineMatched = -1;
 	private int linesSinceLastQuote = SPACER_LINES;
+	private List<Match> undisplayedMatches = null;
+	private String lastMatchedUserMessage = null;
 	
 	@Override public void init(NoiseBot bot) {
 		super.init(bot);
@@ -107,25 +110,47 @@ public class Lebowski extends NoiseModule {
 
 			final Match match = matches.get(getRandomInt(0, matches.size() - 1));
 			this.lastLineMatched = match.getLineNum();
-			final StringBuffer b = new StringBuffer();
-			if(matches.size() > 1) {b.append("(").append(matches.size()).append(") ");}
-			b.append(COLOR_QUOTE);
-			if(match.getPos() > 0) {b.append(match.getLine().substring(0, match.getPos()));}
-			b.append(UNDERLINE);
-			b.append(substring(match.getLine(), match.getPos(), userMessage.length()));
-			b.append(NORMAL).append(COLOR_QUOTE);
-			if(match.getPos() + userMessage.length() < match.getLine().length()) {b.append(match.getLine().substring(match.getPos() + userMessage.length()));}
-			
-			this.bot.sendMessage(b.toString());
+			this.bot.sendMessage(renderMatch(match, matches.size(), userMessage));
+
+			this.undisplayedMatches = matches;
+			this.undisplayedMatches.remove(match);
+			this.lastMatchedUserMessage = userMessage;
 		}
 	}
-
+	
 	@Command("\\.next") public void nextLine(Message message) {
 		if(this.lastLineMatched >= 0) {
+			if(this.undisplayedMatches != null) // Should always be true
+				this.undisplayedMatches.clear();
 			this.bot.sendMessage(COLOR_QUOTE + this.lines[++this.lastLineMatched]);
 		} else {
 			this.bot.sendMessage(COLOR_ERROR + "No matches yet");
 		}
+	}
+	
+	@Command("\\.other") public void other(Message message) {
+		if(this.lastLineMatched < 0 || this.undisplayedMatches == null) {
+			this.bot.sendMessage(COLOR_ERROR + "No matches yet");
+		} else if(this.undisplayedMatches.isEmpty()) {
+			this.bot.sendMessage(COLOR_ERROR + "No other matches to display");
+		} else {
+			final Match match = this.undisplayedMatches.get(getRandomInt(0, this.undisplayedMatches.size() - 1));
+			this.lastLineMatched = match.getLineNum();
+			this.undisplayedMatches.remove(match);
+			this.bot.sendMessage(renderMatch(match, 1, this.lastMatchedUserMessage));
+		}
+	}
+	
+	private static String renderMatch(Match match, int matches, String userMessage) {
+		final StringBuffer b = new StringBuffer();
+		if(matches > 1) {b.append("(").append(matches).append(") ");}
+		b.append(COLOR_QUOTE);
+		if(match.getPos() > 0) {b.append(match.getLine().substring(0, match.getPos()));}
+		b.append(UNDERLINE);
+		b.append(substring(match.getLine(), match.getPos(), userMessage.length()));
+		b.append(NORMAL).append(COLOR_QUOTE);
+		if(match.getPos() + userMessage.length() < match.getLine().length()) {b.append(match.getLine().substring(match.getPos() + userMessage.length()));}
+		return b.toString();
 	}
 	
 	// http://en.wikipedia.org/wiki/Bitap_algorithm
