@@ -37,6 +37,8 @@ public class Wikipedia extends NoiseModule {
 	@Command("\\.(?:wik|wp) (.*)")
 	public void wikipedia(Message message, String term) {
 		try {
+			if(!term.isEmpty() && Character.isLowerCase(term.charAt(0)))
+				term = Character.toUpperCase(term.charAt(0)) + term.substring(1);
 			final String url = "http://en.wikipedia.org/wiki/" + term.replace(" ", "_");
 			final URLConnection c = new URL("http://mrozekma.com/wikipedia.php?term=" + urlEncode(term.replace(" ", "_"))).openConnection();
 			final Scanner s = new Scanner(c.getInputStream());
