@@ -143,12 +143,12 @@ public class QDB extends NoiseModule {
 			return;
 	
 		for(this.curID++; this.curID <= maxID; this.curID++) {
-			// try {
-				// for(String line : getQuote(this.curID))
-					// this.bot.sendMessage(COLOR_QUOTE + line);
+			try {
+				for(String line : getQuote(this.curID))
+					this.bot.sendMessage(COLOR_QUOTE + line);
 				this.bot.sendMessage(" -- http://lug.rose-hulman.edu/qdb/" + this.curID);
-			// } catch(IOException e) {
-			// } catch(ParseException e) {}
+			} catch(IOException e) {
+			} catch(ParseException e) {}
 		}
 	}
 	
