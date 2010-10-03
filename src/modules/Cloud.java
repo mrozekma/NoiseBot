@@ -34,7 +34,7 @@ public class Cloud extends NoiseModule {
 		String choice;
 		do {
 			choice = getRandom(users).getNick();
-		} while(choice.equals(NoiseBot.NICK));
+		} while(choice.equals(this.bot.getNick()));
 
 		kill(message, choice);
 	}

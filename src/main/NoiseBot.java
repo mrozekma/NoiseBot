@@ -56,16 +56,20 @@ import panacea.ReduceFunction;
  *         Created June 13, 2009.
  */
 public class NoiseBot extends PircBot {
-	private static final String SERVER = "irc.lug.rose-hulman.edu";
-// 	private static final String SERVER = "testnet.freenode.net";
-	private static final int PORT = 6667;
-	public static final String NICK = "rhnoise";
-	public static final String PASSWORD = "7wrafAunerab(on";
-	public static final String CHAN = "#rhnoise";
-	// public static final String NICK = "Morasique-test";
-	// public static final String CHAN = "#morasique";
+	private static Map<String, Connection> CONNECTIONS = new HashMap<String, Connection>() {{
+		put("default", new Connection());
+		put("test", new Connection("Morasique-test", "#morasique"));
+	}};
+	
+	private static final String DEFAULT_CONNECTION = "default";
+	static {
+		assert CONNECTIONS.containsKey("default") : "No 'default 'connection";
+		assert !CONNECTIONS.containsKey("cmdline") : "Connection 'cmdline' shadows command-line connection";
+	}
+	
 	public static final String ME = "Morasique";
 
+	private final Connection connection;
 	public Git.Revision revision = Git.head();
 	private Map<String, NoiseModule> modules = new HashMap<String, NoiseModule>();
 	
@@ -226,7 +230,7 @@ public class NoiseBot extends PircBot {
 		}
 	}
 
-	public User[] getUsers() {return this.getUsers(CHAN);}
+	public User[] getUsers() {return this.getUsers(this.connection.getChannel());}
 	public String[] getNicks() {
 		return map(this.getUsers(), new MapFunction<User, String>() {
 			@Override public String map(User source) {
@@ -243,15 +247,15 @@ public class NoiseBot extends PircBot {
 		return false;
 	}
 
-	public void sendMessage(String message) {this.sendMessage(CHAN, message);}
-	public void sendAction(String action) {this.sendAction(CHAN, action);}
-	public void sendNotice(String notice) {this.sendNotice(CHAN, notice);}
+	public void sendMessage(String message) {this.sendMessage(this.connection.getChannel(), message);}
+	public void sendAction(String action) {this.sendAction(this.connection.getChannel(), action);}
+	public void sendNotice(String notice) {this.sendNotice(this.connection.getChannel(), notice);}
 	public void reply(Message sender, String message) {this.reply(sender.getSender(), message);}
 	public void reply(String username, String message) {this.sendMessage((username == null ? "" : username + ": ") + message);}
 
 	@Override protected void onMessage(String channel, String sender, String login, String hostname, String message) {
 		System.out.println("Received message from " + sender + " (" + login + " @ " + hostname + ") -> " + channel + ": " + message);
-		if(!channel.equals(CHAN)) {return;}
+		if(!channel.equals(this.connection.getChannel())) {return;}
 
 		for(NoiseModule module : this.modules.values()) {
 			if(module.isPrivate() && !sender.equals(ME)) {continue;}
@@ -281,8 +285,9 @@ public class NoiseBot extends PircBot {
 	}
 
 	@Override protected void onJoin(String channel, String sender, String login, String hostname) {
-		if(sender.equals(NICK)) { // Done joining channel
-			this.sendMessage("ChanServ", "VOICE " + CHAN);
+		if(sender.equals(this.connection.getNick())) { // Done joining channel
+			if(this.connection.getPassword() != null)
+				this.sendMessage("ChanServ", "VOICE " + this.connection.getChannel());
 			this.loadModules();
 		} else {
 			for(NoiseModule module : this.modules.values()) {module.onJoin(sender, login, hostname);}
@@ -370,21 +375,42 @@ public class NoiseBot extends PircBot {
 	}
 	
 	@Override protected void onOp(String channel, String sourceNick, String sourceLogin, String sourceHostname, String recipient) {
-		if(recipient.equalsIgnoreCase(NICK)) {
-			this.sendMessage("ChanServ", "DEOP " + CHAN);
+		if(recipient.equalsIgnoreCase(this.connection.getNick())) {
+			this.sendMessage("ChanServ", "DEOP " + this.connection.getChannel());
 		}
 	}
 
-	public static void main(String[] args) {new NoiseBot();}
-	public NoiseBot() {
+	public static void main(String[] args) {
+		final String connectionName = args.length == 0 ? DEFAULT_CONNECTION : args[0];
+		final Connection connection;
+		
+		if(connectionName.equals("cmdline")) {
+			if(args.length != 6) {
+				System.out.println("Missing arguments for cmdline connection; expected: server port nick password channel");
+				return;
+			}
+			
+			connection = new Connection(args[1], Integer.parseInt(args[2]), args[3], args[4], args[5]);
+		} else if(CONNECTIONS.containsKey(connectionName)) {
+			connection = CONNECTIONS.get(connectionName);
+		} else {
+			System.out.println("No connection named '" + connectionName + "'");
+			return;
+		}
+
+		new NoiseBot(connection);
+	}
+	
+	public NoiseBot(Connection connection) {
 		System.out.println("NoiseBot has started");
-		this.setName(NICK);
-		this.setLogin(NICK);
+		this.connection = connection;
+		this.setName(this.connection.getNick());
+		this.setLogin(this.connection.getNick());
 		try {
-			System.out.println("Connecting to " + SERVER + ":" + PORT + " as " + NICK);
-			this.connect(SERVER, PORT, PASSWORD);
+			System.out.println("Connecting to " + this.connection.getServer() + ":" + this.connection.getPort() + " as " + this.connection.getNick());
+			this.connect(this.connection.getServer(), this.connection.getPort(), this.connection.getPassword());
 		} catch(NickAlreadyInUseException e) {
-			System.err.println("The nick " + NICK + " is already in use");
+			System.err.println("The nick " + this.connection.getNick() + " is already in use");
 			System.exit(1);
 		} catch(IrcException e) {
 			System.err.println("Unexpected IRC error: " + e.getMessage());
@@ -394,8 +420,8 @@ public class NoiseBot extends PircBot {
 			System.exit(1);
 		}
 
-		System.out.println("Joining " + CHAN);
-		this.joinChannel(CHAN);
+		System.out.println("Joining " + this.connection.getChannel());
+		this.joinChannel(this.connection.getChannel());
 	}
 	
 	private static ClassLoader getModuleLoader() {

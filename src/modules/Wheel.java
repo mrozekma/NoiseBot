@@ -24,7 +24,7 @@ public class Wheel extends NoiseModule {
 		String choice;
 		do {
 			choice = getRandom(users).getNick();
-		} while(choice.equals(NoiseBot.NICK));
+		} while(choice.equals(this.bot.getNick()));
 		
 		this.bot.sendAction("slaps " + choice);
 	}

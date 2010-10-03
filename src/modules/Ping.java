@@ -13,13 +13,15 @@ import static panacea.Panacea.*;
  *         Created Jun 13, 2009.
  */
 public class Ping extends NoiseModule {
-	@Command(NoiseBot.NICK + "!")
-	public void direct(Message message) {
+	@Command("(.*)!")
+	public void direct(Message message, String nick) {
+		if(!nick.equals(this.bot.getNick())) return;
 		this.bot.sendMessage(message.getSender() + "!");
 	}
 	
-	@Command("(?:[hH]i|[hH]ello|[hH]ey) " + NoiseBot.NICK)
-	public void indirect(Message message) {
+	@Command("(?:[hH]i|[hH]ello|[hH]ey) (.*)")
+	public void indirect(Message message, String nick) {
+		if(!nick.equals(this.bot.getNick())) return;
 		this.bot.sendMessage(getRandom(new String[] {"Hi", "Hello", "Hey"}) + " " + message.getSender());
 	}
 
@@ -27,8 +29,8 @@ public class Ping extends NoiseModule {
 	@Override public String getDescription() {return "Greets the user";}
 	@Override public String[] getExamples() {
 		return new String[] {
-				"Hi " + NoiseBot.NICK,
-				NoiseBot.NICK + "!"
+				"Hi " + this.bot.getNick(),
+				this.bot.getNick() + "!"
 		};
 	}
 	@Override public String getOwner() {return "Morasique";}

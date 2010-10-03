@@ -23,7 +23,7 @@ public class Help extends NoiseModule {
 	public static final String COLOR_ARGUMENT = GREEN;
 	
 	private void message(Message message, String text) {
-		this.bot.sendMessage(message.isPM() ? message.getSender() : NoiseBot.CHAN, text);
+		this.bot.sendMessage(message.isPM() ? message.getSender() : this.bot.getChannels()[0], text);
 	}
 	
 	@Command("\\.help")
