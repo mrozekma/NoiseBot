@@ -2,6 +2,8 @@ package modules;
 
 import static org.jibble.pircbot.Colors.*;
 
+import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -10,6 +12,8 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.Vector;
+
+import au.com.bytecode.opencsv.CSVParser;
 
 import main.Message;
 import main.NoiseModule;
@@ -23,12 +27,12 @@ import static panacea.Panacea.*;
  *         Created Jun 16, 2009.
  */
 public class Poll extends NoiseModule {
-	//private static final String VOTE_CLASS_REGEX = "[a-zA-Z0-9 '-]";
-	private static final String VOTE_CLASS_REGEX = ".";
 	private static final int WAIT_TIME = 180;
 	private static final String COLOR_ERROR = RED;
 	private static final String COLOR_SUCCESS = GREEN;
 	private static final String COLOR_VOTE = PURPLE;
+	
+	private final CSVParser parser = new CSVParser(' ');
 	
 	private Timer pollTimer = null;
 	private String pollText = "";
@@ -38,18 +42,32 @@ public class Poll extends NoiseModule {
 	private Set<String> validVotes;
 	
 	//@Command("\\.poll \\[((?:" + VOTE_CLASS_REGEX + "+,?)+)\\] ?(.*)")
-	@Command("\\.poll \\[(" + VOTE_CLASS_REGEX + "+)\\] ?(.*)")
-	public void poll(Message message, String votesStr, String text) {
+	//@Command("\\.poll \\[(" + VOTE_CLASS_REGEX + "+)\\] ?(.*)")
+	@Command("\\.poll (.*)")
+	public void poll(Message message, String argLine) {
 		if(this.pollTimer != null) {
 			this.bot.reply(message, "A poll is in progress");
 			return;
 		}
 		
-		this.pollText = text;
 		this.pollOwner = message.getSender();
 		this.votes = new HashMap<String, String>();
-		this.validVotes = new LinkedHashSet<String>();
-		for(String vote : votesStr.split(",")) {this.validVotes.add(vote.trim());}
+
+		try {
+			final String[] args = this.parser.parseLine(argLine);
+			this.pollText = args[0];
+
+			this.validVotes = new LinkedHashSet<String>();
+			if(args.length > 1)
+				for(int i = 1; i < args.length; i++)
+					this.validVotes.add(args[i].trim());
+			else
+				this.validVotes.addAll(Arrays.asList(new String[] {"yes", "no"}));
+		} catch(IOException e) {
+			this.bot.sendMessage(COLOR_ERROR + "Exception attempting to parse vote options");
+			e.printStackTrace();
+			return;
+		}
 		
 		if(this.validVotes.size() < 2) {
 			this.bot.reply(message, "Polls need at least two options");
@@ -67,7 +85,7 @@ public class Poll extends NoiseModule {
 		this.bot.sendMessage(message.getSender() + " has started a poll (vote with ." + Help.COLOR_COMMAND + "vote" + NORMAL + " " + Help.COLOR_ARGUMENT + implode(this.validVotes.toArray(new String[0]), "/") + NORMAL + " in the next " + WAIT_TIME + " seconds): " + this.pollText);
 	}
 	
-	@Command("\\.vote  *(" + VOTE_CLASS_REGEX + "+) *")
+	@Command("\\.vote  *(.+) *")
 	public void vote(Message message, String vote) {
 		if(this.pollTimer == null) {
 			this.bot.reply(message, COLOR_ERROR + "There is no poll in progress to vote on");
@@ -132,15 +150,14 @@ public class Poll extends NoiseModule {
 		return implode(texts.toArray(new String[0]), ", ");
 	}
 	
-	@Command("\\.poll ([^\\[].*)")
-	public void pollDefaultVotes(Message message, String text) {poll(message, "yes,no", text);}
-	
 	@Override public String getFriendlyName() {return "Poll";}
 	@Override public String getDescription() {return "Polls users about a given question";}
 	@Override public String[] getExamples() {
 		return new String[] {
-				".poll _question_ -- Allow users to vote yes or no on _question_",
-				".poll [_vote1_,_vote2_,...] _question_ -- Allow users to vote _vote1_ or _vote2_ or ... on _question_",
+//				".poll _question_ -- Allow users to vote yes or no on _question_",
+//				".poll [_vote1_,_vote2_,...] _question_ -- Allow users to vote _vote1_ or _vote2_ or ... on _question_",
+				".poll _question_ -- Allow users to vote yes or no on _question_. Quote _question_ if it has spaces",
+				".poll _question_ _vote1_ _vote2_ ... -- Allow users to vote _vote1_ or _vote2_ or ... on _question_. Quote any arguments if they have spaces",
 				".vote _vote_ -- Cast your vote as _vote_ (must be one of the votes specified in the poll)",
 				".pollstats -- Display time remaining in the poll and the current votes",
 				".cancelpoll -- Cancel the poll if no votes have been cast yet"
