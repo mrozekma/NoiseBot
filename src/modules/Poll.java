@@ -60,7 +60,8 @@ public class Poll extends NoiseModule {
 			this.validVotes = new LinkedHashSet<String>();
 			if(args.length > 1)
 				for(int i = 1; i < args.length; i++)
-					this.validVotes.add(args[i].trim());
+					if(!args[i].trim().isEmpty())
+						this.validVotes.add(args[i].trim());
 			else
 				this.validVotes.addAll(Arrays.asList(new String[] {"yes", "no"}));
 		} catch(IOException e) {
