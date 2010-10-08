@@ -52,18 +52,21 @@ public class Poll extends NoiseModule {
 		
 		this.pollOwner = message.getSender();
 		this.votes = new HashMap<String, String>();
+		
 
 		try {
 			final String[] args = this.parser.parseLine(argLine);
 			this.pollText = args[0];
 
 			this.validVotes = new LinkedHashSet<String>();
-			if(args.length > 1)
-				for(int i = 1; i < args.length; i++)
+			if(args.length > 1) {
+				for(int i = 1; i < args.length; i++) {
 					if(!args[i].trim().isEmpty())
 						this.validVotes.add(args[i].trim());
-			else
+				}
+			} else {
 				this.validVotes.addAll(Arrays.asList(new String[] {"yes", "no"}));
+			}
 		} catch(IOException e) {
 			this.bot.sendMessage(COLOR_ERROR + "Exception attempting to parse vote options");
 			e.printStackTrace();
