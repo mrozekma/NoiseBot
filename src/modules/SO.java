@@ -26,7 +26,7 @@ import static panacea.Panacea.*;
  *         Created Aug 29, 2010.
  */
 public class SO extends NoiseModule {
-	private static final String SO_URL_PATTERN = "http://stackoverflow.com/questions/([0-9]+)(?:/.*/([0-9]+))?";
+	private static final String SO_URL_PATTERN = "http://((?:meta\\.)?(?:stackoverflow|serverfault|superuser|(?:.*)\\.stackexchange)\\.com)/q(?:uestions)?/([0-9]+)(?:/.*/([0-9]+))?";
 	
 	private static final String COLOR_INFO = PURPLE;
 	private static final String COLOR_ERROR = RED + REVERSE;
@@ -46,12 +46,12 @@ public class SO extends NoiseModule {
 	}
 
 	@Command(".*" + SO_URL_PATTERN + ".*")
-	public void so(Message message, String questionID, String answerID) {
+	public void so(Message message, String baseURL, String questionID, String answerID) {
 		try {
 			final boolean isAnswer = (answerID != null);
-			final JSONObject j = getJSON("http://api.stackoverflow.com/1.0/" + (isAnswer ? ("answers/" + answerID) : ("questions/" + questionID)));
+			final JSONObject j = getJSON("http://api." + baseURL + "/1.0/" + (isAnswer ? ("answers/" + answerID) : ("questions/" + questionID)));
 			if(j.getInt("total") == 0) {
-				this.bot.sendMessage(COLOR_INFO + "No SO question with ID " + questionID);
+				this.bot.sendMessage(COLOR_INFO + "No SE question with ID " + questionID);
 				return;
 			}
 			final JSONObject post = j.getJSONArray(isAnswer ? "answers" : "questions").getJSONObject(0);
@@ -63,15 +63,17 @@ public class SO extends NoiseModule {
 			}
 			this.bot.sendMessage(COLOR_INFO + post.getString("title") + " (" + (isAnswer ? "answered" : "asked") + " by " + post.getJSONObject("owner").getString("display_name") + " on " + created + ", +" + post.getInt("up_vote_count") + "/-" + post.getInt("down_vote_count") + ", " + pluralize(post.getInt("view_count"), "view", "views") + (isAnswer ? "" : ", " + pluralize(post.getInt("answer_count"), "answer", "answers")) + ")");
 		} catch(Exception e) {
-			this.bot.sendMessage(COLOR_ERROR + "Problem parsing Stack Overflow data");
+			this.bot.sendMessage(COLOR_ERROR + "Problem parsing SE data");
 		}
 	}
 
 	@Override public String getFriendlyName() {return "SO";}
-	@Override public String getDescription() {return "Outputs information about any Stack Overflow URLs posted";}
+	@Override public String getDescription() {return "Outputs information about any Stack Exchange URLs posted";}
 	@Override public String[] getExamples() {
 		return new String[] {
-			"http://stackoverflow.com/questions/3041249/when-are-temporaries-created-as-part-of-a-function-call-destroyed"
+			"http://stackoverflow.com/questions/3041249/when-are-temporaries-created-as-part-of-a-function-call-destroyed",
+			"http://unix.stackexchange.com/q/1262/73",
+			"http://unix.stackexchange.com/questions/1262/where-did-the-wheel-group-get-its-name/1271#1271",
 		};
 	}
 	@Override public String getOwner() {return "Morasique";}
