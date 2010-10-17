@@ -160,8 +160,8 @@ public class Poll extends NoiseModule {
 		return new String[] {
 //				".poll _question_ -- Allow users to vote yes or no on _question_",
 //				".poll [_vote1_,_vote2_,...] _question_ -- Allow users to vote _vote1_ or _vote2_ or ... on _question_",
-				".poll _question_ -- Allow users to vote yes or no on _question_. Quote _question_ if it has spaces",
-				".poll _question_ _vote1_ _vote2_ ... -- Allow users to vote _vote1_ or _vote2_ or ... on _question_. Quote any arguments if they have spaces",
+				".poll _question_ -- Allow users to vote yes or no on _question_. Double-quote _question_ if it has spaces",
+				".poll _question_ _vote1_ _vote2_ ... -- Allow users to vote _vote1_ or _vote2_ or ... on _question_. Double-quote any arguments if they have spaces",
 				".vote _vote_ -- Cast your vote as _vote_ (must be one of the votes specified in the poll)",
 				".pollstats -- Display time remaining in the poll and the current votes",
 				".cancelpoll -- Cancel the poll if no votes have been cast yet"
