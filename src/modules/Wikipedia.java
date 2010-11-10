@@ -5,16 +5,13 @@ import static org.jibble.pircbot.Colors.*;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLConnection;
-import java.util.Scanner;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-import org.w3c.dom.Document;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
@@ -32,59 +29,42 @@ import static main.Utilities.urlEncode;
  */
 public class Wikipedia extends NoiseModule {
 	private static final int MAXIMUM_MESSAGE_LENGTH = 400; // Approximately (512 bytes including IRC data)
+	private static final String COLOR_WARNING = YELLOW;
 	private static final String COLOR_ERROR = RED + REVERSE;
 	
-	@Command("\\.(?:wik|wp) (.*)")
+	@Command("\\.(?:wik|wp) (.+)")
 	public void wikipedia(Message message, String term) {
-		try {
-			if(!term.isEmpty() && Character.isLowerCase(term.charAt(0)))
-				term = Character.toUpperCase(term.charAt(0)) + term.substring(1);
-			final String url = "http://en.wikipedia.org/wiki/" + term.replace(" ", "_");
-			final URLConnection c = new URL("http://mrozekma.com/wikipedia.php?term=" + urlEncode(term.replace(" ", "_"))).openConnection();
-			final Scanner s = new Scanner(c.getInputStream());
-			String text = s.nextLine();
-			
-			if(text.charAt(0) == '!') {
-				this.bot.reply(message, text.substring(1));
-				return;
-			}
-			
-			while(text.length() + url.length() + 4 > MAXIMUM_MESSAGE_LENGTH && text.contains(" ")) {
-				text = text.substring(0, text.lastIndexOf(' '));
-			}
-			if(!text.endsWith("...")) {text += "...";}
-			System.out.println(text.length() + ", " + url.length());
-			
-			this.bot.reply(message, text + " " + url);
-		} catch(IOException e) {
-			this.bot.reply(message, COLOR_ERROR + "Unable to connect to Wikipedia");
-			e.printStackTrace();
+		if(term.isEmpty()) { // Should be impossible
+			this.bot.sendMessage(COLOR_ERROR + "Missing term");
+			return;
 		}
 		
-		/*
+		String fixedTerm = term.replace(" ", "_");
+		if(Character.isLowerCase(fixedTerm.charAt(0)))
+			fixedTerm = Character.toUpperCase(fixedTerm.charAt(0)) + fixedTerm.substring(1);
+		sendEntry(term, "http://en.wikipedia.org/wiki/" + urlEncode(fixedTerm), true);
+	}
+	
+	private void sendEntry(final String term, final String url, final boolean includeUrl) {
+		final Document doc;
 		try {
-			final JSONObject json = getJSON("http://js-wp.dg.cx/json/" + urlEncode(term.replace(" ", "_")));
-			if(json.isNull("text")) {
-				this.bot.reply(message, "No entry for " + term);
-			} else {	
-				String text = json.getString("text");
-				final String url = json.getString("url");
-				
-				while(text.length() + url.length() + 4 > MAXIMUM_MESSAGE_LENGTH && text.contains(" ")) {
-					text = text.substring(0, text.lastIndexOf(' '));
-				}
-				if(!text.endsWith("...")) {text += "...";}
-				System.out.println(text.length() + ", " + url.length());
-				
-				this.bot.reply(message, text + " " + url);
-			}
+			doc = Jsoup.connect(url).get();
 		} catch(IOException e) {
-			this.bot.reply(message, COLOR_ERROR + "Unable to connect to Wikipedia");
-			e.printStackTrace();
-		} catch(JSONException e) {
-			this.bot.reply(message, COLOR_ERROR + "Problem parsing Wikipedia response");
+			if(e.getMessage().contains("404 error loading URL"))
+				this.bot.sendMessage(COLOR_WARNING + "No entry for " + term);
+			else
+				this.bot.sendMessage(COLOR_ERROR + "Unable to connect to Wikipedia: " + e.getMessage());
+			return;
 		}
-		*/
+		
+		String text = doc.select("div#bodyContent > p").first().text();
+		while(text.length() + (includeUrl ? url.length() : 0) + 4 > MAXIMUM_MESSAGE_LENGTH && text.contains(" ")) {
+			text = text.substring(0, text.lastIndexOf(' '));
+		}
+		if(!text.endsWith("...")) {text += "...";}
+		if(includeUrl)
+			text += " " + url;
+		this.bot.sendMessage(text);
 	}
 	
 	@Command("\\.featured")
@@ -92,7 +72,7 @@ public class Wikipedia extends NoiseModule {
 		DocumentBuilder db;
 		try {
 			db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-			Document doc = db.parse(new InputSource(new URL("http://jeays.net/wikipedia/featured.xml").openStream()));
+			org.w3c.dom.Document doc = db.parse(new InputSource(new URL("http://jeays.net/wikipedia/featured.xml").openStream()));
 			final NodeList entryList = doc.getElementsByTagName("item");
 
 			if(entryList.getLength() != 1) {
