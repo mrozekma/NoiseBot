@@ -3,8 +3,10 @@ package modules;
 import static org.jibble.pircbot.Colors.*;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLDecoder;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -39,13 +41,44 @@ public class Wikipedia extends NoiseModule {
 			return;
 		}
 		
+		sendEntry(term, "http://en.wikipedia.org/wiki/" + urlEncode(fixTitle(term)));
+	}
+	
+	@Command(".*(http:\\/\\/en.wikipedia.org\\/wiki\\/((?:\\S+)(?::[0-9]+)?(?:\\/|\\/(?:[\\w#!:.?+=&%@!\\-\\/]))?)).*")
+	public void wikipediaLink(Message message, String url, String term) {
+		sendEntry(urlDecode(term).replace("_", " "), url);
+	}
+	
+	//TODO Move to Utilities
+	public static String urlDecode(String text) {
+		try {
+			return URLDecoder.decode(text, "UTF-8");
+		} catch(UnsupportedEncodingException e) {
+			throw new RuntimeException("UTF-8 unsupported");
+		}
+	}
+	
+	private static String fixTitle(String term) {
 		String fixedTerm = term.replace(" ", "_");
 		if(Character.isLowerCase(fixedTerm.charAt(0)))
 			fixedTerm = Character.toUpperCase(fixedTerm.charAt(0)) + fixedTerm.substring(1);
-		sendEntry(term, "http://en.wikipedia.org/wiki/" + urlEncode(fixedTerm), true);
+		return fixedTerm;
 	}
 	
-	private void sendEntry(final String term, final String url, final boolean includeUrl) {
+	/*
+	private static String normalizeTitle(String term) throws IOException, JSONException {
+		final JSONObject data = getJSON("http://en.wikipedia.org/w/api.php?action=query&titles=" + fixTitle(term) + "&redirects&format=json");
+		final JSONObject query = data.getJSONObject("query");
+		if(query.has("redirects"))
+			return query.getJSONArray("redirects").getJSONObject(0).getString("to");
+		else if(query.has("normalized"))
+			return query.getJSONArray("normalized").getJSONObject(0).getString("to");
+		else
+			return term;
+	}
+	*/
+	
+	private void sendEntry(final String term, final String url) {
 		final Document doc;
 		try {
 			doc = Jsoup.connect(url).get();
@@ -58,20 +91,18 @@ public class Wikipedia extends NoiseModule {
 		}
 		
 		String text = doc.select("div#bodyContent > p").first().text();
-		while(text.length() + (includeUrl ? url.length() : 0) + 4 > MAXIMUM_MESSAGE_LENGTH && text.contains(" ")) {
+		while(text.length() + url.length() + 7 > MAXIMUM_MESSAGE_LENGTH && text.contains(" ")) {
 			text = text.substring(0, text.lastIndexOf(' '));
 		}
 		if(!text.endsWith("...")) {text += "...";}
-		if(includeUrl)
-			text += " " + url;
+		text += " -- " + url;
 		this.bot.sendMessage(text);
 	}
 	
 	@Command("\\.featured")
 	public void featured(Message message) {
-		DocumentBuilder db;
 		try {
-			db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+			final DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
 			org.w3c.dom.Document doc = db.parse(new InputSource(new URL("http://jeays.net/wikipedia/featured.xml").openStream()));
 			final NodeList entryList = doc.getElementsByTagName("item");
 
