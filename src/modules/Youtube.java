@@ -29,11 +29,10 @@ public class Youtube extends NoiseModule {
 	private static final String COLOR_ERROR = RED;
 	private static final String COLOR_INFO = PURPLE;
 	
-	@Command(".*http://www.youtube.com/watch\\?v=([A-Za-z0-9_-]{11}).*")
+	@Command(".*http://www.youtube.com/(?:watch\\?v=|user/.*\\#p/u/[0-9]+/)([A-Za-z0-9_-]{11}).*")
 	public void youtube(Message message, String videoID) {
-		DocumentBuilder db;
 		try {
-			db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+			final DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
 			Document doc = db.parse(new InputSource(new URL("http://gdata.youtube.com/feeds/api/videos/" + videoID).openStream()));
 			final NodeList entryList = doc.getElementsByTagName("entry");
 
