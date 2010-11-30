@@ -128,12 +128,14 @@ public class Lebowski extends NoiseModule {
 	}
 	
 	@Command("\\.next") public void nextLine(Message message) {
-		if(this.lastLineMatched >= 0) {
+		if(this.lastLineMatched < 0) {
+			this.bot.sendMessage(COLOR_ERROR + "No matches yet");
+		} else if(this.lastLineMatched+1 == this.lines.length) {
+			this.bot.sendMessage(COLOR_ERROR + "Out of lines");
+		} else {
 			if(this.undisplayedMatches != null) // Should always be true
 				this.undisplayedMatches.clear();
 			this.bot.sendMessage(COLOR_QUOTE + this.lines[++this.lastLineMatched]);
-		} else {
-			this.bot.sendMessage(COLOR_ERROR + "No matches yet");
 		}
 	}
 	
