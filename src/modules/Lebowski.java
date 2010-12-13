@@ -2,12 +2,12 @@ package modules;
 
 import static org.jibble.pircbot.Colors.*;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.HashMap;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.List;
-import java.util.Map;
-import java.util.Scanner;
 import java.util.Vector;
 
 import main.Message;
@@ -64,18 +64,23 @@ public class Lebowski extends NoiseModule {
 	
 	@Override public void init(NoiseBot bot) {
 		super.init(bot);
+		this.lines = new String[0];
 		try {
 			final Vector<String> linesVec = new Vector<String>();
-			final Scanner s = new Scanner(new File("lebowski"));
-			while(s.hasNextLine()) {
-				final String line = s.nextLine();
+			// I'd love to know why Scanner can't read this file...
+			final BufferedReader r = new BufferedReader(new FileReader(new File("lebowski")));
+			String line;
+			while((line = r.readLine()) != null) {
 				if(!line.isEmpty()) {
 					linesVec.add(line);
 				}
 			}
 			this.lines = linesVec.toArray(new String[0]);
+			System.out.println("Loaded lebowski file: " + this.lines.length);
 		} catch(FileNotFoundException e) {
 			this.bot.sendNotice("No lebowski quotes file found");
+		} catch(IOException e) {
+			this.bot.sendNotice("Problem reading quotes file: " + e.getMessage());
 		}
 	}
 
@@ -88,6 +93,8 @@ public class Lebowski extends NoiseModule {
 	// [a-zA-Z0-9,\\'\\\" !-][a-zA-Z0-9,\\'\\\"\\. !-]
 	@Command("([^\\.].{" + (MIN_MESSAGE - 1) + "," + (PATTERN_MAX - 1) + "})")
 	public void lebowski(Message message, String userMessage) {
+		System.out.println("Lebowski: Searching for matches for \"" + userMessage + "\"");
+		
 		final Vector<Match> matches = new Vector<Match>();
 		for(int lineNum = 0; lineNum < lines.length; lineNum++) {
 			final String line = lines[lineNum];
@@ -96,6 +103,8 @@ public class Lebowski extends NoiseModule {
 				matches.add(new Match(line, lineNum, match));
 			}
 		}
+		
+		System.out.println("Matches: " + matches.size());
 		
 		if(!matches.isEmpty()) {
 			if(this.linesSinceLastQuote < SPACER_LINES) {
@@ -119,12 +128,14 @@ public class Lebowski extends NoiseModule {
 	}
 	
 	@Command("\\.next") public void nextLine(Message message) {
-		if(this.lastLineMatched >= 0) {
+		if(this.lastLineMatched < 0) {
+			this.bot.sendMessage(COLOR_ERROR + "No matches yet");
+		} else if(this.lastLineMatched+1 == this.lines.length) {
+			this.bot.sendMessage(COLOR_ERROR + "Out of lines");
+		} else {
 			if(this.undisplayedMatches != null) // Should always be true
 				this.undisplayedMatches.clear();
 			this.bot.sendMessage(COLOR_QUOTE + this.lines[++this.lastLineMatched]);
-		} else {
-			this.bot.sendMessage(COLOR_ERROR + "No matches yet");
 		}
 	}
 	
@@ -165,23 +176,25 @@ public class Lebowski extends NoiseModule {
 		for(int i =0; i <= k; i++) {R[i] = ~1;}
 		for(int i = 0; i <= CHAR_MAX; i++) {patternMask[i] = ~0;}
 		for(int i = 0; i < m; i++) {patternMask[pattern.charAt(i)] &= ~(1 << i);}
-		
-		for(int i = 0; i < text.length(); i++) {
-			long oldRd1 = R[0];
-			R[0] |= patternMask[text.charAt(i)];
-			R[0] <<= 1;
-			
-			for(int d = 1; d <= k; d++) {
-				long tmp = R[d];
-				R[d] = (oldRd1 & (R[d] | patternMask[text.charAt(i)])) << 1;
-				oldRd1 = tmp;
+
+		try {
+			for(int i = 0; i < text.length(); i++) {
+				long oldRd1 = R[0];
+				R[0] |= patternMask[text.charAt(i)];
+				R[0] <<= 1;
+				
+				for(int d = 1; d <= k; d++) {
+					long tmp = R[d];
+					R[d] = (oldRd1 & (R[d] | patternMask[text.charAt(i)])) << 1;
+					oldRd1 = tmp;
+				}
+				
+				if(0 == (R[k] & (1 << m))) {
+	//				result = text.substring(i - m + 1);
+					return i - m + 1;
+				}
 			}
-			
-			if(0 == (R[k] & (1 << m))) {
-//				result = text.substring(i - m + 1);
-				return i - m + 1;
-			}
-		}
+		} catch(Exception e) {}
 		
 //		return result;
 		return -1;
