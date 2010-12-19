@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.Scanner;
 
@@ -20,6 +21,14 @@ public class Utilities {
 	public static String urlEncode(String text) {
 		try {
 			return URLEncoder.encode(text, "UTF-8");
+		} catch(UnsupportedEncodingException e) {
+			throw new RuntimeException("UTF-8 unsupported");
+		}
+	}
+	
+	public static String urlDecode(String text) {
+		try {
+			return URLDecoder.decode(text, "UTF-8");
 		} catch(UnsupportedEncodingException e) {
 			throw new RuntimeException("UTF-8 unsupported");
 		}

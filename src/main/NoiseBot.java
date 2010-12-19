@@ -21,6 +21,7 @@ import javax.tools.ToolProvider;
 
 import static panacea.Panacea.*;
 
+import debugging.Log;
 import modules.Help;
 
 import org.jibble.pircbot.Colors;
@@ -32,22 +33,6 @@ import org.jibble.pircbot.User;
 
 import panacea.MapFunction;
 import panacea.ReduceFunction;
-
-// DONE ping
-// DONE seen
-// DONE tell
-// DONE translate
-// DONE wikipedia
-// DONE poll
-// DONE hug
-// DONE fortune
-// DONE spook
-// DONE choose
-// DONE slap
-// DONE youtube
-// DONE fascist
-
-// TODO quote module, remind module
 
 /**
  * NoiseBot
@@ -72,6 +57,7 @@ public class NoiseBot extends PircBot {
 	private final Connection connection;
 	public Git.Revision revision = Git.head();
 	private Map<String, NoiseModule> modules = new HashMap<String, NoiseModule>();
+	public static NoiseBot me;
 	
 	public void quit() {
 		this.disconnect();
@@ -402,7 +388,8 @@ public class NoiseBot extends PircBot {
 	}
 	
 	public NoiseBot(Connection connection) {
-		System.out.println("NoiseBot has started");
+		me = this;
+		Log.i("NoiseBot has started");
 		this.connection = connection;
 		this.setName(this.connection.getNick());
 		this.setLogin(this.connection.getNick());

@@ -21,7 +21,7 @@ import org.xml.sax.SAXException;
 
 import main.Message;
 import main.NoiseModule;
-import static main.Utilities.urlEncode;
+import static main.Utilities.*;
 
 /**
  * Wikipedia
@@ -47,15 +47,6 @@ public class Wikipedia extends NoiseModule {
 	@Command(".*(http:\\/\\/en.wikipedia.org\\/wiki\\/((?:\\S+)(?::[0-9]+)?(?:\\/|\\/(?:[\\w#!:.?+=&%@!\\-\\/]))?)).*")
 	public void wikipediaLink(Message message, String url, String term) {
 		sendEntry(urlDecode(term).replace("_", " "), url);
-	}
-	
-	//TODO Move to Utilities
-	public static String urlDecode(String text) {
-		try {
-			return URLDecoder.decode(text, "UTF-8");
-		} catch(UnsupportedEncodingException e) {
-			throw new RuntimeException("UTF-8 unsupported");
-		}
 	}
 	
 	private static String fixTitle(String term) {
