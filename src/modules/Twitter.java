@@ -20,7 +20,7 @@ import main.NoiseModule;
  *         Created Jan 25, 2010.
  */
 public class Twitter extends NoiseModule {
-	private static final String TWITTER_URL_PATTERN = "http://twitter.com/.*/status(es)?/([0-9]+)";
+	private static final String TWITTER_URL_PATTERN = "http://twitter.com/.*/status(?:es)?/([0-9]+)";
 
 	private static final String COLOR_ERROR = RED;
 	private static final String COLOR_INFO = PURPLE;
