@@ -14,7 +14,8 @@ public class Christmas extends NoiseModule {
 		"Frosty the snowman was a jolly happy soul~With a corncob pipe and a button nose~and two eyes made out of coal~Frosty the snowman is a fairy tale they say~He was made of snow but the children~know how he came to life one day",
 		"Have yourself a merry little Christmas.~Let your heart be light,~From now on our troubles~Will be out of sight.",
 		"Jingle bells~jingle bells~jingle all the way!~O what fun it is to ride~In a one-horse open sleigh",
-		"Rudolph the Red-Nosed Reindeer~Had a very shiny nose,~And if you ever saw it,~You would even say it glows."
+		"Rudolph the Red-Nosed Reindeer~Had a very shiny nose,~And if you ever saw it,~You would even say it glows.",
+      "Ma-ma-ma-ma-cita, donde esta Santa Cleese...~The vato wit da bony knees...~He comin' down da street wit no choos on his feet...~And he's going to..."
 	};
 
 
