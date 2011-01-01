@@ -38,7 +38,7 @@ public class Fortune extends NoiseModule {
 
 	@Command("\\.fortune")
 	public void fortune(Message message) {
-		this.bot.reply(message, getRandom(this.fortunes));
+		this.bot.sendMessage(getRandom(this.fortunes));
 	}
 	
 	@Override public String getFriendlyName() {return "Fortune";}
