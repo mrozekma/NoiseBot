@@ -14,18 +14,11 @@ import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
-import java.util.regex.Pattern;
-
-import javax.tools.JavaCompiler;
-import javax.tools.ToolProvider;
 
 import static panacea.Panacea.*;
 
 import debugging.Log;
-import modules.Help;
 
-import org.jibble.pircbot.Colors;
-import org.jibble.pircbot.DccFileTransfer;
 import org.jibble.pircbot.IrcException;
 import org.jibble.pircbot.NickAlreadyInUseException;
 import org.jibble.pircbot.PircBot;
