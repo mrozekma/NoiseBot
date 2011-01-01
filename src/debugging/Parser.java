@@ -1,5 +1,6 @@
 package debugging;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -7,8 +8,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import main.NoiseBot;
+import main.NoiseModule;
 
 import org.jibble.pircbot.Colors;
 
@@ -79,12 +82,70 @@ public class Parser {
 		client.setLevels(levels);
 	}
 	
+	private static void parseEchoIn(Client client, String[] args) {
+		Debugger.me.out(client, Debugger.me.in);
+	}
+	
+	private static void parseEchoOut(Client client, String[] args) {
+		Debugger.me.out(client, Debugger.me.out);
+	}
+	
+	private static void parsePing(Client client, String[] args) {
+		Debugger.me.out(client, "pong");
+	}
+	
 	private static void parseHistory(Client client, String[] args) {
 		Debugger.me.out(client, Debugger.me.log);
 	}
 	
 	private static void parseSay(Client client, String[] args) {
 		NoiseBot.me.sendMessage(implode(args, " "));
+	}
+	
+	private static void parsePattern(Client client, String[] args) {
+		final Map<String, NoiseModule> modules;
+		try {
+			final Field field = NoiseBot.class.getDeclaredField("modules");
+			field.setAccessible(true);
+			modules = (Map<String, NoiseModule>)field.get(NoiseBot.me);
+			field.setAccessible(false);
+		} catch(Exception e) {
+			Log.e(e);
+			return;
+		}
+		
+		final NoiseModule[] modulesToTest;
+		final String testPattern;
+		if(args[0].startsWith(":")) { // Specific module
+			final String moduleName = args[0].substring(1);
+			{
+				String[] remainingArgs = new String[args.length - 1];
+				System.arraycopy(args, 1, remainingArgs, 0, remainingArgs.length);
+				testPattern = implode(remainingArgs, " ");
+			}
+			
+			if(!modules.containsKey(moduleName)) {
+				Debugger.me.out(client, "No loaded module named `" + moduleName + "'");
+				return;
+			}
+			
+			final NoiseModule module = modules.get(moduleName);
+			modulesToTest = new NoiseModule[] {module};
+		} else {
+			modulesToTest = modules.values().toArray(new NoiseModule[0]);
+			testPattern = implode(args, " ");
+		}
+
+		Debugger.me.out(client, "Testing " + modulesToTest.length + " modules");
+		nextModule:
+		for(NoiseModule module : modulesToTest) {
+			for(Pattern pattern : module.getPatterns()) {
+				if(pattern.matcher(testPattern).matches()) {
+					Debugger.me.out(client, "" + module);
+					continue nextModule;
+				}
+			}
+		}
 	}
 	
 	private static void parseQuit(Client client, String[] args) {

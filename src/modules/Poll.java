@@ -13,6 +13,8 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.Vector;
 
+import debugging.Log;
+
 import au.com.bytecode.opencsv.CSVParser;
 
 import main.Message;
@@ -69,7 +71,7 @@ public class Poll extends NoiseModule {
 			}
 		} catch(IOException e) {
 			this.bot.sendMessage(COLOR_ERROR + "Exception attempting to parse vote options");
-			e.printStackTrace();
+			Log.e(e);
 			return;
 		}
 		

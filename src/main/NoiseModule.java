@@ -17,6 +17,8 @@ import java.util.regex.Pattern;
 
 import org.jibble.pircbot.User;
 
+import debugging.Log;
+
 
 /**
  * NoiseModule
@@ -43,25 +45,28 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 	
 	public void init(NoiseBot bot) {
 		this.bot = bot;
+		Log.v(this + " - Init");
 		
 		for(Method method : this.getClass().getDeclaredMethods()) {
 			final Command command = method.getAnnotation(Command.class);
 			if(command != null) {
 				final Pattern pattern = Pattern.compile(command.value());
-				System.out.println(this + " - Added pattern " + command.value() + " for method " + method);
+				Log.i(this + " - Added pattern " + command.value() + " for method " + method);
 				this.patterns.put(pattern, method);
 			}
 
 			final PM pm = method.getAnnotation(PM.class);
 			if(pm != null) {
 				final Pattern pattern = Pattern.compile(pm.value());
-				System.out.println(this + " - Added PM pattern " + pm.value() + " for method " + method);
+				Log.i(this + " - Added PM pattern " + pm.value() + " for method " + method);
 				this.pmPatterns.put(pattern, method);
 			}
 		}
 	}
 	
-	public void unload() {}
+	public void unload() {
+		Log.v(this + " - Unload");
+	}
 	
 	public void onJoin(String sender, String login, String hostname) {this.joined(sender);}
 	public void onPart(String sender, String login, String hostname) {this.left(sender);}
@@ -94,13 +99,13 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 	public Pattern[] getPatterns() {return this.patterns.keySet().toArray(new Pattern[0]);}
 	
 	public void processMessage(Message message) {
-		System.out.println(this + " - Processing message: " + message);
+		Log.v(this + " - Processing message: " + message);
 		for(Pattern pattern : (message.isPM() ? this.pmPatterns : this.patterns).keySet()) {
-			System.out.println("Trying pattern: " + pattern);
+			Log.v("Trying pattern: " + pattern);
 			final Matcher matcher = pattern.matcher(message.getMessage());
 			if(matcher.matches()) {
-				System.out.println("Matched");
 				final Method method = (message.isPM() ? this.pmPatterns : this.patterns).get(pattern);
+				Log.i(this + " - Handling message: " +  message + " -- " + method.getDeclaringClass().getName() + "." + method.getName());
 				final Class[] params = method.getParameterTypes();
 				if(matcher.groupCount() == params.length - 1) {
 					Object[] args = new Object[params.length];
@@ -118,10 +123,10 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 					}
 					
 					try {
-						System.out.println("Invoking with " + args.length + " args");
+						Log.v("Invoking with " + args.length + " args");
 						method.invoke(this, args);
 					} catch(Exception e) {
-						e.printStackTrace();
+						Log.e(e);
 					}
 				} else {
 					throw new ArgumentMismatchException(params.length == 0 ? "Method doesn't take the mandatory Message instance" : "Expected " + (params.length - 1) + " argument" + (params.length - 1 == 1 ? "" : "s") + "; found " + matcher.groupCount());
@@ -131,12 +136,13 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 	}
 	
 	public boolean save() {
+		Log.v(this + " - Saving");
 		for(Class iface : this.getClass().getInterfaces()) {
 			if(iface == Serializable.class) {
 				try {
 					new ObjectOutputStream(new FileOutputStream(new File("store", this.getClass().getSimpleName()))).writeObject(this);
 				} catch(IOException e) {
-					e.printStackTrace();
+					Log.e(e);
 					return false;
 				}
 				return true;
@@ -146,7 +152,6 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 		return true;
 	}
 
-	@Override public int compareTo(NoiseModule other) {
-		return this.getFriendlyName().compareTo(other.getFriendlyName());
-	}
+	@Override public int compareTo(NoiseModule other) {return this.getFriendlyName().compareTo(other.getFriendlyName());}
+	@Override public String toString() {return this.getFriendlyName();}
 }

@@ -1,6 +1,7 @@
 package modules;
 
 import static org.jibble.pircbot.Colors.*;
+import debugging.Log;
 
 import panacea.MapFunction;
 
@@ -35,7 +36,7 @@ public class ModuleManager extends NoiseModule {
 				try {
 					this.bot.saveModules();
 				} catch(ModuleSaveException e) {
-					e.printStackTrace();
+					Log.e(e);
 				}
 				
 				this.bot.sendNotice("Module " + Help.COLOR_MODULE + moduleName + NORMAL + " loaded");
@@ -58,7 +59,7 @@ public class ModuleManager extends NoiseModule {
 				try {
 					this.bot.saveModules();
 				} catch(ModuleSaveException e) {
-					e.printStackTrace();
+					Log.e(e);
 				}
 
 				this.bot.sendNotice("Module " + Help.COLOR_MODULE + moduleName + NORMAL + " unloaded");

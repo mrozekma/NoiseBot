@@ -12,6 +12,8 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 
+import debugging.Log;
+
 import main.Message;
 import main.NoiseBot;
 import main.NoiseModule;
@@ -89,10 +91,10 @@ public class QDB extends NoiseModule {
 				this.bot.sendMessage(COLOR_QUOTE + line);
 		} catch(ParseException e) {
 			this.bot.reply(message, COLOR_ERROR + e.getMessage());
-			e.printStackTrace();
+			Log.e(e);
 		} catch(IOException e) {
 			this.bot.reply(message, COLOR_ERROR + "Unable to connect to QDB");
-			e.printStackTrace();
+			Log.e(e);
 		}
 	}
 
@@ -112,10 +114,10 @@ public class QDB extends NoiseModule {
 				this.bot.sendMessage(COLOR_QUOTE + line);
 		} catch(ParseException e) {
 			this.bot.reply(message, COLOR_ERROR + e.getMessage());
-			e.printStackTrace();
+			Log.e(e);
 		} catch(IOException e) {
 			this.bot.reply(message, COLOR_ERROR + "Unable to connect to QDB");
-			e.printStackTrace();
+			Log.e(e);
 		}
 	}
 
@@ -124,23 +126,25 @@ public class QDB extends NoiseModule {
 		try {
 			maxID = getMaxID();
 		} catch(IOException e) {
-			System.err.println("IOException getting max ID");
+			Log.w(e);
 			return;
 		} catch(ParseException e) {
-			System.err.println("ParseException getting max ID");
-			e.printStackTrace();
+			Log.e(e);
 			return;
 		}
 		
 		if(this.curID == 0) {
 			this.curID = maxID;
-			System.out.println("Initial QDB poll; set current ID to " + this.curID);
+			Log.i("Initial QDB poll; set current ID to " + this.curID);
 			return;
 		}
-		
-		System.out.println("QDB poll; old ID was " + this.curID + ", new ID is " + maxID);
-		if(maxID <= this.curID)
+
+		Log.v("QDB poll; old ID was " + this.curID + ", new ID is " + maxID);
+		if(maxID == this.curID) {
 			return;
+		} else if(maxID < this.curID) {
+			Log.e("QDB ID mismatch: " + maxID + " < " + this.curID);
+		}
 	
 		for(this.curID++; this.curID <= maxID; this.curID++) {
 			// try {
@@ -180,7 +184,7 @@ public class QDB extends NoiseModule {
 					downvotes = (total-score) / 2;
 				}
 			}
-		} catch(NumberFormatException e) {e.printStackTrace();}
+		} catch(NumberFormatException e) {Log.e(e);}
 
 		Elements e = doc.select("p");
 		if(e.isEmpty())

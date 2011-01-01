@@ -12,6 +12,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import debugging.Log;
+
 import main.Message;
 import main.NoiseBot;
 import main.NoiseModule;
@@ -45,7 +47,7 @@ public class Reddit extends NoiseModule {
 			this.bot.sendMessage(NoiseBot.ME, COLOR_INFO + data.getString("title") + ", " + data.getString("url") + " (posted by " + data.getString("author") + " in " + data.getString("subreddit") + " at " + new Date(data.getLong("created_utc") * 1000) + ", +" + data.getInt("ups") + "/-" + data.getInt("downs") + ", " + data.getInt("num_comments") + " comment" + (data.getInt("num_comments") == 1 ? "" : "s") + ")");
 		} catch(IOException e) {
 			this.bot.sendMessage(NoiseBot.ME, COLOR_ERROR + "Unable to connect to Reddit");
-			e.printStackTrace();
+			Log.e(e);
 		} catch(JSONException e) {}
 	}
 
@@ -62,7 +64,7 @@ public class Reddit extends NoiseModule {
 			}
 		} catch(IOException e) {
 			this.bot.sendMessage(NoiseBot.ME, COLOR_ERROR + "Unable to connect to Reddit");
-			e.printStackTrace();
+			Log.e(e);
 		} catch(JSONException e) {}
 	}
 

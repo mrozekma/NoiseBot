@@ -24,6 +24,7 @@ public class Debugger {
 	private ServerSocket server;
 	Vector<Client> clients;
 	CircularQueue<Event> log;
+	CircularQueue<String> in, out;
 	
 	static {
 		me = new Debugger();
@@ -39,6 +40,8 @@ public class Debugger {
 		
 		this.clients = new Vector<Client>();
 		this.log = new CircularQueue<Event>(500);
+		this.in = new CircularQueue<String>(50);
+		this.out = new CircularQueue<String>(50);
 
 		new Thread(new Runnable() {
 			@Override public void run() {

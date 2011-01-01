@@ -47,9 +47,10 @@ public class NoiseBot extends PircBot {
 	}};
 	
 	private static final String DEFAULT_CONNECTION = "default";
+	private static final String CMDLINE_CONNECTION = "cmdline";
 	static {
-		assert CONNECTIONS.containsKey("default") : "No 'default 'connection";
-		assert !CONNECTIONS.containsKey("cmdline") : "Connection 'cmdline' shadows command-line connection";
+		assert CONNECTIONS.containsKey(DEFAULT_CONNECTION) : "No 'default 'connection";
+		assert !CONNECTIONS.containsKey(CMDLINE_CONNECTION) : "Connection '" + CMDLINE_CONNECTION + "' shadows command-line connection";
 	}
 	
 	public static final String ME = "Morasique";
@@ -61,7 +62,8 @@ public class NoiseBot extends PircBot {
 	
 	public void quit() {
 		this.disconnect();
-		try {this.saveModules();} catch(ModuleSaveException e) {e.printStackTrace();}
+		try {this.saveModules();} catch(ModuleSaveException e) {Log.e(e);}
+		Log.i("Quiting");
 		exit();
 	}
 	
@@ -72,26 +74,27 @@ public class NoiseBot extends PircBot {
 		try {
 			this.loadModule("ModuleManager");
 		} catch(ModuleLoadException e) {
-			e.printStackTrace();
+			Log.e(e);
 		}
 		
 		final File moduleFile = new File("store", "modules");
 		if(moduleFile.exists()) {
 			try {
 				final String[] moduleNames = (String[])new ObjectInputStream(new FileInputStream(moduleFile)).readObject();
+				Log.i("Loading " + moduleNames.length + " modules from store");
 		
 				for(String moduleName : moduleNames) {
 					if(moduleName.equals("ModuleManager")) {continue;}
 					try {
 						this.loadModule(moduleName);
 					} catch(ModuleLoadException e) {
-						System.err.println("Failed loading module " + moduleName + ": " + e.getMessage());
-						e.printStackTrace();
+						Log.e("Failed loading module " + moduleName);
+						Log.e(e);
 					}
 				}
 			} catch(Exception e) {
-				System.err.println("Unable to load modules");
-				e.printStackTrace();
+				Log.e("Failed to load modules");
+				Log.e(e);
 			}
 		}
 		
@@ -111,10 +114,10 @@ public class NoiseBot extends PircBot {
 								if(!accessible) {field.setAccessible(false); newField.setAccessible(false);}
 							}
 						} catch(InvalidClassException e) {
-							System.err.println("Incompatible save file for module " + module.getClass().getSimpleName() + "; ignoring");
+							Log.e("Incompatible save file for module " + module.getClass().getSimpleName() + "; ignoring");
 						} catch(Exception e) {
-							System.err.println("Failed loading module " + module.getClass().getSimpleName());
-							e.printStackTrace();
+							Log.e("Failed loading module " + module.getClass().getSimpleName());
+							Log.e(e);
 						}
 					}
 					break;
@@ -134,12 +137,14 @@ public class NoiseBot extends PircBot {
 				}
 			}, 0);
 			
+			Log.i("Done loading revision " + this.revision.getHash());
 			this.sendNotice("NoiseBot revision " + this.revision.getHash());
 			this.sendNotice("Done loading " + moduleCount + " modules watching for " + patternCount + " patterns");
 		}
 	}
 	
 	public void saveModules() throws ModuleSaveException {
+		Log.i("Saving " + this.modules.size() + " modules to store");
 		final File moduleFile = new File("store", "modules");
 		final String[] moduleNames = this.modules.keySet().toArray(new String[0]);
 		try {
@@ -152,7 +157,7 @@ public class NoiseBot extends PircBot {
 		for(NoiseModule module : this.modules.values()) {
 			if(!module.save()) {
 				failedSaves.add(module);
-				System.err.println("Failed saving module " + module.getClass().getSimpleName());
+				Log.e("Failed saving module " + module.getClass().getSimpleName());
 			}
 		}
 		
@@ -164,6 +169,7 @@ public class NoiseBot extends PircBot {
 	}
 	
 	public void loadModule(String moduleName) throws ModuleLoadException {
+		Log.i("Loading module: " + moduleName);
 		if(this.modules.containsKey(moduleName)) {
 			throw new ModuleLoadException("Module " + moduleName + " already loaded");
 		}
@@ -179,18 +185,19 @@ public class NoiseBot extends PircBot {
 			module.init(this);
 			this.modules.put(moduleName, module);
 		} catch(ClassCastException e) {
-			e.printStackTrace();
+			Log.e(e);
 			throw new ModuleLoadException("Defined module " + moduleName + " does not extend NoiseModule");
 		} catch(ClassNotFoundException e) {
-			e.printStackTrace();
+			Log.e(e);
 			throw new ModuleLoadException("Unable to instantiate module " + moduleName + ": Module does not exist");
 		} catch(Exception e) {
-			e.printStackTrace();
+			Log.e(e);
 			throw new ModuleLoadException("Unable to instantiate module " + moduleName + ": " + e.getMessage());
 		}
 	}
 	
 	public void unloadModule(String moduleName) throws ModuleUnloadException {
+		Log.i("Unloading module: " + moduleName);
 		final Class c;
 		try {
 			c = getModuleLoader().loadClass("modules." + moduleName);
@@ -233,15 +240,15 @@ public class NoiseBot extends PircBot {
 		return false;
 	}
 
-	public void sendMessage(String message) {this.sendMessage(this.connection.getChannel(), message);}
-	public void sendAction(String action) {this.sendAction(this.connection.getChannel(), action);}
-	public void sendNotice(String notice) {this.sendNotice(this.connection.getChannel(), notice);}
+	public void sendMessage(String message) {Log.out("M> " + message); this.sendMessage(this.connection.getChannel(), message);}
+	public void sendAction(String action) {Log.out("A> " + action); this.sendAction(this.connection.getChannel(), action);}
+	public void sendNotice(String notice) {Log.out("N> " + notice); this.sendNotice(this.connection.getChannel(), notice);}
 	public void reply(Message sender, String message) {this.reply(sender.getSender(), message);}
 	public void reply(String username, String message) {this.sendMessage((username == null ? "" : username + ": ") + message);}
 
 	@Override protected void onMessage(String channel, String sender, String login, String hostname, String message) {
-		System.out.println("Received message from " + sender + " (" + login + " @ " + hostname + ") -> " + channel + ": " + message);
-		if(!channel.equals(this.connection.getChannel())) {return;}
+		Log.in("<" + sender + " (" + login + " @ " + hostname + ") -> " + channel + ": " + message);
+		if(!channel.equals(this.connection.getChannel())) {Log.w("Ignoring message to channel " + channel); return;}
 
 		for(NoiseModule module : this.modules.values()) {
 			if(module.isPrivate() && !sender.equals(ME)) {continue;}
@@ -250,13 +257,13 @@ public class NoiseBot extends PircBot {
 				module.processMessage(new Message(message.trim(), sender, false));
 			} catch(Exception e) {
 				this.sendNotice(e.getMessage());
-				e.printStackTrace();
+				Log.e(e);
 			}
 		}
 	}
 	
 	@Override protected void onPrivateMessage(String sender, String login, String hostname, String message) {
-		System.out.println("Received PM from " + sender + " (" + login + " @ " + hostname + "): " + message);
+		Log.in("<" + sender + " (" + login + " @ " + hostname + ") -> (direct): " + message);
 
 		for(NoiseModule module : this.modules.values()) {
 			if(module.isPrivate() && !sender.equals(ME)) {continue;}
@@ -265,26 +272,30 @@ public class NoiseBot extends PircBot {
 				module.processMessage(new Message(message.trim(), sender, true));
 			} catch(Exception e) {
 				this.sendNotice(sender, e.getMessage());
-				e.printStackTrace();
+				Log.e(e);
 			}
 		}
 	}
 
 	@Override protected void onJoin(String channel, String sender, String login, String hostname) {
 		if(sender.equals(this.connection.getNick())) { // Done joining channel
+			Log.v("Done joining channel: " + channel);
 			if(this.connection.getPassword() != null)
 				this.sendMessage("ChanServ", "VOICE " + this.connection.getChannel());
 			this.loadModules();
 		} else {
+			Log.v("Joined " + channel + ": " + sender + " ( " + login + "@" + hostname + ")");
 			for(NoiseModule module : this.modules.values()) {module.onJoin(sender, login, hostname);}
 		}
 	}
 
 	@Override protected void onPart(String channel, String sender, String login, String hostname) {
+		Log.v("Parted " + channel + ": " + sender + " ( " + login + "@" + hostname + ")");
 		for(NoiseModule module : this.modules.values()) {module.onPart(sender, login, hostname);}
 	}
 	
 	@Override protected void onQuit(String sourceNick, String sourceLogin, String sourceHostname, String reason) {
+		Log.v("Quit: " + sourceNick + " ( " + sourceLogin + "@" + sourceHostname + "): " + reason);
 		for(NoiseModule module : this.modules.values()) {module.onQuit(sourceNick, sourceLogin, sourceHostname, reason);}
 	}
 	
@@ -293,14 +304,17 @@ public class NoiseBot extends PircBot {
 	}
 
 	@Override protected void onKick(String channel, String kickerNick, String kickerLogin, String kickerHostname, String recipientNick, String reason) {
+		Log.v("Kick " + channel + ": " + kickerNick + " ( " + kickerLogin + "@" + kickerHostname + ") -> " + recipientNick + ": " + reason);
 		for(NoiseModule module : this.modules.values()) {module.onKick(kickerNick, kickerLogin, kickerHostname, recipientNick, reason);}
 	}
 
 	@Override protected void onTopic(String channel, String topic, String setBy, long date, boolean changed) {
+		Log.v("Topic " + channel + ": " + setBy + ": " + topic);
 		for(NoiseModule module : this.modules.values()) {module.onTopic(topic, setBy, date, changed);}
 	}
 
 	@Override protected void onNickChange(String oldNick, String login, String hostname, String newNick) {
+		Log.v("Nick change: " + oldNick + " -> " + newNick + " ( " + login + "@" + hostname+ ")");
 		for(NoiseModule module : this.modules.values()) {module.onNickChange(oldNick, login, hostname, newNick);}
 	}
 
@@ -356,12 +370,13 @@ public class NoiseBot extends PircBot {
 				this.sendNotice("Module " + Help.COLOR_MODULE + moduleName + Colors.NORMAL + " updated by " + Help.COLOR_COMMAND + transfer.getNick() + Colors.NORMAL + "; unable to reload");
 			}
 		} catch(IOException e) {
-			e.printStackTrace();
+			Log.e(e);
 		}
 	}
 	
 	@Override protected void onOp(String channel, String sourceNick, String sourceLogin, String sourceHostname, String recipient) {
 		if(recipient.equalsIgnoreCase(this.connection.getNick())) {
+			Log.v("Bot opped -- requesting deop");
 			this.sendMessage("ChanServ", "DEOP " + this.connection.getChannel());
 		}
 	}
@@ -370,9 +385,9 @@ public class NoiseBot extends PircBot {
 		final String connectionName = args.length == 0 ? DEFAULT_CONNECTION : args[0];
 		final Connection connection;
 		
-		if(connectionName.equals("cmdline")) {
+		if(connectionName.equals(CMDLINE_CONNECTION)) {
 			if(args.length != 6) {
-				System.out.println("Missing arguments for cmdline connection; expected: server port nick password channel");
+				System.out.println("Missing arguments for command-line connection; expected: server port nick password channel");
 				return;
 			}
 			

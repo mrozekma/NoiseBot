@@ -10,6 +10,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Vector;
 
+import debugging.Log;
+
 import main.Message;
 import main.NoiseBot;
 import main.NoiseModule;
@@ -76,7 +78,7 @@ public class Lebowski extends NoiseModule {
 				}
 			}
 			this.lines = linesVec.toArray(new String[0]);
-			System.out.println("Loaded lebowski file: " + this.lines.length);
+			Log.i("Loaded lebowski file: " + this.lines.length);
 		} catch(FileNotFoundException e) {
 			this.bot.sendNotice("No lebowski quotes file found");
 		} catch(IOException e) {
@@ -93,7 +95,7 @@ public class Lebowski extends NoiseModule {
 	// [a-zA-Z0-9,\\'\\\" !-][a-zA-Z0-9,\\'\\\"\\. !-]
 	@Command("([^\\.].{" + (MIN_MESSAGE - 1) + "," + (PATTERN_MAX - 1) + "})")
 	public void lebowski(Message message, String userMessage) {
-		System.out.println("Lebowski: Searching for matches for \"" + userMessage + "\"");
+		Log.i("Lebowski: Searching for matches for \"" + userMessage + "\"");
 		
 		final Vector<Match> matches = new Vector<Match>();
 		for(int lineNum = 0; lineNum < lines.length; lineNum++) {
@@ -104,7 +106,7 @@ public class Lebowski extends NoiseModule {
 			}
 		}
 		
-		System.out.println("Matches: " + matches.size());
+		Log.v("Matches: " + matches.size());
 		
 		if(!matches.isEmpty()) {
 			if(this.linesSinceLastQuote < SPACER_LINES) {

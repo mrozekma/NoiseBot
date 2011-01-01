@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.util.Scanner;
 import java.util.Vector;
 
+import debugging.Log;
 import main.Message;
 import main.NoiseBot;
 import main.NoiseModule;

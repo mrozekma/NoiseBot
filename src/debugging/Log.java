@@ -18,13 +18,22 @@ public class Log {
 	public static void w(String msg) {Debugger.me.log(Level.WARN, msg);}
 	public static void e(String msg) {Debugger.me.log(Level.ERROR, msg);}
 	
-	public static void e(Throwable e) {
+	public static void d(Throwable e) {d(parseThrowable(e));}
+	public static void v(Throwable e) {v(parseThrowable(e));}
+	public static void i(Throwable e) {i(parseThrowable(e));}
+	public static void w(Throwable e) {w(parseThrowable(e));}
+	public static void e(Throwable e) {e(parseThrowable(e));}
+	
+	public static void in(String text) {i(text); Debugger.me.in.add(text);}
+	public static void out(String text) {i(text); Debugger.me.out.add(text);}
+
+	private static String parseThrowable(Throwable e) {
 		final StringWriter sw = new StringWriter();
 		final PrintWriter pw = new PrintWriter(sw);
 		e.printStackTrace(pw);
 		pw.flush();
 		sw.flush();
 		
-		e(sw.toString());
+		return sw.toString();
 	}
 }

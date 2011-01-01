@@ -16,6 +16,8 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
+import debugging.Log;
+
 import main.Message;
 import main.NoiseModule;
 
@@ -85,16 +87,16 @@ public class Youtube extends NoiseModule {
 			}
 		} catch(ParserConfigurationException e) {
 			this.bot.sendMessage(COLOR_ERROR + "Unable to parse Youtube data");
-			e.printStackTrace();
+			Log.e(e);
 		} catch(MalformedURLException e) {
 			this.bot.sendMessage(COLOR_ERROR + "Unable to contact Youtube");
-			e.printStackTrace();
+			Log.e(e);
 		} catch(SAXException e) {
 			this.bot.sendMessage(COLOR_ERROR + "Unable to contact Youtube");
-			e.printStackTrace();
+			Log.e(e);
 		} catch(IOException e) {
 			this.bot.sendMessage(COLOR_ERROR + "Unable to contact Youtube");
-			e.printStackTrace();
+			Log.e(e);
 		}
 	}
 	

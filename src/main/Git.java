@@ -7,6 +7,8 @@ import java.util.Scanner;
 import java.util.TreeSet;
 import java.util.Vector;
 
+import debugging.Log;
+
 public class Git {
 	public static class SyncException extends RuntimeException {
 		public SyncException(String msg) {super(msg);}
@@ -51,7 +53,7 @@ public class Git {
 				revs.add(new Revision(parts[0], parts[1], parts[2]));
 			}
 		} catch(IOException e) {
-			e.printStackTrace();
+			Log.e(e);
 		}
 
 		return revs.toArray(new Revision[0]);
@@ -77,7 +79,7 @@ public class Git {
 					return true;
 			}
 		} catch(IOException e) {
-			e.printStackTrace();
+			Log.e(e);
 		}
 		
 		return false;
@@ -153,11 +155,8 @@ public class Git {
 	public static String[] affectedModules(String from, String to) throws SyncException {
 		TreeSet<String> moduleNames = new TreeSet<String>();
 		try {
-			System.out.println(from + ".." + to);
 			for(File f : getFiles(from, to)) {
-				System.out.println(f);
 				final String filename = filterFilename(f.getCanonicalPath());
-				System.out.println(filename);
 				if(filename.endsWith(".java")) {
 					final String moduleName = f.getName().replace(".java", "");
 					moduleNames.add(moduleName);

@@ -32,7 +32,7 @@ public class Client {
 		this.socket = socket;
 		this.in = new Scanner(this.socket.getInputStream());
 		this.out = new PrintWriter(this.socket.getOutputStream(), true);
-		this.authentication = null;
+		this.authentication = ""; // null; //NO
 		this.nick = null;
 		this.activeLevels = new HashMap<String, Set<Level>>();
 

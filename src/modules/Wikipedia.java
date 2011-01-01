@@ -19,6 +19,8 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
+import debugging.Log;
+
 import main.Message;
 import main.NoiseModule;
 import static main.Utilities.*;
@@ -122,16 +124,16 @@ public class Wikipedia extends NoiseModule {
 			this.bot.sendMessage(COLOR_ERROR + "No title found");
 		} catch(ParserConfigurationException e) {
 			this.bot.sendMessage(COLOR_ERROR + "Unable to parse Wikipedia data");
-			e.printStackTrace();
+			Log.e(e);
 		} catch(MalformedURLException e) {
 			this.bot.sendMessage(COLOR_ERROR + "Unable to contact Wikipedia");
-			e.printStackTrace();
+			Log.e(e);
 		} catch(SAXException e) {
 			this.bot.sendMessage(COLOR_ERROR + "Unable to contact Wikipedia");
-			e.printStackTrace();
+			Log.e(e);
 		} catch(IOException e) {
 			this.bot.sendMessage(COLOR_ERROR + "Unable to contact Wikipedia");
-			e.printStackTrace();
+			Log.e(e);
 		}
 	}
 
