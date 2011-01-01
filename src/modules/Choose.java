@@ -2,6 +2,12 @@ package modules;
 
 import static org.jibble.pircbot.Colors.*;
 
+import java.util.Arrays;
+import java.util.Set;
+import java.util.TreeSet;
+
+import panacea.MapFunction;
+
 import main.Message;
 import main.NoiseModule;
 import static panacea.Panacea.*;
@@ -17,10 +23,17 @@ public class Choose extends NoiseModule {
 	
 	@Command("\\.(?:choose|choice) (.*)")
 	public void choose(Message message, String opts) {
-		if(opts.contains(","))
-			this.bot.reply(message, CHOICE_COLOR + getRandom(opts.split(",")).trim());
+		final Set<String> options = new TreeSet<String>();
+		options.addAll(Arrays.asList(map(opts.split(","), new MapFunction<String, String>() {
+			@Override public String map(String source) {
+				return source.trim();
+			}
+		})));
+		
+		if(options.size() > 1)
+			this.bot.reply(message, CHOICE_COLOR + getRandom(options.toArray(new String[0])).trim());
 		else
-			this.bot.reply(message, "You're having me choose from a set of one...fine, " + CHOICE_COLOR + opts.trim());
+			this.bot.reply(message, "You're having me choose from a set of one...fine, " + CHOICE_COLOR + options.iterator().next());
 	}
 	
 	@Override public String getFriendlyName() {return "Choose";}
