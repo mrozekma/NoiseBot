@@ -94,6 +94,8 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 	// Doesn't show in the help listing, and only I can trigger
 	public boolean isPrivate() {return false;}
 	
+	public File[] getDependentFiles() {return new File[0];}
+	
 	public Pattern[] getPatterns() {return this.patterns.keySet().toArray(new Pattern[0]);}
 	
 	public void processMessage(Message message) {

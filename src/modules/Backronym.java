@@ -21,6 +21,7 @@ import static panacea.Panacea.*;
  *         Created Sep 11, 2010.
  */
 public class Backronym extends NoiseModule {
+	private static final File DICTIONARY_FILE = new File("/usr/share/dict/words");
 	private static final String COLOR_ERROR = RED;
 	private static final String COLOR_RESPONSE = GREEN;
 	
@@ -35,7 +36,7 @@ public class Backronym extends NoiseModule {
 		}
 		
 		try {
-			final Scanner s = new Scanner(new File("/usr/share/dict/words"));
+			final Scanner s = new Scanner(DICTIONARY_FILE);
 			while(s.hasNextLine()) {
 				final String word = s.nextLine();
 				words.get(Character.toLowerCase(word.charAt(0))).add(word);
@@ -77,4 +78,5 @@ public class Backronym extends NoiseModule {
 				".b -- Same as .backronym"
 		};
 	}
+	@Override public File[] getDependentFiles() {return new File[] {DICTIONARY_FILE};}
 }

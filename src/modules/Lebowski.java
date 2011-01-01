@@ -41,6 +41,8 @@ public class Lebowski extends NoiseModule {
 		public int getPos() {return this.pos;}
 	}
 	
+	private static File TRANSCRIPT_FILE = new File("lebowski");
+	
 	private static final int CHAR_MAX = 127;
 	private static final int PATTERN_MAX = 31;
 
@@ -70,7 +72,7 @@ public class Lebowski extends NoiseModule {
 		try {
 			final Vector<String> linesVec = new Vector<String>();
 			// I'd love to know why Scanner can't read this file...
-			final BufferedReader r = new BufferedReader(new FileReader(new File("lebowski")));
+			final BufferedReader r = new BufferedReader(new FileReader(TRANSCRIPT_FILE));
 			String line;
 			while((line = r.readLine()) != null) {
 				if(!line.isEmpty()) {
@@ -211,4 +213,5 @@ public class Lebowski extends NoiseModule {
 				".next -- Outputs the next quote after the one most recently said"
 		};
 	}
+	@Override public File[] getDependentFiles() {return new File[] {TRANSCRIPT_FILE};}
 }

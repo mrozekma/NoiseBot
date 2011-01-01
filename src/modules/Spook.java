@@ -20,13 +20,15 @@ import static panacea.Panacea.*;
  *         Created Jun 16, 2009.
  */
 public class Spook extends NoiseModule {
+	private static File SPOOK_FILE = new File("spook.lines");
+	
 	private String[] lines;
 	
 	@Override public void init(NoiseBot bot) {
 		super.init(bot);
 		try {
 			final Vector<String> linesVec = new Vector<String>();
-			final Scanner s = new Scanner(new File("spook.lines"));
+			final Scanner s = new Scanner(SPOOK_FILE);
 			while(s.hasNextLine()) {
 				linesVec.add(substring(s.nextLine(), 0, -1));
 			}
@@ -60,4 +62,5 @@ public class Spook extends NoiseModule {
 				".spook"
 		};
 	}
+	@Override public File[] getDependentFiles() {return new File[] {SPOOK_FILE};}
 }

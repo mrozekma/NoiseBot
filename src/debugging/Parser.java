@@ -103,17 +103,7 @@ public class Parser {
 	}
 	
 	private static void parsePattern(Client client, String[] args) {
-		final Map<String, NoiseModule> modules;
-		try {
-			final Field field = NoiseBot.class.getDeclaredField("modules");
-			field.setAccessible(true);
-			modules = (Map<String, NoiseModule>)field.get(NoiseBot.me);
-			field.setAccessible(false);
-		} catch(Exception e) {
-			Log.e(e);
-			return;
-		}
-		
+		final Map<String, NoiseModule> modules = NoiseBot.me.getModules();
 		final NoiseModule[] modulesToTest;
 		final String testPattern;
 		if(args[0].startsWith(":")) { // Specific module

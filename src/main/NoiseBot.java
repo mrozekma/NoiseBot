@@ -67,7 +67,7 @@ public class NoiseBot extends PircBot {
 		exit();
 	}
 	
-	public NoiseModule[] getModules() {return this.modules.values().toArray(new NoiseModule[0]);}
+	public Map<String, NoiseModule> getModules() {return this.modules;}
 	
 	private void loadModules() {
 		// Always load the module manager

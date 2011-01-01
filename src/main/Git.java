@@ -3,6 +3,8 @@ package main;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.TreeSet;
 import java.util.Vector;
@@ -153,13 +155,22 @@ public class Git {
 	}
 	
 	public static String[] affectedModules(String from, String to) throws SyncException {
+		final Map<File, String> dependentFiles = new HashMap<File, String>();
+		{
+			final Map<String, NoiseModule> modules = NoiseBot.me.getModules();
+			for(Map.Entry<String, NoiseModule> entry : modules.entrySet()) {
+				dependentFiles.put(new File("src/modules", entry.getKey() + ".java"), entry.getKey());
+				for(File f : entry.getValue().getDependentFiles()) {
+					dependentFiles.put(f, entry.getKey());
+				}
+			}
+		}
+		
 		TreeSet<String> moduleNames = new TreeSet<String>();
 		try {
 			for(File f : getFiles(from, to)) {
-				final String filename = filterFilename(f.getCanonicalPath());
-				if(filename.endsWith(".java")) {
-					final String moduleName = f.getName().replace(".java", "");
-					moduleNames.add(moduleName);
+				if(dependentFiles.containsKey(f)) {
+					moduleNames.add(dependentFiles.get(f));
 				}
 			}
 		} catch(IOException e) {

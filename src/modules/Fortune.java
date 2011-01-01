@@ -18,13 +18,15 @@ import static panacea.Panacea.*;
  *         Created Jun 16, 2009.
  */
 public class Fortune extends NoiseModule {
+	private static File FORTUNE_FILE = new File("fortunes");
+	
 	private String[] fortunes;
 	
 	@Override public void init(NoiseBot bot) {
 		super.init(bot);
 		try {
 			final Vector<String> fortunesVec = new Vector<String>();
-			final Scanner s = new Scanner(new File("fortunes"));
+			final Scanner s = new Scanner(FORTUNE_FILE);
 			while(s.hasNextLine()) {
 				fortunesVec.add(s.nextLine());
 			}
@@ -46,4 +48,5 @@ public class Fortune extends NoiseModule {
 				".fortune"
 		};
 	}
+	@Override public File[] getDependentFiles() {return new File[] {FORTUNE_FILE};}
 }
