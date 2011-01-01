@@ -210,7 +210,8 @@ public class Lebowski extends NoiseModule {
 		return new String[] {
 				"Where's the money, Lebowski?",
 				"You're entering a world of pain",
-				".next -- Outputs the next quote after the one most recently said"
+				".next -- Outputs the next quote after the one most recently said",
+				".other -- Outputs another quote that matches the last pattern"
 		};
 	}
 	@Override public File[] getDependentFiles() {return new File[] {TRANSCRIPT_FILE};}
