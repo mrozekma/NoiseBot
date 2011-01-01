@@ -70,5 +70,4 @@ public class Help extends NoiseModule {
 				".help _module_ -- Shows the description of _module_ and some usage examples"
 		};
 	}
-	@Override public String getOwner() {return "Morasique";}
 }

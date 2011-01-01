@@ -33,5 +33,4 @@ public class Ping extends NoiseModule {
 				this.bot.getNick() + "!"
 		};
 	}
-	@Override public String getOwner() {return "Morasique";}
 }

@@ -81,5 +81,4 @@ public class Translate extends NoiseModule {
 				".translate \"_message_\" -- Guess the from language and translate to English"
 		};
 	}
-	@Override public String getOwner() {return "Morasique";}
 }

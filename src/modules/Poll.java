@@ -169,7 +169,6 @@ public class Poll extends NoiseModule {
 				".cancelpoll -- Cancel the poll if no votes have been cast yet"
 		};
 	}
-	@Override public String getOwner() {return "Morasique";}
 
 	@Override public void unload() {
 		if(this.pollTimer != null) {

@@ -107,5 +107,4 @@ public class Youtube extends NoiseModule {
 				"http://www.youtube.com/watch?v=Yu_moia-oVI"
 		};
 	}
-	@Override public String getOwner() {return "Morasique";}
 }

@@ -76,5 +76,4 @@ public class SO extends NoiseModule {
 			"http://unix.stackexchange.com/questions/1262/where-did-the-wheel-group-get-its-name/1271#1271",
 		};
 	}
-	@Override public String getOwner() {return "Morasique";}
 }

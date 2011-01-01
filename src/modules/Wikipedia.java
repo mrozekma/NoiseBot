@@ -146,5 +146,4 @@ public class Wikipedia extends NoiseModule {
 				".featured -- Show the wikipedia definition for the current featured article"
 		};
 	}
-	@Override public String getOwner() {return "Morasique";}
 }

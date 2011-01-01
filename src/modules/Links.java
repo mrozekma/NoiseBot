@@ -66,5 +66,4 @@ public class Links extends NoiseModule {
 				".lasturls -- Shows the last " + this.lastN.length + " URLs sent to the channel"
 		};
 	}
-	@Override public String getOwner() {return "Morasique";}
 }

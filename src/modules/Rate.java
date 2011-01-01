@@ -66,5 +66,4 @@ public class Rate extends NoiseModule {
 				".rate _nick_ -- Display how often _nick_ speaks in the channel"
 		};
 	}
-	@Override public String getOwner() {return "Morasique";}
 }

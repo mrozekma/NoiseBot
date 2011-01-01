@@ -142,5 +142,4 @@ public class ModuleManager extends NoiseModule {
 				".rev -- Show the current revision"
 		};
 	}
-	@Override public String getOwner() {return "Morasique";}
 }

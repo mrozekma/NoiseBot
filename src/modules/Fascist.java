@@ -22,5 +22,4 @@ public class Fascist extends NoiseModule {
 				"He's a fascist"
 		};
 	}
-	@Override public String getOwner() {return "Morasique";}
 }

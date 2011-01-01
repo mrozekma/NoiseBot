@@ -36,5 +36,4 @@ public class Wheel extends NoiseModule {
 				".wheel -- Choose a random user and slap them"
 		};
 	}
-	@Override public String getOwner() {return "Morasique";}
 }

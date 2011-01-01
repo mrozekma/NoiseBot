@@ -91,8 +91,6 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 	public abstract String getDescription();
 	public abstract String[] getExamples();
 	
-	public String getOwner() {return ".*";}
-	
 	// Doesn't show in the help listing, and only I can trigger
 	public boolean isPrivate() {return false;}
 	

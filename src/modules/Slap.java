@@ -29,5 +29,4 @@ public class Slap extends NoiseModule {
 				".slap _nick_ -- Slap the specified nick"
 		};
 	}
-	@Override public String getOwner() {return "Morasique";}
 }

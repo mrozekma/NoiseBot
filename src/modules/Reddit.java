@@ -76,5 +76,4 @@ public class Reddit extends NoiseModule {
 			"http://nflath.com/2009/07/the-dangers-of-stringsubstring/"
 		};
 	}
-	@Override public String getOwner() {return "Morasique";}
 }

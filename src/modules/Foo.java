@@ -12,5 +12,4 @@ public class Foo extends NoiseModule {
 	@Override public String getFriendlyName() {return "Foo";}
 	@Override public String getDescription() {return "DCC test module";}
 	@Override public String[] getExamples() {return null;}
-	@Override public String getOwner() {return "Morasique";}
 }

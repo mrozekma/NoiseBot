@@ -46,5 +46,4 @@ public class Fortune extends NoiseModule {
 				".fortune"
 		};
 	}
-	@Override public String getOwner() {return "Morasique";}
 }

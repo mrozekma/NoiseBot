@@ -53,7 +53,6 @@ public class Twitter extends NoiseModule {
 	@Override public String[] getExamples() {
 		return new String[] {};
 	}
-	@Override public String getOwner() {return "Morasique";}
 	
 	/*
 	private static final int LENGTH = 140;

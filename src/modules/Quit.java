@@ -35,5 +35,4 @@ public class Quit extends NoiseModule {
 	@Override public String getDescription() {return "Makes the bot leave IRC";}
 	@Override public String[] getExamples() {return null;}
 	@Override public boolean isPrivate() {return true;}
-	@Override public String getOwner() {return "Morasique";}
 }

@@ -44,5 +44,4 @@ public class Christmas extends NoiseModule {
 		return new String[] {
 		};
 	}
-	@Override public String getOwner() {return "Morasique";}
 }

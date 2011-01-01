@@ -31,5 +31,4 @@ public class Choose extends NoiseModule {
 				".choice _opt1_,_opt2_,... -- Same as above"
 		};
 	}
-	@Override public String getOwner() {return "Morasique";}
 }

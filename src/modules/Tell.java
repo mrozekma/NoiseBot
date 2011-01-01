@@ -69,5 +69,4 @@ public class Tell extends NoiseModule implements Serializable {
 				".ask _nick_ _question_ -- Same as .tell"
 		};
 	}
-	@Override public String getOwner() {return "Morasique";}
 }

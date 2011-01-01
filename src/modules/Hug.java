@@ -28,5 +28,4 @@ public class Hug extends NoiseModule {
 				".hug _nick_ -- Hug the specified nick"
 		};
 	}
-	@Override public String getOwner() {return "Morasique";}
 }

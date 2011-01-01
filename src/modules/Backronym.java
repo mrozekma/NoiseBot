@@ -77,5 +77,4 @@ public class Backronym extends NoiseModule {
 				".b -- Same as .backronym"
 		};
 	}
-	@Override public String getOwner() {return "Morasique";}
 }

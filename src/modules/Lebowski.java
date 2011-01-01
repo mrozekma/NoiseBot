@@ -211,5 +211,4 @@ public class Lebowski extends NoiseModule {
 				".next -- Outputs the next quote after the one most recently said"
 		};
 	}
-	@Override public String getOwner() {return "Morasique";}
 }

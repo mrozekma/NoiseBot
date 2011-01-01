@@ -47,5 +47,4 @@ public class Cloud extends NoiseModule {
 				".kill -- Kill a random user"
 		};
 	}
-	@Override public String getOwner() {return "Morasique";}
 }

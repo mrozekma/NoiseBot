@@ -233,5 +233,4 @@ public class QDB extends NoiseModule {
 				".quote _id_ -- Same as .qdb"
 		};
 	}
-	@Override public String getOwner() {return "Morasique";}
 }

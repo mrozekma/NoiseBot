@@ -318,62 +318,6 @@ public class NoiseBot extends PircBot {
 		for(NoiseModule module : this.modules.values()) {module.onNickChange(oldNick, login, hostname, newNick);}
 	}
 
-	@Override protected void onIncomingFileTransfer(DccFileTransfer transfer) {
-		if(!transfer.getFile().getName().endsWith(".java")) {
-			this.sendMessage(transfer.getNick(), "I only accept Java source files");
-			return;
-		}
-		
-		final String moduleName = transfer.getFile().getName().replaceAll("\\.java$", "");
-		
-		try {
-			final Class c = getModuleLoader().loadClass("modules." + moduleName);
-			if(!Pattern.matches(((NoiseModule)c.newInstance()).getOwner(), transfer.getNick())) {
-				this.sendMessage(transfer.getNick(), "There is already a module named " + moduleName + " that you do not own");
-				return;
-			}
-		} catch(ClassNotFoundException e) {
-		} catch(InstantiationException e) {
-		} catch(IllegalAccessException e) {}
-		
-		final File store = new File("upload", transfer.getFile().getName());
-		transfer.receive(store, false);
-	}
-	
-	@Override protected void onFileTransferFinished(DccFileTransfer transfer, Exception transferException) {
-		if(transferException != null) {
-			this.sendMessage(transfer.getNick(), "Transfer failed: " + transferException.getMessage());
-			return;
-		}
-		
-		final File upload = transfer.getFile();
-		final File module = new File("src/modules", upload.getName());
-		upload.renameTo(module);
-		final String moduleName = transfer.getFile().getName().replaceAll("\\.java$", "");
-		
-		final JavaCompiler c = ToolProvider.getSystemJavaCompiler();
-		try {
-			final int result = c.run(null, null, null, "-cp", "pircbot.jar:bin", "-d", "bin", module.getCanonicalPath());
-			if(result != 0) {
-				System.out.println(module.getCanonicalPath());
-				this.sendMessage(transfer.getNick(), "Compile failed; error code " + result);
-				return;
-			}
-			this.sendMessage(transfer.getNick(), "Module " + moduleName + " compiled");
-			try {
-				this.unloadModule(moduleName);
-				this.loadModule(moduleName);
-				this.sendNotice("Module " + Help.COLOR_MODULE + moduleName + Colors.NORMAL + " updated and reloaded by " + Help.COLOR_COMMAND + transfer.getNick());
-			} catch(ModuleUnloadException e) {
-				this.sendNotice("Module " + Help.COLOR_MODULE + moduleName + Colors.NORMAL + " updated by " + Help.COLOR_COMMAND + transfer.getNick() + Colors.NORMAL + "; left unloaded");
-			} catch(ModuleLoadException e) {
-				this.sendNotice("Module " + Help.COLOR_MODULE + moduleName + Colors.NORMAL + " updated by " + Help.COLOR_COMMAND + transfer.getNick() + Colors.NORMAL + "; unable to reload");
-			}
-		} catch(IOException e) {
-			Log.e(e);
-		}
-	}
-	
 	@Override protected void onOp(String channel, String sourceNick, String sourceLogin, String sourceHostname, String recipient) {
 		if(recipient.equalsIgnoreCase(this.connection.getNick())) {
 			Log.v("Bot opped -- requesting deop");

@@ -60,5 +60,4 @@ public class Spook extends NoiseModule {
 				".spook"
 		};
 	}
-	@Override public String getOwner() {return "Morasique";}
 }

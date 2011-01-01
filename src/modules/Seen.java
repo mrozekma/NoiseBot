@@ -59,5 +59,4 @@ public class Seen extends NoiseModule implements Serializable {
 				".seen _nick_ -- Returns the last time the specified nick was in-channel"
 		};
 	}
-	@Override public String getOwner() {return "Morasique";}
 }
