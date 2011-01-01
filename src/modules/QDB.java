@@ -139,13 +139,13 @@ public class QDB extends NoiseModule {
 			return;
 		}
 
-		Log.v("QDB poll; old ID was " + this.curID + ", new ID is " + maxID);
 		if(maxID == this.curID) {
 			return;
 		} else if(maxID < this.curID) {
 			Log.e("QDB ID mismatch: " + maxID + " < " + this.curID);
 		}
 	
+		Log.i("QDB poll; old ID was " + this.curID + ", new ID is " + maxID);
 		for(this.curID++; this.curID <= maxID; this.curID++) {
 			// try {
 				// for(String line : getQuote(this.curID))
