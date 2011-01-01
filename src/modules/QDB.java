@@ -150,7 +150,7 @@ public class QDB extends NoiseModule {
 			// try {
 				// for(String line : getQuote(this.curID))
 					// this.bot.sendMessage(COLOR_QUOTE + line);
-				this.bot.sendMessage(" -- http://lug.rose-hulman.edu/qdb/" + this.curID);
+				this.bot.sendMessage("http://lug.rose-hulman.edu/qdb/" + this.curID);
 			// } catch(IOException e) {
 			// } catch(ParseException e) {}
 		}
