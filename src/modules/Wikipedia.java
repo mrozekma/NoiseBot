@@ -70,6 +70,16 @@ public class Wikipedia extends NoiseModule {
 			return term;
 	}
 	*/
+
+	private String encoded(final String s) {
+		try {
+			final byte bytes[] = s.getBytes("UTF8");
+			return new String(bytes, "ISO8859_1");
+		} catch (UnsupportedEncodingException e) {
+			this.bot.sendMessage(COLOR_ERROR + "He looks like a fuckin' loser.");
+			return s;
+		}
+	}
 	
 	private void sendEntry(final String term, final String url) {
 		final Document doc;
@@ -83,12 +93,12 @@ public class Wikipedia extends NoiseModule {
 			return;
 		}
 		
-		String text = doc.select("div#bodyContent > p").first().text();
-		while(text.length() + url.length() + 7 > MAXIMUM_MESSAGE_LENGTH && text.contains(" ")) {
+		String text = encoded(doc.select("div#bodyContent > p").first().text());
+		while(text.length() + url.length() + 8 > MAXIMUM_MESSAGE_LENGTH && text.contains(" ")) {
 			text = text.substring(0, text.lastIndexOf(' '));
 		}
-		if(!text.endsWith("...")) {text += "...";}
-		text += " -- " + url;
+		if(!text.endsWith("...")) {text += "\u00e2\u0080\u00a6";}
+		text += " \u00e2\u0080\u0094 " + url;
 		this.bot.sendMessage(text);
 	}
 	
