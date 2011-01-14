@@ -45,7 +45,12 @@ public class Wheel extends NoiseModule implements Serializable {
 		this.save();
 
 		final String[] adverbs = new String[] {
-			"disapprovingly", "with great prejudice", "pimpingly", "righteously", "with a squid"
+			"", "disapprovingly", "with great prejudice", "pimpingly", "righteously", "with a squid",
+			"with a telephone pole", "with a hatchet", "with a fist of fury", "with a baguette",
+			"with a flaming piece of carpet", "absentmindedly", "judgmentally", "owlishly", "lazily",
+			"unethically", "zealously", "majestically", "with an acid-filled flask", "with a chair",
+			"surrealistically", "with a lightbulb", "with a bucket full of lobsters", "viciously",
+			"quizzically", "with a chainsaw", "quixotically", 
 		};
 
 		this.bot.sendAction("slaps " + choice + " " + getRandom(adverbs));
