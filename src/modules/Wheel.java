@@ -28,7 +28,11 @@ public class Wheel extends NoiseModule implements Serializable {
 	
 	@Command("\\.wheel")
 	public void wheel(Message message) {
-		this.bot.sendMessage("Spin, Spin, Spin! the wheel of justice");
+		final String[] wheels = new String[] {
+			"justice", "misfortune", "fire", // THIS LIST MUST GROW!
+		};
+	
+		this.bot.sendMessage("Spin, Spin, Spin! the wheel of " + getRandom(wheels));
 		sleep(2);
 		
 		final User[] users = this.bot.getUsers();
@@ -39,7 +43,12 @@ public class Wheel extends NoiseModule implements Serializable {
 		
 		this.victims.put(choice, (this.victims.containsKey(choice) ? this.victims.get(choice) : 0) + 1);
 		this.save();
-		this.bot.sendAction("slaps " + choice);
+
+		final String[] adverbs = new String[] {
+			"disapprovingly", "with great prejudice", "pimpingly", "righteously", "with a squid"
+		};
+
+		this.bot.sendAction("slaps " + choice + " " + getRandom(adverbs));
 	}
 	
 	@Command("\\.wheelstats")
