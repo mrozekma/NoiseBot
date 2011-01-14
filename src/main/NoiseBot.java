@@ -2,6 +2,7 @@ package main;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.UnsupportedEncodingException;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -343,6 +344,11 @@ public class NoiseBot extends PircBot {
 		me = this;
 		Log.i("NoiseBot has started");
 		this.connection = connection;
+		try {
+			this.setEncoding("ISO8859_1");
+		} catch (UnsupportedEncodingException e) {
+			System.err.println("Unable to set encoding: " + e.getMessage());
+		}
 		this.setName(this.connection.getNick());
 		this.setLogin(this.connection.getNick());
 		try {
