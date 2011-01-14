@@ -72,8 +72,13 @@ public class Wikipedia extends NoiseModule {
 	*/
 
 	private String encoded(final String s) {
-		final byte bytes[] = s.getBytes("UTF8");
-		return String(bytes, "ISO8859_1");
+		try {
+			final byte bytes[] = s.getBytes("UTF8");
+			return new String(bytes, "ISO8859_1");
+		} catch (UnsupportedEncodingException e) {
+			this.bot.sendMessage(COLOR_ERROR + "He looks like a fuckin' loser.");
+			return s;
+		}
 	}
 	
 	private void sendEntry(final String term, final String url) {
