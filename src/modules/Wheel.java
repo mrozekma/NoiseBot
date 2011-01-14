@@ -30,7 +30,7 @@ public class Wheel extends NoiseModule implements Serializable {
 	@Command("\\.wheel")
 	public void wheel(Message message) {
 		final String[] wheels = new String[] {
-			"justice", "misfortune", "fire", // THIS LIST MUST GROW!
+			"justice", "misfortune", "fire", "blame" // THIS LIST MUST GROW!
 		};
 	
 		this.bot.sendMessage("Spin, Spin, Spin! the wheel of " + getRandom(wheels));

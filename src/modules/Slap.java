@@ -21,7 +21,7 @@ public class Slap extends NoiseModule {
 			"with a flaming piece of carpet", "absentmindedly", "judgmentally", "owlishly", "lazily",
 			"unethically", "zealously", "majestically", "with an acid-filled flask", "with a chair",
 			"surrealistically", "with a lightbulb", "with a bucket full of lobsters", "viciously",
-			"quizzically", "with a chainsaw", "quixotically", 
+			"quizzically", "with a chainsaw", "quixotically", "with a pound of bacon", "with a platypus", 
 		};
 		
 		return "slaps " + victim + " " + getRandom(adverbs);
