@@ -75,55 +75,6 @@ public class ModuleManager extends NoiseModule {
 		this.loadModules(message, moduleNames);
 	}
 	
-	@Command("\\.(?:co|sync)(?: (.*))?")
-	public void sync(Message message, String branch) {
-		if(branch == null)
-			branch = "new";
-		
-		try {
-			final Git.Revision[] revs = Git.diff("master", branch);
-			
-			if(branch.equalsIgnoreCase("master"))
-				throw new Git.SyncException("Can't sync to master");
-			if(!Git.branchExists(branch))
-				throw new Git.SyncException("No branch named " + branch);
-			if(revs.length == 0)
-				throw new Git.SyncException(branch + " points to master");
-			
-			Git.sync(branch);
-			final String[] moduleNames = Git.affectedModules(this.bot.revision.getHash(), "HEAD");
-			this.bot.revision = Git.head();
-			if(moduleNames.length == 0)
-				throw new Git.SyncException("No classes changed by " + branch);
-			final String[] coloredNames = map(moduleNames, new MapFunction<String, String>() {
-				@Override public String map(String name) {
-					return Help.COLOR_MODULE +  name + NORMAL;
-				}
-			});
-
-			for(String moduleName : moduleNames) {
-				try {
-					this.bot.unloadModule(moduleName);
-				} catch(ModuleUnloadException e) {}
-
-				if(!moduleName.equals("ModuleManager")) {
-					try {
-						this.bot.loadModule(moduleName);
-					} catch(ModuleLoadException e) {
-						throw new Git.SyncException("Unable to load module " + moduleName);
-					}
-				}
-			}
-			
-			this.bot.sendNotice("Merged " + pluralize(revs.length, "revision", "revisions") + ":");
-			for(Git.Revision rev : reverse(revs))
-				this.bot.sendNotice("    " + rev);
-			this.bot.sendNotice("Reloaded modules: " + implode(coloredNames, ", "));
-		} catch(Git.SyncException e) {
-			this.bot.sendNotice(COLOR_ERROR + e.getMessage());
-		}
-	}
-	
 	@Command("\\.rev")
 	public void rev(Message message) {
 		final Git.Revision rev = this.bot.revision;
