@@ -27,7 +27,7 @@ import static modules.Slap.slapUser;
 public class Wheel extends NoiseModule implements Serializable {
 	private Map<String, Integer> victims = new HashMap<String, Integer>();
 	
-	@Command("\\.(wheel|spin)")
+	@Command("\\.(?:wheel|spin)")
 	public void wheel(Message message) {
 		final String[] wheels = new String[] {
 			"justice", "misfortune", "fire", "blame", "doom" // THIS LIST MUST GROW!
