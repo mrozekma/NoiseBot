@@ -9,11 +9,11 @@ CLASSPATH := bin:src:lib/*
 all: $(OBJECTS)
 
 run: $(OBJECTS)
-	java -ea -Xms32m -Xmx512m main.NoiseBot
+	java -cp $(CLASSPATH) -ea -Xms32m -Xmx512m main.NoiseBot
 
 clean:
 	rm -rf bin
 
 $(OBJECTS): $(SOURCES)
 	mkdir -p bin
-	javac -d bin $+
+	javac -cp $(CLASSPATH) -d bin $+
