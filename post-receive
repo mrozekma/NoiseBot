@@ -1,0 +1,32 @@
+#!/bin/sh
+
+BRANCH=$(tail -n 1 | cut -d' ' -f3)
+MASTER=$(git show-ref -s refs/heads/master)
+GIT_DIR=$(readlink -f "$GIT_DIR")
+SRC_DIR=$(readlink -f "$GIT_DIR/..")
+cd "$SRC_DIR"
+
+# We only care about updating master
+if [ "$BRANCH" != "refs/heads/sync" ]; then
+	return 0;
+fi
+
+# Merge sync into master
+if git merge --ff-only $BRANCH; then
+	git branch -d sync
+else
+	git branch -D sync
+	exit -1
+fi
+
+# Rebuild objects
+if make all; then
+	netcat -e 'echo -n sync' localhost 41932
+else
+	git reset --hard $MASTER
+	make clean
+	make all
+fi
+
+# Let other people commit too
+chmod -Rf g+w bin
