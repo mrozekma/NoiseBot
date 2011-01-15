@@ -107,6 +107,8 @@ public class Debugger {
 			} else if(command.startsWith("code ")) {
 				final String code = command.substring(5);
 				client.authenticate(code);
+			} else if(command.equals("sync")) {
+				NoiseBot.me.sync();
 			} else {
 				client.send("Unauthenticated");
 			}

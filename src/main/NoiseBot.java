@@ -16,9 +16,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
 
+import static org.jibble.pircbot.Colors.NORMAL;
 import static panacea.Panacea.*;
 
+import debugging.Client;
 import debugging.Log;
+
+import modules.Help;
 
 import org.jibble.pircbot.IrcException;
 import org.jibble.pircbot.NickAlreadyInUseException;
@@ -232,6 +236,38 @@ public class NoiseBot extends PircBot {
 			}
 		}
 		return false;
+	}
+	
+	public void sync() {
+		final Git.Revision[] revs = Git.diff(this.revision.getHash(), "HEAD");
+		final String[] moduleNames = Git.affectedModules(this.revision.getHash(), "HEAD");
+		this.revision = Git.head();
+		if(moduleNames.length == 0)
+			this.sendNotice("Unable to sync -- No classes changed");
+		final String[] coloredNames = map(moduleNames, new MapFunction<String, String>() {
+			@Override public String map(String name) {
+				return Help.COLOR_MODULE +  name + NORMAL;
+			}
+		});
+
+		for(String moduleName : moduleNames) {
+			try {
+				this.unloadModule(moduleName);
+			} catch(ModuleUnloadException e) {}
+
+			if(!moduleName.equals("ModuleManager")) {
+				try {
+					this.loadModule(moduleName);
+				} catch(ModuleLoadException e) {
+					throw new Git.SyncException("Unable to load module " + moduleName);
+				}
+			}
+		}
+		
+		this.sendNotice("Synced " + pluralize(revs.length, "revision", "revisions") + ":");
+		for(Git.Revision rev : reverse(revs))
+			this.sendNotice("    " + rev);
+		this.sendNotice("Reloaded modules: " + implode(coloredNames, ", "));
 	}
 
 	public void sendMessage(String message) {Log.out("M> " + message); this.sendMessage(this.connection.getChannel(), message);}
