@@ -40,10 +40,8 @@ public class Client {
 			@Override public void run() {
 				final Scanner in = Client.this.in;
 				
-				while(!Client.this.socket.isClosed()) {
-					if(in.hasNextLine()) {
-						Debugger.me.in(Client.this, in.nextLine());
-					}
+				while (in.hasNextLine()) { 
+					Debugger.me.in(Client.this, in.nextLine());
 				}
 				
 				System.out.println("Removed debugging client: " + Client.this);
