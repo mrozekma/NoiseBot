@@ -242,8 +242,10 @@ public class NoiseBot extends PircBot {
 		final Git.Revision[] revs = Git.diff(this.revision.getHash(), "HEAD");
 		final String[] moduleNames = Git.affectedModules(this.revision.getHash(), "HEAD");
 		this.revision = Git.head();
-		if(moduleNames.length == 0)
+		if(moduleNames.length == 0) {
 			this.sendNotice("Unable to sync -- No classes changed");
+			return;
+		}
 		final String[] coloredNames = map(moduleNames, new MapFunction<String, String>() {
 			@Override public String map(String name) {
 				return Help.COLOR_MODULE +  name + NORMAL;
