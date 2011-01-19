@@ -52,6 +52,7 @@ public class Wheel extends NoiseModule implements Serializable {
 
 		for (int i = this.abusers.get(sender); i != 0; i--) {
 			if (getRandomInt(1, 100) == 42) {
+				this.bot.sendMessage("ChanServ", "op #rhnoise");
 				this.bot.kickVictim(sender, "YOU WIN!");
 				break;
 			}
