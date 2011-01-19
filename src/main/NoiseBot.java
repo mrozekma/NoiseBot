@@ -270,6 +270,7 @@ public class NoiseBot extends PircBot {
 		for(Git.Revision rev : reverse(revs))
 			this.sendNotice("    " + rev);
 		this.sendNotice("Reloaded modules: " + implode(coloredNames, ", "));
+		this.sendNotice("Changes: " + Git.gitweb(revs[revs.length-1], revs[0]));
 	}
 
 	public void sendMessage(String message) {Log.out("M> " + message); this.sendMessage(this.connection.getChannel(), message);}

@@ -12,6 +12,8 @@ import java.util.Vector;
 import debugging.Log;
 
 public class Git {
+	static final String gitwebUri = "http://lug.rose-hulman.edu/git/?p=~mrozekma/NoiseBot/.git";
+
 	public static class SyncException extends RuntimeException {
 		public SyncException(String msg) {super(msg);}
 		public SyncException(Exception e) {super(e);}
@@ -37,6 +39,14 @@ public class Git {
 		@Override public boolean equals(Object other) {
 			return (other instanceof Revision) && (((Revision)other).getHash().equals(this.getHash()));
 		}
+	}
+
+	public static String gitweb(Revision rev) {
+		return Git.gitwebUri + ";commitdiff;h=" + rev.getHash();
+	}
+
+	public static String gitweb(Revision fromRev, Revision toRev) {
+		return Git.gitweb(toRev) + ";hp=" + fromRev.getHash();
 	}
 
 	public static Revision head() {
