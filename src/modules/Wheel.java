@@ -47,8 +47,8 @@ public class Wheel extends NoiseModule implements Serializable {
 
 		this.bot.sendAction(slapUser(choice));
 
-      if (getRandomInt(1, 1000) == 42)
-         this.bot.kickVictim(choice, "YOU WIN!");
+		if (getRandomInt(1, 1000) == 42)
+			this.bot.kickVictim(choice, "YOU WIN!");
 	}
 	
 	@Command("\\.wheelstats")
