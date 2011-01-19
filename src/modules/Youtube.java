@@ -2,6 +2,7 @@ package modules;
 
 import static org.jibble.pircbot.Colors.*;
 
+import java.io.UnsupportedEncodingException;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -81,7 +82,7 @@ public class Youtube extends NoiseModule {
 			}
 
 			if(author != null  && title != null) {
-				this.bot.sendMessage(COLOR_INFO +  title + " (posted by " + author + ", " + duration + " seconds, " + viewCount + " views)");
+				this.bot.sendMessage(COLOR_INFO +  encoded(title) + " (posted by " + encoded(author) + ", " + duration + " seconds, " + viewCount + " views)");
 			} else {
 				this.bot.sendMessage(COLOR_ERROR + "Problem parsing Youtube data");
 			}
@@ -106,5 +107,14 @@ public class Youtube extends NoiseModule {
 		return new String[] {
 				"http://www.youtube.com/watch?v=Yu_moia-oVI"
 		};
+	}
+
+	static private String encoded(final String s) {
+		try {
+			final byte bytes[] = s.getBytes("UTF8");
+			return new String("ISO8859_1");
+		} catch (IOException e) {
+			return s;
+		}
 	}
 }
