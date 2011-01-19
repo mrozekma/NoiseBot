@@ -112,7 +112,7 @@ public class Youtube extends NoiseModule {
 	static private String encoded(final String s) {
 		try {
 			final byte bytes[] = s.getBytes("UTF8");
-			return new String("ISO8859_1");
+			return new String(bytes, "ISO8859_1");
 		} catch (IOException e) {
 			return s;
 		}
