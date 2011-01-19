@@ -277,6 +277,7 @@ public class NoiseBot extends PircBot {
 	public void sendNotice(String notice) {Log.out("N> " + notice); this.sendNotice(this.connection.getChannel(), notice);}
 	public void reply(Message sender, String message) {this.reply(sender.getSender(), message);}
 	public void reply(String username, String message) {this.sendMessage((username == null ? "" : username + ": ") + message);}
+   public void kickVictim(String victim, String reason) {this.kick(this.connection.getChannel(), victim, reason);}
 
 	@Override protected void onMessage(String channel, String sender, String login, String hostname, String message) {
 		Log.in("<" + sender + " (" + login + " @ " + hostname + ") -> " + channel + ": " + message);
