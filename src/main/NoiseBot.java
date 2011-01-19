@@ -240,6 +240,7 @@ public class NoiseBot extends PircBot {
 	
 	public void sync() {
 		final Git.Revision[] revs = Git.diff(this.revision.getHash(), "HEAD");
+		final Git.Revision oldrev = this.revision;
 		final String[] moduleNames = Git.affectedModules(this.revision.getHash(), "HEAD");
 		this.revision = Git.head();
 		if(moduleNames.length == 0) {
@@ -270,7 +271,7 @@ public class NoiseBot extends PircBot {
 		for(Git.Revision rev : reverse(revs))
 			this.sendNotice("    " + rev);
 		this.sendNotice("Reloaded modules: " + implode(coloredNames, ", "));
-		this.sendNotice("Changes: " + Git.gitweb(revs[revs.length-1], revs[0]));
+		this.sendNotice("Changes: " + Git.gitweb(oldrev, this.revision));
 	}
 
 	public void sendMessage(String message) {Log.out("M> " + message); this.sendMessage(this.connection.getChannel(), message);}
