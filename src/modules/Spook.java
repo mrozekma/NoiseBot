@@ -53,13 +53,14 @@ public class Spook extends NoiseModule {
 	}
 	
 	@Command("\\.spook")
-	public void spookDefault(Message message) {this.spook(message, 1);}
+	public void spookDefault(Message message) {this.spook(message, 10);}
 	
 	@Override public String getFriendlyName() {return "Spook";}
 	@Override public String getDescription() {return "Displays a random line from the Emacs spook file";}
 	@Override public String[] getExamples() {
 		return new String[] {
-				".spook"
+				".spook",
+				".spook 15"
 		};
 	}
 	@Override public File[] getDependentFiles() {return new File[] {SPOOK_FILE};}
