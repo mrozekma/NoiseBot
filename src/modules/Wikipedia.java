@@ -13,6 +13,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.jsoup.Jsoup;
+import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -46,7 +47,7 @@ public class Wikipedia extends NoiseModule {
 		sendEntry(term, "http://en.wikipedia.org/wiki/" + urlEncode(fixTitle(term)));
 	}
 	
-	@Command(".*((?:http:\\/\\/en\\.wikipedia\\.org|https:\\/\\/secure\\.wikimedia\\.org\\/wikipedia(?:\\/commons)?\\/en)\\/wiki\\/((?:\\S+)(?::[0-9]+)?(?:\\/|\\/(?:[\\w#!:.?+=&%@!\\-\\/]))?)).*")
+	@Command(".*((?:http:\\/\\/en\\.wikipedia\\.org|https:\\/\\/secure\\.wikimedia\\.org\\/wikipedia(?:\\/commons|\\/en))\\/wiki\\/((?:\\S+)(?::[0-9]+)?(?:\\/|\\/(?:[\\w#!:.?+=&%@!\\-\\/]))?)).*")
 	public void wikipediaLink(Message message, String url, String term) {
 		sendEntry(urlDecode(term).replace("_", " "), url);
 	}
@@ -80,6 +81,17 @@ public class Wikipedia extends NoiseModule {
 			return s;
 		}
 	}
+
+	private String selectEntryText(final String term, final String url, final Document doc) {
+		Element el = null;
+		if (el == null && term.contains("File:")) { // Image description on a Commons page
+			el = doc.select("div#shared-image-desc p").first();
+		}
+		if (el == null) { // First paragraph of any other page
+			doc.select("div#bodyContent > p").first();
+		}
+		return el == null ? "" : el.text();
+	}
 	
 	private void sendEntry(final String term, final String url) {
 		final Document doc;
@@ -93,7 +105,7 @@ public class Wikipedia extends NoiseModule {
 			return;
 		}
 		
-		String text = encoded(doc.select("div#bodyContent > p").first().text());
+		String text = encoded(selectEntryText(term, url, doc));
 		while(text.length() + url.length() + 8 > MAXIMUM_MESSAGE_LENGTH && text.contains(" ")) {
 			text = text.substring(0, text.lastIndexOf(' '));
 		}
