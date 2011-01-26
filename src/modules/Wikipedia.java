@@ -87,6 +87,9 @@ public class Wikipedia extends NoiseModule {
 		if (el == null && term.contains("File:")) { // Image description on a Commons page
 			el = doc.select("th#fileinfotpl_desc + td p").first();
 		}
+		if (el == null && term.contains("File:")) { // Alternative image description
+			el = doc.select("div#shared-image-desc > p").first();
+		}
 		if (el == null) { // First paragraph of any other page
 			doc.select("div#bodyContent > p").first();
 		}
