@@ -84,11 +84,13 @@ public class Wikipedia extends NoiseModule {
 
 	private String selectEntryText(final String term, final String url, final Document doc) {
 		Element el = null;
-		if (el == null && term.contains("File:")) { // Image description on a Commons page
-			el = doc.select("th#fileinfotpl_desc + td p").first();
-		}
-		if (el == null && term.contains("File:")) { // Alternative image description
-			el = doc.select("div#shared-image-desc > p").first();
+		if (term.contains("File:")) {
+			if (el == null) { // Image description on a Commons page
+				el = doc.select("th#fileinfotpl_desc + td p").first();
+			}
+			if (el == null) { // Alternative image description
+				el = doc.select("div#shared-image-desc > p").first();
+			}
 		}
 		if (el == null) { // First paragraph of any other page
 			doc.select("div#bodyContent > p").first();
