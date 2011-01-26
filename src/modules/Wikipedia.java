@@ -111,11 +111,11 @@ public class Wikipedia extends NoiseModule {
 		}
 		
 		String text = encoded(selectEntryText(term, url, doc));
-		while(text.length() + url.length() + 8 > MAXIMUM_MESSAGE_LENGTH && text.contains(" ")) {
+		while(text.length() + url.length() + 4 > MAXIMUM_MESSAGE_LENGTH && text.contains(" ")) {
 			text = text.substring(0, text.lastIndexOf(' '));
 		}
-		if(!text.endsWith("...")) {text += "\u00e2\u0080\u00a6";}
-		text += " \u00e2\u0080\u0094 " + url;
+		if(!text.endsWith("...")) {text += "...";}
+		text += " " + url;
 		this.bot.sendMessage(text);
 	}
 	
