@@ -145,7 +145,7 @@ public class QDB extends NoiseModule {
 			Log.e("QDB ID mismatch: " + maxID + " < " + this.curID);
 		}
 	
-		Log.i("QDB poll; old ID was " + this.curID + ", new ID is " + maxID);
+		Log.v("QDB poll; old ID was " + this.curID + ", new ID is " + maxID);
 		for(this.curID++; this.curID <= maxID; this.curID++) {
 			// try {
 				// for(String line : getQuote(this.curID))
@@ -154,9 +154,12 @@ public class QDB extends NoiseModule {
 			// } catch(IOException e) {
 			// } catch(ParseException e) {}
 		}
+
+		this.curID--; // The for loop pushes it just past maxID
 	}
 	
 	private static Quote getQuote(int id) throws IOException, ParseException {
+		Log.i("Getting quote " + id);
 		final Document doc = Jsoup.connect("http://lug.rose-hulman.edu/qdb/" + id).timeout(TIMEOUT * 1000).get();
 
 		int upvotes = -1, downvotes = -1;
