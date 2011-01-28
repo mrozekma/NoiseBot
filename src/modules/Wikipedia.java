@@ -93,9 +93,9 @@ public class Wikipedia extends NoiseModule {
 			}
 		}
 		if (el == null) { // First paragraph of any other page
-			doc.select("div#bodyContent > p").first();
+			el = doc.select("div#bodyContent > p").first();
 		}
-		return el == null ? "" : el.text();
+		return el == null ? null : el.text();
 	}
 	
 	private void sendEntry(final String term, final String url) {
@@ -110,7 +110,12 @@ public class Wikipedia extends NoiseModule {
 			return;
 		}
 		
-		String text = encoded(selectEntryText(term, url, doc));
+		String text = selectEntryText(term, url, doc);
+		if(text == null) {
+			this.bot.sendMessage(COLOR_WARNING + "Unable to find post body");
+			return;
+		}
+		text = encoded(text);
 		while(text.length() + url.length() + 4 > MAXIMUM_MESSAGE_LENGTH && text.contains(" ")) {
 			text = text.substring(0, text.lastIndexOf(' '));
 		}
