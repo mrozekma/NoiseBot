@@ -44,12 +44,22 @@ public class Wikipedia extends NoiseModule {
 			return;
 		}
 		
-		sendEntry(term, "http://en.wikipedia.org/wiki/" + urlEncode(fixTitle(term)));
+		sendEntry(term, "http://en.wikipedia.org/wiki/" + urlEncode(fixTitle(term)), true);
 	}
 	
 	@Command(".*((?:http:\\/\\/en\\.wikipedia\\.org|https:\\/\\/secure\\.wikimedia\\.org\\/wikipedia(?:\\/commons|\\/en))\\/wiki\\/((?:\\S+)(?::[0-9]+)?(?:\\/|\\/(?:[\\w#!:.?+=&%@!\\-\\/]))?)).*")
 	public void wikipediaLink(Message message, String url, String term) {
-		sendEntry(urlDecode(term).replace("_", " "), url);
+		sendEntry(urlDecode(term).replace("_", " "), url, true);
+	}
+	
+	@Command(".*\\[([^\\]]+)].*")
+	public void wikipediaInline(Message message, String term) {
+		if(term.isEmpty()) { // Should be impossible
+			this.bot.sendMessage(COLOR_ERROR + "Missing term");
+			return;
+		}
+		
+		sendEntry(term, "http://en.wikipedia.org/wiki/" + urlEncode(fixTitle(term)), false);
 	}
 	
 	private static String fixTitle(String term) {
@@ -98,21 +108,26 @@ public class Wikipedia extends NoiseModule {
 		return el == null ? null : el.text();
 	}
 	
-	private void sendEntry(final String term, final String url) {
+	private void sendEntry(final String term, final String url, boolean showErrors) {
 		final Document doc;
 		try {
 			doc = Jsoup.connect(url).get();
 		} catch(IOException e) {
-			if(e.getMessage().contains("404 error loading URL"))
-				this.bot.sendMessage(COLOR_WARNING + "No entry for " + term);
-			else
-				this.bot.sendMessage(COLOR_ERROR + "Unable to connect to Wikipedia: " + e.getMessage());
+			if(showErrors) {
+				if(e.getMessage().contains("404 error loading URL")) {
+					this.bot.sendMessage(COLOR_WARNING + "No entry for " + term);
+				} else {
+					this.bot.sendMessage(COLOR_ERROR + "Unable to connect to Wikipedia: " + e.getMessage());
+				}
+			}
 			return;
 		}
 		
 		String text = selectEntryText(term, url, doc);
 		if(text == null) {
-			this.bot.sendMessage(COLOR_WARNING + "Unable to find post body");
+			if(showErrors) {
+				this.bot.sendMessage(COLOR_WARNING + "Unable to find post body");
+			}
 			return;
 		}
 		text = encoded(text);
@@ -175,6 +190,7 @@ public class Wikipedia extends NoiseModule {
 		return new String[] {
 				".wik _term_ -- Returns the beginning of the wikipedia article for _term_",
 				".wp _term_ -- Same as above",
+				"[_term_] -- Same as above (can appear in the middle of a line)",
 				".featured -- Show the wikipedia definition for the current featured article"
 		};
 	}
