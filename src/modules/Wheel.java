@@ -26,7 +26,6 @@ import static modules.Slap.slapUser;
  */
 public class Wheel extends NoiseModule implements Serializable {
 	private Map<String, Integer> victims = new HashMap<String, Integer>();
-	private Map<String, Integer> abusers = new HashMap<String, Integer>();
 	
 	@Command("\\.(?:wheel|spin)")
 	public void wheel(Message message) {
@@ -43,20 +42,10 @@ public class Wheel extends NoiseModule implements Serializable {
 			choice = getRandom(users).getNick();
 		} while(choice.equals(this.bot.getNick()));
 		
-		final String sender = message.getSender();
 		this.victims.put(choice, (this.victims.containsKey(choice) ? this.victims.get(choice) : 0) + 1);
-		this.abusers.put(choice, (this.abusers.containsKey(sender) ? this.abusers.get(sender) : 0) + 1);
 		this.save();
 
 		this.bot.sendAction(slapUser(choice));
-
-		for (int i = this.abusers.get(sender); i != 0; i--) {
-			if (getRandomInt(1, 100) == 42) {
-				this.bot.sendMessage("ChanServ", "op #rhnoise");
-				this.bot.kickVictim(sender, "YOU WIN!");
-				break;
-			}
-		}
 	}
 	
 	@Command("\\.wheelstats")
