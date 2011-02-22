@@ -26,8 +26,12 @@ public class Slap extends NoiseModule {
 			"with a satchel of poison ivy", "with a sock full of quarters", "with a python",
 			"with a flourescent lightbulb", "with a coffee mug", "with a moose", "with Sarah Palin",
 			"heroically", "with a barrel of bees", "like Bootsy Collins slaps his bass", "with a cactus",
-			"with a crucifix. Praise Jesus!", "with a bible", "with a machete"
-		};
+			"with a crucifix. Praise Jesus!", "with a bible", "with a machete", "with SCIENCE!",
+			"like you lost a slap bet", "like really cheap vodka", "with his left hand", "with his right hand",
+			"with a lava lamp", "with a trout", "with a porcupine", "with a fine", "with a lawsuit",
+			"with a nail gun", "with a feather", "theoretically", "with a rock", "with paper", "with scissors",
+			"with porn", "like Kim Jong-il", "with a standard ten foot pole", "with a chicken"
+	 	};
 		
 		return "slaps " + victim + " " + getRandom(adverbs);
 	}
