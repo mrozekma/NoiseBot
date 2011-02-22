@@ -23,12 +23,12 @@ public class Cloud extends NoiseModule {
 		"(\u00ef\u00bb\u00bf)\u00ef\u00bb\u00bf===\u00ef\u00bb\u00bf{::::::::::::::::::::>"
 	};
 
-	@Command("\\.kill (.*)")
+	@Command("\\.(?:kill|stab) (.*)")
 	public void kill(Message message, String target) {
 		this.bot.sendMessage(getRandom(swords) + "  " + target);
 	}
 	
-	@Command("\\.kill")
+	@Command("\\.(?:kill|stab)")
 	public void killRandom(Message message) {
 		final User[] users = this.bot.getUsers();
 		String choice;
@@ -44,7 +44,9 @@ public class Cloud extends NoiseModule {
 	@Override public String[] getExamples() {
 		return new String[] {
 				".kill _tommost_ -- Kill _tommost_",
-				".kill -- Kill a random user"
+				".stab _tommost_ -- Same as above",
+				".kill -- Kill a random user",
+				".stab -- Same as above"
 		};
 	}
 }
