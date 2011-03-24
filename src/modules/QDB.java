@@ -189,6 +189,10 @@ public class QDB extends NoiseModule {
 			}
 		} catch(NumberFormatException e) {Log.e(e);}
 
+		if(doc.select("title").first().html().contains("Quote Not Found")) {
+			throw new ParseException("Quote not found");
+		}
+
 		Elements e = doc.select("p");
 		if(e.isEmpty())
 			throw new ParseException("Unable to find quote block");
