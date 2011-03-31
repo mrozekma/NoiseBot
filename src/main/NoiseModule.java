@@ -125,6 +125,7 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 					try {
 						Log.v("Invoking with " + args.length + " args");
 						method.invoke(this, args);
+						break;
 					} catch(Exception e) {
 						Log.e(e);
 					}
