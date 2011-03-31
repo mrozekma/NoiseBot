@@ -104,6 +104,7 @@ public class Poll extends NoiseModule {
 			return;
 		}
 		
+		vote = vote.replaceAll("\\\\\\$", "\\$");
 		if(!this.validVotes.contains(vote)) {
 			this.bot.reply(message, COLOR_ERROR + "Invalid vote");
 			return;
