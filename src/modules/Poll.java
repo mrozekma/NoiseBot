@@ -42,11 +42,6 @@ public class Poll extends NoiseModule {
 	private Map<String, String> votes;
 	private List<String> validVotes;
 	
-	@Command("\\.vote  *\\$([1-9][0-9]*) *")
-		public void vote(Message message, int vote) {
-		this.vote(message, this.validVotes != null ? this.validVotes.get(vote-1) : null);
-	}
-
 	//@Command("\\.poll \\[((?:" + VOTE_CLASS_REGEX + "+,?)+)\\] ?(.*)")
 	//@Command("\\.poll \\[(" + VOTE_CLASS_REGEX + "+)\\] ?(.*)")
 	@Command("\\.poll (.*)")
@@ -96,6 +91,11 @@ public class Poll extends NoiseModule {
 		this.bot.sendMessage(message.getSender() + " has started a poll (vote with ." + Help.COLOR_COMMAND + "vote" + NORMAL + " " + Help.COLOR_ARGUMENT + implode(this.validVotes.toArray(new String[0]), "/") + NORMAL + " in the next " + WAIT_TIME + " seconds): " + this.pollText);
 	}
 	
+
+	@Command("\\.vote  *\\$([1-9][0-9]*) *")
+	public void vote(Message message, int vote) {
+		this.vote(message, this.validVotes != null ? this.validVotes.get(vote-1) : null);
+	}
 
 	@Command("\\.vote  *(.+) *")
 	public void vote(Message message, String vote) {
