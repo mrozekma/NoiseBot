@@ -44,7 +44,7 @@ public class Poll extends NoiseModule {
 	
 	@Command("\\.vote  *\\$([1-9][0-9]*) *")
 		public void vote(Message message, int vote) {
-		this.vote(message, this.validVotes != null ? this.validVotes.get(vote) : null);
+		this.vote(message, this.validVotes != null ? this.validVotes.get(vote-1) : null);
 	}
 
 	//@Command("\\.poll \\[((?:" + VOTE_CLASS_REGEX + "+,?)+)\\] ?(.*)")
