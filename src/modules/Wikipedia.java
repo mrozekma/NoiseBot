@@ -52,7 +52,7 @@ public class Wikipedia extends NoiseModule {
 		sendEntry(urlDecode(term).replace("_", " "), url, true);
 	}
 	
-	@Command(".*\\[([^\\]]+)].*")
+	@Command(".*\\[\\[([^\\]]+)]].*")
 	public void wikipediaInline(Message message, String term) {
 		if(term.isEmpty()) { // Should be impossible
 			this.bot.sendMessage(COLOR_ERROR + "Missing term");
