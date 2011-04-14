@@ -1,4 +1,4 @@
-# Suck on it ant
+# Suck on it ant.  Suck it hard.
 
 PASS    := $(shell echo $$RANDOM)
 SOURCES := $(shell find src -name '*.java')
