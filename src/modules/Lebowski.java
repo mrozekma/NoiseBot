@@ -88,16 +88,12 @@ public class Lebowski extends NoiseModule {
 		}
 	}
 
-	@Command(".*")
-	public void lineReceived(Message message) {
-		this.linesSinceLastQuote++;
-	}
-
 	// Single char at the beginning doesn't allow . to avoid matching commands
 	// [a-zA-Z0-9,\\'\\\" !-][a-zA-Z0-9,\\'\\\"\\. !-]
 	@Command("([^\\.].{" + (MIN_MESSAGE - 1) + "," + (PATTERN_MAX - 1) + "})")
 	public void lebowski(Message message, String userMessage) {
 		Log.i("Lebowski: Searching for matches for \"" + userMessage + "\"");
+		this.linesSinceLastQuote++;
 		
 		final Vector<Match> matches = new Vector<Match>();
 		for(int lineNum = 0; lineNum < lines.length; lineNum++) {
