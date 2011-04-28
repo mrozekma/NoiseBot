@@ -30,7 +30,7 @@ public class Slap extends NoiseModule {
 			"like you lost a slap bet", "like really cheap vodka", "with his left hand", "with his right hand",
 			"with a lava lamp", "with a trout", "with a porcupine", "with a fine", "with a lawsuit",
 			"with a nail gun", "with a feather", "theoretically", "with a rock", "with paper", "with scissors",
-			"with porn", "like Kim Jong-il", "with a standard ten foot pole", "with a chicken"
+			"with porn", "like Kim Jong-il", "with Kim Jong-il", "with a standard ten foot pole", "with a chicken"
 	 	};
 		
 		return "slaps " + victim + " " + getRandom(adverbs);

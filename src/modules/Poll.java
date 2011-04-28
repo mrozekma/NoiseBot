@@ -5,10 +5,9 @@ import static org.jibble.pircbot.Colors.*;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.Map;
-import java.util.Set;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.Vector;
@@ -41,7 +40,7 @@ public class Poll extends NoiseModule {
 	private String pollOwner = "";
 	private long startTime;
 	private Map<String, String> votes;
-	private Set<String> validVotes;
+	private List<String> validVotes;
 	
 	//@Command("\\.poll \\[((?:" + VOTE_CLASS_REGEX + "+,?)+)\\] ?(.*)")
 	//@Command("\\.poll \\[(" + VOTE_CLASS_REGEX + "+)\\] ?(.*)")
@@ -60,11 +59,12 @@ public class Poll extends NoiseModule {
 			final String[] args = this.parser.parseLine(argLine);
 			this.pollText = args[0];
 
-			this.validVotes = new LinkedHashSet<String>();
+			this.validVotes = new LinkedList<String>();
 			if(args.length > 1) {
 				for(int i = 1; i < args.length; i++) {
-					if(!args[i].trim().isEmpty())
-						this.validVotes.add(args[i].trim());
+					String option = args[i].trim();
+					if(!option.isEmpty() && !this.validVotes.contains(option))
+						this.validVotes.add(option);
 				}
 			} else {
 				this.validVotes.addAll(Arrays.asList(new String[] {"yes", "no"}));
@@ -91,6 +91,12 @@ public class Poll extends NoiseModule {
 		this.bot.sendMessage(message.getSender() + " has started a poll (vote with ." + Help.COLOR_COMMAND + "vote" + NORMAL + " " + Help.COLOR_ARGUMENT + implode(this.validVotes.toArray(new String[0]), "/") + NORMAL + " in the next " + WAIT_TIME + " seconds): " + this.pollText);
 	}
 	
+
+	@Command("\\.vote  *\\$([1-9][0-9]*) *")
+	public void vote(Message message, int vote) {
+		this.vote(message, this.validVotes != null ? this.validVotes.get(vote-1) : null);
+	}
+
 	@Command("\\.vote  *(.+) *")
 	public void vote(Message message, String vote) {
 		if(this.pollTimer == null) {
@@ -98,6 +104,7 @@ public class Poll extends NoiseModule {
 			return;
 		}
 		
+		vote = vote.replaceAll("\\\\\\$", "\\$");
 		if(!this.validVotes.contains(vote)) {
 			this.bot.reply(message, COLOR_ERROR + "Invalid vote");
 			return;

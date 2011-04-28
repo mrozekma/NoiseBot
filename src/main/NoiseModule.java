@@ -10,6 +10,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Method;
+import java.util.LinkedHashMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -40,8 +41,8 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 	}
 	
 	protected transient NoiseBot bot;
-	protected transient Map<Pattern, Method> patterns = new HashMap<Pattern, Method>();
-	protected transient Map<Pattern, Method> pmPatterns = new HashMap<Pattern, Method>();
+	protected transient Map<Pattern, Method> patterns = new LinkedHashMap<Pattern, Method>();
+	protected transient Map<Pattern, Method> pmPatterns = new LinkedHashMap<Pattern, Method>();
 	
 	public void init(NoiseBot bot) {
 		this.bot = bot;
@@ -125,6 +126,7 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 					try {
 						Log.v("Invoking with " + args.length + " args");
 						method.invoke(this, args);
+						break;
 					} catch(Exception e) {
 						Log.e(e);
 					}
