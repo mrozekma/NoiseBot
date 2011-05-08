@@ -74,7 +74,7 @@ public class Backronym extends NoiseModule {
 	@Override public String[] getExamples() {
 		return new String[] {
 				".backronym -- Display a backronym for the sending user",
-				".backronym __css__ -- Display a backronym for \"css\"",
+				".backronym _css_ -- Display a backronym for _css_",
 				".b -- Same as .backronym"
 		};
 	}

@@ -40,7 +40,7 @@ public class Title extends NoiseModule {
 	@Override public String[] getExamples() {
 		return new String[] {
 				".title -- Display a title for the sending user",
-				".title _nick__ -- Display a title for the specified nick",
+				".title _nick_ -- Display a title for the specified nick",
 		};
 	}
 }
