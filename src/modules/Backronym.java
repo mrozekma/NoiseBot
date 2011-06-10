@@ -5,6 +5,9 @@ import java.io.FileNotFoundException;
 import java.util.HashMap;
 import java.util.Scanner;
 import java.util.Vector;
+import java.util.regex.Pattern;
+
+import au.com.bytecode.opencsv.CSVParser;
 
 import main.Message;
 import main.NoiseBot;
@@ -24,13 +27,17 @@ public class Backronym extends NoiseModule {
 	private static final File DICTIONARY_FILE = new File("/usr/share/dict/words");
 	private static final String COLOR_ERROR = RED;
 	private static final String COLOR_RESPONSE = GREEN;
+
+	private final CSVParser parser = new CSVParser(' ');
 	
 	private HashMap<Character, String[]> words;
+	private String[] dict;
 	
 	@Override public void init(NoiseBot bot) {
 		super.init(bot);
 
 		final HashMap<Character, Vector<String>> words = new HashMap<Character, Vector<String>>(26);
+		final Vector<String> dict = new Vector<String>();
 		for(int i = 'a'; i <= 'z'; i++) {
 			words.put((char)i, new Vector<String>());
 		}
@@ -40,6 +47,7 @@ public class Backronym extends NoiseModule {
 			while(s.hasNextLine()) {
 				final String word = s.nextLine();
 				words.get(Character.toLowerCase(word.charAt(0))).add(word);
+				dict.add(word);
 			}
 		} catch(FileNotFoundException e) {
 			throw new RuntimeException("No dictionary found");
@@ -49,6 +57,7 @@ public class Backronym extends NoiseModule {
 		for(Character key : words.keySet()) {
 			this.words.put(key, words.get(key).toArray(new String[0]));
 		}
+		this.dict = dict.toArray(new String[0]);
 	}
 
 	@Command("\\.b(?:ackronym)? ([A-Za-z]+)")
@@ -64,6 +73,33 @@ public class Backronym extends NoiseModule {
 		}
 		
 		this.bot.sendMessage(implode(choices, " "));
+	}
+	
+	@Command("\\.b(?:ackronym)? (.*[^A-Za-z].*)")
+	public void backronymRegex(Message message, String line) {
+		try {
+			final String[] choices = this.parser.parseLine(line);
+			if(choices.length > 16) {
+				this.bot.reply(message, COLOR_ERROR + "Maximum length: 16");
+				return;
+			}
+
+			for(int i = 0; i < choices.length; i++) {
+				Vector<String> matches = new Vector<String>();
+				Pattern pattern = Pattern.compile(choices[i] + ".*");
+				for(int j = 0; j < dict.length; j++) {
+					if (pattern.matcher(dict[j]).matches())
+						matches.add(dict[j]);
+				}
+				if (matches.size() > 0)
+					choices[i] = getRandom(matches.toArray(new String[0]));
+			}
+
+			this.bot.sendMessage(implode(choices, " "));
+		} catch (Exception e) {
+			this.bot.reply(message, COLOR_ERROR + "What do you want me to do, interpret a pony?");
+			e.printStackTrace();
+		}
 	}
 	
 	@Command("\\.b(?:ackronym)?")
