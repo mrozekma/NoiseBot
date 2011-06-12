@@ -86,7 +86,7 @@ public class Backronym extends NoiseModule {
 
 			for(int i = 0; i < choices.length; i++) {
 				Vector<String> matches = new Vector<String>();
-				Pattern pattern = Pattern.compile(choices[i] + ".*");
+				Pattern pattern = Pattern.compile(choices[i]);
 				for(int j = 0; j < dict.length; j++) {
 					if (pattern.matcher(dict[j]).matches())
 						matches.add(dict[j]);
