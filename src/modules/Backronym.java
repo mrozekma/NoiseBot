@@ -24,7 +24,7 @@ import static panacea.Panacea.*;
  *         Created Sep 11, 2010.
  */
 public class Backronym extends NoiseModule {
-	private static final File DICTIONARY_FILE = new File("/usr/share/dict/words");
+	private static final File DICTIONARY_FILE = new File("/usr/share/dict/words.part");
 	private static final String COLOR_ERROR = RED;
 	private static final String COLOR_RESPONSE = GREEN;
 
@@ -45,11 +45,13 @@ public class Backronym extends NoiseModule {
 		try {
 			final Scanner s = new Scanner(DICTIONARY_FILE);
 			while(s.hasNextLine()) {
-				final String word = s.nextLine();
+				final String line = s.nextLine();
+				final String word = line.substring(2);
 				words.get(Character.toLowerCase(word.charAt(0))).add(word);
-				dict.add(word);
+				dict.add(line);
 			}
 		} catch(FileNotFoundException e) {
+			e.printStackTrace();
 			throw new RuntimeException("No dictionary found");
 		}
 		
@@ -85,6 +87,10 @@ public class Backronym extends NoiseModule {
 			}
 
 			for(int i = 0; i < choices.length; i++) {
+				if (choices[i].length() == 2 && choices[i].charAt(1) == ':')
+					choices[i] = choices[i] + ".*";
+				else if (choices[i].length() < 2 || choices[i].charAt(1) != ':')
+					choices[i] = ".:" + choices[i];
 				Vector<String> matches = new Vector<String>();
 				Pattern pattern = Pattern.compile(choices[i]);
 				for(int j = 0; j < dict.length; j++) {
@@ -93,6 +99,7 @@ public class Backronym extends NoiseModule {
 				}
 				if (matches.size() > 0)
 					choices[i] = getRandom(matches.toArray(new String[0]));
+				choices[i] = choices[i].substring(2);
 			}
 
 			this.bot.sendMessage(implode(choices, " "));
