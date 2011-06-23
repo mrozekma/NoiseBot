@@ -12,9 +12,9 @@ import main.NoiseModule;
 public class Dance extends NoiseModule {
 	@Command(".*\\b[Dd][Aa][Nn][Cc][Ee].*")
 	public void dance(Message message) {
-		this.bot.sendMessage("/me dances :D-<");
-		this.bot.sendMessage("/me dances :D|-<");
-		this.bot.sendMessage("/me dances :D/-<");
+		this.bot.sendAction("dances :D-<");
+		this.bot.sendAction("dances :D|-<");
+		this.bot.sendAction("dances :D/-<");
 	}
 	
 	@Override public String getFriendlyName() {return "Dance";}
