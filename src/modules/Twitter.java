@@ -91,10 +91,10 @@ public class Twitter extends NoiseModule {
 					this.sinceID = tweet.getLong("id");
 				}
 			}
-		} catch(IOException e) {
-			this.bot.sendMessage(COLOR_ERROR + "Unable to connect to Twitter");
+		} catch(IOException e) { // Meh
+			Log.e(e);
 		} catch(JSONException e) {
-			this.bot.sendMessage(COLOR_ERROR + "Problem parsing Twitter response");
+			Log.e(e);
 		}
 	}
 	
