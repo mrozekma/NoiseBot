@@ -43,6 +43,11 @@ public class Twitter extends NoiseModule {
 		}, 0, PERIOD * 1000);
 	}
 
+	@Override public void unload() {
+		super.unload();
+		this.timer.cancel();
+	}
+
 	@Command(".*" + TWITTER_URL_PATTERN + ".*")
 	public void tweet(Message message, String id) {
 		try {
