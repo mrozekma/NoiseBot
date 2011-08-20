@@ -9,6 +9,9 @@ import debugging.Log;
 import main.Message;
 import main.NoiseBot;
 import main.NoiseModule;
+
+import static org.jibble.pircbot.Colors.*;
+
 import static panacea.Panacea.*;
 
 /**
@@ -19,6 +22,7 @@ import static panacea.Panacea.*;
  */
 public class Fortune extends NoiseModule {
 	private static File FORTUNE_FILE = new File("fortunes");
+	private static final String COLOR_ERROR = RED;
 	
 	private String[] fortunes;
 	
@@ -39,6 +43,16 @@ public class Fortune extends NoiseModule {
 	@Command("\\.fortune")
 	public void fortune(Message message) {
 		this.bot.sendMessage(getRandom(this.fortunes));
+	}
+
+	@Command("\\.fortune (.*)")
+	public void fortune(Message message, String keyword) {
+		try {
+			this.bot.sendMessage(getRandomMatch(this.fortunes, ".*" + keyword + ".*"));
+		} catch (Exception e) {
+			this.bot.reply(message, COLOR_ERROR + "No matches");
+			e.printStackTrace();
+		}
 	}
 	
 	@Override public String getFriendlyName() {return "Fortune";}
