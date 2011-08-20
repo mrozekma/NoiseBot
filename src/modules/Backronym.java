@@ -5,7 +5,6 @@ import java.io.FileNotFoundException;
 import java.util.HashMap;
 import java.util.Scanner;
 import java.util.Vector;
-import java.util.regex.Pattern;
 
 import au.com.bytecode.opencsv.CSVParser;
 
@@ -91,14 +90,10 @@ public class Backronym extends NoiseModule {
 					choices[i] = choices[i] + ".*";
 				else if (choices[i].length() < 2 || choices[i].charAt(1) != ':')
 					choices[i] = ".:" + choices[i];
-				Vector<String> matches = new Vector<String>();
-				Pattern pattern = Pattern.compile(choices[i]);
-				for(int j = 0; j < dict.length; j++) {
-					if (pattern.matcher(dict[j]).matches())
-						matches.add(dict[j]);
-				}
-				if (matches.size() > 0)
-					choices[i] = getRandom(matches.toArray(new String[0]));
+
+				String matches[] = getMatches(dict, choices[i]);
+				if (matches.length > 0)
+					choices[i] = getRandom(matches);
 				choices[i] = choices[i].substring(2);
 			}
 
