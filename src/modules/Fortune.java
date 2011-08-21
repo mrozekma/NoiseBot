@@ -53,11 +53,11 @@ public class Fortune extends NoiseModule {
 
 	@Command("\\.fortune (.*)")
 	public void fortune(Message message, String keyword) {
-		try {
-			this.bot.sendMessage(getRandomMatch(this.fortunes, ".*" + keyword + ".*"));
-		} catch (Exception e) {
+		final String match = getRandomMatch(this.fortunes, ".*" + keyword + ".*");
+		if(match != null) {
+			this.bot.sendMessage(match);
+		} else {
 			this.bot.reply(message, COLOR_ERROR + "No matches");
-			e.printStackTrace();
 		}
 	}
 	

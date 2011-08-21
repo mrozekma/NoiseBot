@@ -561,7 +561,7 @@ public class Panacea {
 	
 	public static int getRandomInt(int min, int max) {return ((int)(Math.random() * (max - min + 1))) + min;}
 	
-	public static <T> T getRandom(T[] arr) {return arr[getRandomInt(0, arr.length - 1)];}
+	public static <T> T getRandom(T[] arr) {return arr.length > 0 ? arr[getRandomInt(0, arr.length - 1)] : null;}
 
 	public static String[] getMatches(String[] arr, String key) {
 		Vector<String> matches = new Vector<String>();
@@ -573,7 +573,7 @@ public class Panacea {
 		return matches.toArray(new String[0]);
 	}
 
-	public static String getRandomMatch(String[] arr, String key) { return getRandom(getMatches(arr, key)); }
+	public static String getRandomMatch(String[] arr, String key) {return getRandom(getMatches(arr, key));}
 	
 	public static void beep() {Toolkit.getDefaultToolkit().beep();}
 	
