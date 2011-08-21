@@ -1,8 +1,10 @@
 package modules;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.Scanner;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.Vector;
 
 import debugging.Log;
@@ -30,13 +32,17 @@ public class Fortune extends NoiseModule {
 		super.init(bot);
 		try {
 			final Vector<String> fortunesVec = new Vector<String>();
-			final Scanner s = new Scanner(FORTUNE_FILE);
-			while(s.hasNextLine()) {
-				fortunesVec.add(s.nextLine());
+			final BufferedReader r = new BufferedReader(new FileReader(FORTUNE_FILE));
+			String line;
+			while((line = r.readLine()) != null) {
+				fortunesVec.add(line);
 			}
 			this.fortunes = fortunesVec.toArray(new String[0]);
+			Log.i("Loaded fortune file: " + this.fortunes.length + " lines");
 		} catch(FileNotFoundException e) {
 			this.bot.sendNotice("No fortune file found");
+		} catch(IOException e) {
+			this.bot.sendNotice("Problem reading fortune file: " + e.getMessage());
 		}
 	}
 
