@@ -20,6 +20,7 @@ import main.Message;
 import main.NoiseModule;
 
 import static panacea.Panacea.*;
+import static modules.Slap.slapUser;
 
 /**
  * Poll
@@ -99,8 +100,8 @@ public class Poll extends NoiseModule {
 
 	@Command("\\.vote  *(.+) *")
 	public void vote(Message message, String vote) {
-		if(this.pollTimer == null) {
-			this.bot.reply(message, COLOR_ERROR + "There is no poll in progress to vote on");
+		if(this.pollText == "") {
+			this.bot.reply(message, COLOR_ERROR + "There is no poll to vote on");
 			return;
 		}
 		
@@ -111,6 +112,8 @@ public class Poll extends NoiseModule {
 		}
 		
 		this.votes.put(message.getSender(), vote);
+		if (this.pollTimer == null)
+			this.bot.sendAction(slapUser(message.getSender()));
 		this.bot.reply(message, COLOR_SUCCESS + "Vote recorded" + NORMAL + ". Current standing: " + this.tabulate());
 	}
 	
