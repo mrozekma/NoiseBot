@@ -89,7 +89,17 @@ public class Poll extends NoiseModule {
 		}, WAIT_TIME * 1000);
 		this.startTime = System.currentTimeMillis();
 		
-		this.bot.sendMessage(message.getSender() + " has started a poll (vote with ." + Help.COLOR_COMMAND + "vote" + NORMAL + " " + Help.COLOR_ARGUMENT + implode(this.validVotes.toArray(new String[0]), NORMAL + "/" + Help.COLOR_ARGUMENT) + NORMAL + " in the next " + WAIT_TIME + " seconds): " + this.pollText);
+		String msg = String.format("%s has started a poll (vote with .%svote%s {%s%s%s} in the next %d seconds): %s",
+								   message.getSender(),
+								   Help.COLOR_COMMAND,
+								   NORMAL,
+								   Help.COLOR_ARGUMENT,
+								   implode(this.validVotes.toArray(new String[0]),
+									       NORMAL + "|" + Help.COLOR_ARGUMENT),
+								   NORMAL,
+								   WAIT_TIME,
+								   this.pollText);
+		this.bot.sendMessage(msg);
 	}
 	
 
