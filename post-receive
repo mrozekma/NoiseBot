@@ -16,7 +16,7 @@ if git merge --ff-only $BRANCH; then
 	git branch -d sync
 else
 	git branch -D sync
-	exit -1
+	exit 1
 fi
 
 # Rebuild objects
