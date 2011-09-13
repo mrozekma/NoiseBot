@@ -8,6 +8,9 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.List;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.Vector;
 
 import debugging.Log;
@@ -17,6 +20,7 @@ import main.NoiseBot;
 import main.NoiseModule;
 
 import static panacea.Panacea.*;
+import static modules.Slap.slapUser;
 
 /**
  *                                  _____
@@ -85,6 +89,33 @@ public class Lebowski extends NoiseModule {
 		public int getLineNum() {return this.lineNum;}
 		public int getPos() {return this.pos;}
 	}
+
+	private static class RateLimiter {
+		private Map<String,List<Long>> users;
+
+		public RateLimiter() {
+			this.users = new HashMap<String,List<Long>>();
+		}
+
+		public boolean isAllowed(String user) {
+			if(!users.containsKey(user))
+				users.put(user, new LinkedList());
+
+			// Calculate probability of allowing the request
+			// This could be made configurable..
+			double prob = 1;
+			for(Long date : users.get(user)) {
+				long now = System.nanoTime();
+				double age = 1E-9*(now - date);
+				prob *= 1.0 - 1.0/(age/60.0+5.0);
+			}
+
+			// Log the request
+			users.get(user).add(System.nanoTime());
+
+			return Math.random() < prob;
+		}
+	}
 	
 	private static File TRANSCRIPT_FILE = new File("lebowski");
 	
@@ -108,11 +139,13 @@ public class Lebowski extends NoiseModule {
 	private int lastNickMatches = 0;
 	private int lastLineMatched = -1;
 	private int linesSinceLastQuote = SPACER_LINES;
+	private RateLimiter limiter = null;
 	private List<Match> undisplayedMatches = null;
 	private String lastMatchedUserMessage = null;
 	
 	@Override public void init(NoiseBot bot) {
 		super.init(bot);
+		this.limiter = new RateLimiter();
 		this.lines = new String[0];
 		try {
 			final Vector<String> linesVec = new Vector<String>();
@@ -180,7 +213,10 @@ public class Lebowski extends NoiseModule {
 		} else {
 			if(this.undisplayedMatches != null) // Should always be true
 				this.undisplayedMatches.clear();
-			this.bot.sendMessage(COLOR_QUOTE + this.lines[++this.lastLineMatched]);
+			if(this.limiter.isAllowed(message.getSender()))
+				this.bot.sendMessage(COLOR_QUOTE + this.lines[++this.lastLineMatched]);
+			else
+				this.bot.sendAction(slapUser(message.getSender()));
 		}
 	}
 	
