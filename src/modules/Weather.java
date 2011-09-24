@@ -26,6 +26,9 @@ public class Weather extends NoiseModule
 {
 	private static final String WEATHER_URL = "http://weather.yahooapis.com/forecastjson?w=";
 	private static final String COLOR_INFO = PURPLE;
+	private static final String COLOR_LOC = CYAN;
+	private static final String COLOR_TEXT = YELLOW;
+	private static final String COLOR_TEMP = MAGENTA;
 	private static final String COLOR_ERROR = RED + REVERSE;
 
 	private static final String[][] cities = {
@@ -58,15 +61,23 @@ public class Weather extends NoiseModule
 		final double temperature = j.getJSONObject("condition").getDouble("temperature");
 		final String text  = j.getJSONObject("condition").getString("text");
 
-		return PURPLE + "[" + location + ": " + text + ", " + temperature + "F] ";
+		return	COLOR_INFO + "[" +
+			COLOR_LOC  + location +
+			COLOR_INFO + ": " +
+			COLOR_TEXT + text +
+			COLOR_INFO + ", " +
+			COLOR_TEMP + temperature + "F" +
+			COLOR_INFO + "] ";
 	}
 
 	@Command(".weather")
 	public void weather(Message message)
 	{
 		try {
+			String s = "";
 			for (int i = 0; i < cities.length; i++)
-				this.bot.sendMessage(getWeather(cities[i][0], cities[i][1]));
+				s += getWeather(cities[i][0], cities[i][1]);
+			this.bot.sendMessage(s);
 		} catch (Exception e) {
 			this.bot.sendMessage(COLOR_ERROR + "Problem parsing Weather data");
 		}
