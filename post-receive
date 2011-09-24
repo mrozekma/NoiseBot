@@ -8,7 +8,9 @@ cd "$SRC_DIR"
 
 # We only care about updating master
 if [ "$BRANCH" != "refs/heads/sync" ]; then
-	return 0;
+	echo "** Aborting, push to ':sync' to update **"
+	git branch -D "${BRANCH/refs\/heads\//}"
+	exit 1
 fi
 
 # Merge sync into master
