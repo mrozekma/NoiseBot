@@ -31,11 +31,12 @@ public class Weather extends NoiseModule
 	private static final String[][] cities = {
 		{ "12778384", "Terre Haute, IN"},
 		{ "2357536",  "Austin, TX"},
-		{ "2517274",  "West Lafayette, IN"},
+		{ "2374418",  "Canoga Park, CA"},
 		{ "2401279",  "Fairbanks, AK"},
 		{ "2402488",  "Farmington Hills, MI"},
 		{ "2470874",  "Petaluma, CA"},
 		{ "2490383",  "Seattle, WA"},
+		{ "2517274",  "West Lafayette, IN"},
 	};
 
 	private static JSONObject getJSON(String url) throws IOException, JSONException {
