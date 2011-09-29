@@ -42,6 +42,18 @@ public class Weather extends NoiseModule
 		{ "2517274",  "West Lafayette, IN"},
 	};
 
+	private static final String[][] icons = {
+		/* You may need to install "Symbolata" to see the first two symbols */
+		{"Partly Cloudy", "\u00e2\u009b\u0085"}, /* SUN BEHIND CLOUD */
+		{"Thunderstorms", "\u00e2\u009b\u0088"}, /* THUNDER CLOUD AND RAIN */
+		/* The rest are in DejaVu Sans */
+		{"Cloudy", "\u00e2\u0098\u0081"}, /* CLOUD */
+		{"Rain", /*"\u00e2\u0098\u0094"*/ "\u00e2\u009b\u0086"}, /* UMBRELLA WITH RAIN DROPS */
+		{"Snow", "\u00e2\u0098\u0083"}, /* SNOWMAN */
+		{"Sunny", "\u00e2\u0098\u0080"}, /* BLACK SUN WITH RAYS */
+		{"Hail", "\u00e2\u0098\u0084"}, /* COMET */
+	};
+
 	private static JSONObject getJSON(String url) throws IOException, JSONException {
 		final URLConnection c = new URL(url).openConnection();
 		final DataInputStream s = new DataInputStream(c.getInputStream());
@@ -59,7 +71,10 @@ public class Weather extends NoiseModule
 	{
 		final JSONObject j = getJSON(WEATHER_URL + woe);
 		final double temperature = j.getJSONObject("condition").getDouble("temperature");
-		final String text  = j.getJSONObject("condition").getString("text");
+		String text  = j.getJSONObject("condition").getString("text");
+
+		for (int i = 0; i < icons.length; i++)
+			text = text.replace(icons[i][0], icons[i][1]);
 
 		return	COLOR_INFO + "[" +
 			COLOR_LOC  + location +
