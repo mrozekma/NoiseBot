@@ -103,7 +103,7 @@ public class Wikipedia extends NoiseModule {
 			}
 		}
 		if (el == null) { // First paragraph of any other page
-			el = doc.select("div#bodyContent > p").first();
+			el = doc.select("div#bodyContent p").first();
 		}
 		return el == null ? null : el.text();
 	}
