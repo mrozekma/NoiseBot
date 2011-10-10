@@ -49,12 +49,18 @@ public class Links extends NoiseModule {
 		}
 	}
 	
-	@Command("\\.lasturls")
-	public void lastURLs(Message message) {
-		for(String url : this.lastN) {
-			if(url == null) continue;
-			this.bot.reply(message, RECAP_COLOR + this.links.get(url));
+	@Command("\\.(?:lasturls|links) ([0-9]+)")
+	public void lastURLs(Message message, int num) {
+		num = range(num, 1, lastN.length);
+		for(int i = 0; i < num; i++) {
+			if(lastN[i] == null) continue;
+			this.bot.reply(message, RECAP_COLOR + this.links.get(lastN[i]));
 		}
+	}
+
+	@Command("\\.(?:lasturls|links)")
+	public void lastURLsDefault(Message message) {
+		lastURLs(message, lastN.length);
 	}
 
 	@Override public String getFriendlyName() {return "Links";}
@@ -63,7 +69,9 @@ public class Links extends NoiseModule {
 		return new String[] {
 				"http://www.google.com/",
 				"http://www.google.com/ -- Announces that the link has been said in the past",
-				".lasturls -- Shows the last " + this.lastN.length + " URLs sent to the channel"
+				".lasturls -- Shows the last " + this.lastN.length + " URLs sent to the channel",
+				".lasturls _n_ -- Shows the last _n_ URLs sent to the channel",
+				".links -- Same as .lasturls"
 		};
 	}
 }
