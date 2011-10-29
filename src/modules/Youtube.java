@@ -32,7 +32,7 @@ public class Youtube extends NoiseModule {
 	private static final String COLOR_ERROR = RED;
 	private static final String COLOR_INFO = PURPLE;
 	
-	@Command(".*https?://www.youtube.com/(?:watch\\?v=|v/|user/.*\\#p/u/[0-9]+/)([A-Za-z0-9_-]{11}).*")
+	@Command(".*https?://(?:www.youtube.com/(?:watch\\?v=|v/|user/.*\\#p/u/[0-9]+/)|youtu.be/)([A-Za-z0-9_-]{11}).*")
 	public void youtube(Message message, String videoID) {
 		try {
 			final DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
