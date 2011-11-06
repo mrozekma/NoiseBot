@@ -71,7 +71,7 @@ public class UrbanDictionary extends NoiseModule {
 			
 			definitionText = bestDefinition.getString("definition").replaceAll("\\r\\n|\\r|\\n", " ");
 			definitionUrl = bestDefinition.getString("permalink");
-		} catch (IOException | JSONException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			this.bot.sendMessage(COLOR_ERROR + "Problem parsing urban dictionary JSON data");
 		}
