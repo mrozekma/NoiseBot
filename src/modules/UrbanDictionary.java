@@ -45,7 +45,7 @@ public class UrbanDictionary extends NoiseModule {
 			// disregard results that are not exact (like search results)
 			String matchType = result.getString("result_type");
 			if(!"exact".equals(matchType)) {
-				this.bot.sendMessage(COLOR_ERROR + "No results");
+				this.bot.sendMessage(COLOR_WARNING + "No results");
 				return;
 			}
 			
@@ -64,7 +64,7 @@ public class UrbanDictionary extends NoiseModule {
 			}
 			
 			if(bestDefinition == null) {
-				this.bot.sendMessage(COLOR_ERROR + "No results");
+				this.bot.sendMessage(COLOR_WARNING + "No results");
 				return;
 			}
 			
