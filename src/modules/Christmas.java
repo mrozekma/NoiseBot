@@ -18,6 +18,7 @@ public class Christmas extends NoiseModule {
       "Ma-ma-ma-ma-cita, donde esta Santa Cleese...~The vato wit da bony knees...~He comin' down da street wit no choos on his feet...~And he's going to..."
 	};
 
+	private boolean odd = false;
 
 	@Override public void init(NoiseBot bot) {
 		super.init(bot);
@@ -26,8 +27,14 @@ public class Christmas extends NoiseModule {
 
 	@Command("[^\\.].*")
 	public void talked(Message message) {
-		if(getRandomInt(0, 10) == 0)
-			this.bot.sendMessage(GREEN + "Ho " + RED + "Ho " + GREEN + "Ho!");
+		if (getRandomInt(0, 10) == 0) {
+			if (odd) {
+				this.bot.sendMessage(RED + "Ho " + GREEN + "Ho " + RED + "Ho!");
+			} else {
+				this.bot.sendMessage(GREEN + "Ho " + RED + "Ho " + GREEN + "Ho!");
+			}
+			odd = !odd;
+		}
 	}
 
 	@Command("\\.jingle")
