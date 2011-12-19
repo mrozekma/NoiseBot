@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.io.UnsupportedEncodingException;
 import java.io.Serializable;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -17,6 +18,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.jibble.pircbot.User;
+import static org.jibble.pircbot.Colors.*;
 
 import debugging.Log;
 
@@ -28,6 +30,8 @@ import debugging.Log;
  *         Created Jun 13, 2009.
  */
 public abstract class NoiseModule implements Comparable<NoiseModule> {
+	private static final String COLOR_ERROR = RED;
+
 	@Retention(RetentionPolicy.RUNTIME)
 	@Target(ElementType.METHOD)
 	protected static @interface Command {
@@ -156,4 +160,14 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 
 	@Override public int compareTo(NoiseModule other) {return this.getFriendlyName().compareTo(other.getFriendlyName());}
 	@Override public String toString() {return this.getFriendlyName();}
+
+	protected String encoded(final String s) {
+		try {
+			final byte bytes[] = s.getBytes("UTF8");
+			return new String(bytes, "ISO8859_1");
+		} catch (UnsupportedEncodingException e) {
+			this.bot.sendMessage(COLOR_ERROR + "He looks like a fuckin' loser.");
+			return s;
+		}
+	}
 }

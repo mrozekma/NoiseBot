@@ -3,7 +3,6 @@ package modules;
 import static org.jibble.pircbot.Colors.*;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLDecoder;
@@ -81,16 +80,6 @@ public class Wikipedia extends NoiseModule {
 			return term;
 	}
 	*/
-
-	private String encoded(final String s) {
-		try {
-			final byte bytes[] = s.getBytes("UTF8");
-			return new String(bytes, "ISO8859_1");
-		} catch (UnsupportedEncodingException e) {
-			this.bot.sendMessage(COLOR_ERROR + "He looks like a fuckin' loser.");
-			return s;
-		}
-	}
 
 	private String selectEntryText(final String term, final String url, final Document doc) {
 		Element el = null;

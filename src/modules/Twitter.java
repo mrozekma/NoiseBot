@@ -33,7 +33,7 @@ public class Twitter extends NoiseModule {
 
 	private static final String COLOR_ERROR = RED;
 	private static final String COLOR_INFO = PURPLE;
-	
+
 	@Override public void init(NoiseBot bot) {
 		super.init(bot);
 		this.timer.scheduleAtFixedRate(new TimerTask() {
@@ -99,7 +99,7 @@ public class Twitter extends NoiseModule {
 	}
 	
 	private void emitTweet(String username, String text) {
-		this.bot.sendMessage(COLOR_INFO + UNDERLINE + "@" + username + NORMAL + COLOR_INFO + ": " + text);
+		this.bot.sendMessage(COLOR_INFO + UNDERLINE + "@" + username + NORMAL + COLOR_INFO + ": " + encoded(text));
 	}
 	
 	@Override public String getFriendlyName() {return "Twitter";}
