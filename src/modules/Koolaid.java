@@ -10,7 +10,7 @@ import main.NoiseModule;
  * @author auchter
  *         Created Dec 23ish, 2011.
  */
-public class Dance extends NoiseModule {
+public class Koolaid extends NoiseModule {
    @Command(".*[oO][hH](,|\\.)* [nN][oO].*")
 	public void ohyeah(Message message) {
 		this.bot.sendMessage(RED + "OH YEAH!");
