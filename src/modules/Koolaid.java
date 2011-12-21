@@ -11,7 +11,7 @@ import main.NoiseModule;
  *         Created Dec 23ish, 2011.
  */
 public class Koolaid extends NoiseModule {
-   @Command(".*[oO][hH](,|\\.)* [nN][oO].*")
+   @Command(".*[oO][hH](?:,|\\.)* [nN][oO].*")
 	public void ohyeah(Message message) {
 		this.bot.sendMessage(RED + "OH YEAH!");
 	}
