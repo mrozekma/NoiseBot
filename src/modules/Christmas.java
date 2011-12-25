@@ -17,7 +17,7 @@ public class Christmas extends NoiseModule {
 		"Rudolph the Red-Nosed Reindeer~Had a very shiny nose,~And if you ever saw it,~You would even say it glows.",
 		"Ma-ma-ma-ma-cita, donde esta Santa Cleese...~The vato wit da bony knees...~He comin' down da street wit no choos on his feet...~And he's going to...",
 		"On the fourth day of Xmas I stole from that lady...~Four family photos~Three jars of pennies~Two former husbands~And a slipper on a shoe tree!",
-		"He knows when you are sleeping^He knows when you're on the can~He'll hunt you down and blast your ass from here to Pakistan~Oh, you'd better not breathe, you'd better not move~You're better off dead, I'm telling you, dude~Santa Claus is gunning you down",
+		"He knows when you are sleeping~He knows when you're on the can~He'll hunt you down and blast your ass from here to Pakistan~Oh, you'd better not breathe, you'd better not move~You're better off dead, I'm telling you, dude~Santa Claus is gunning you down",
 	};
 
 	private boolean odd = false;
