@@ -15,7 +15,8 @@ public class Christmas extends NoiseModule {
 		"Have yourself a merry little Christmas.~Let your heart be light,~From now on our troubles~Will be out of sight.",
 		"Jingle bells~jingle bells~jingle all the way!~O what fun it is to ride~In a one-horse open sleigh",
 		"Rudolph the Red-Nosed Reindeer~Had a very shiny nose,~And if you ever saw it,~You would even say it glows.",
-      "Ma-ma-ma-ma-cita, donde esta Santa Cleese...~The vato wit da bony knees...~He comin' down da street wit no choos on his feet...~And he's going to..."
+		"Ma-ma-ma-ma-cita, donde esta Santa Cleese...~The vato wit da bony knees...~He comin' down da street wit no choos on his feet...~And he's going to...",
+		"On the fourth day of Xmas I stole from that lady...~Four family photos~Three jars of pennies~Two former husbands~And a slipper on a shoe tree!",
 	};
 
 	private boolean odd = false;
