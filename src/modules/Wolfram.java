@@ -63,7 +63,7 @@ public class Wolfram extends NoiseModule {
 
 			WAQueryResult queryResult = wolfram.performQuery(query);
 			
-			resultText = queryResult.isError() ? COLOR_ERROR + queryResult.getErrorMessage() :
+			resultText = queryResult.isError() ? COLOR_ERROR + encoded(queryResult.getErrorMessage()) :
 						 !queryResult.isSuccess() ? COLOR_WARNING + "No results available" :
 						 formatResult(queryResult);
 
@@ -106,7 +106,7 @@ public class Wolfram extends NoiseModule {
 					return implode(Panacea.map(answerParts, new MapFunction<String, String>() {
 						@Override
 						public java.lang.String map(String source) {
-							return source == "" ? "" : COLOR_BRACKET + "[" + COLOR_TEXT + source.trim() + COLOR_BRACKET + "]";
+							return source == "" ? "" : COLOR_BRACKET + "[" + COLOR_TEXT + encoded(source.trim()) + COLOR_BRACKET + "]";
 						}
 					}), " ");
 				}
@@ -116,7 +116,7 @@ public class Wolfram extends NoiseModule {
 			
 			// if we have a non-empty answer, return it
 			if(!answer.trim().isEmpty())
-				return pod.getTitle() + ": " + answer;
+				return encoded(pod.getTitle()) + ": " + answer;
 			
 		}
 		
