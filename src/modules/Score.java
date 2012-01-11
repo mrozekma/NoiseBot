@@ -60,7 +60,6 @@ public class Score extends NoiseModule implements Serializable {
 	
 	@Override public void onNickChange(String oldNick, String login, String hostname, String newNick) {
 		if (!this.aliasToUsername.containsKey(newNick)) {
-			this.bot.sendMessage(newNick + " is now an alias of " + getUser(oldNick));
 			this.aliasToUsername.put(newNick, getUser(oldNick));
 			this.save();
 		} 
