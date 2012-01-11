@@ -9,6 +9,8 @@ import java.util.Map;
 import main.Message;
 import main.NoiseModule;
 
+import static modules.Slap.slapUser;
+
 
 /**
  * Score
@@ -18,14 +20,18 @@ import main.NoiseModule;
  */
 
 public class Score extends NoiseModule implements Serializable {
-	private static final String COLOR_POSITIVE = BLACK;
+	private static final String COLOR_POSITIVE = ""; // No color
 	private static final String COLOR_NEGATIVE = RED;
 	
 	private Map<String, Integer> userScores = new HashMap<String, Integer>();
 	
 	@Command("(.+)\\+\\+")
 	public void incrementScore(Message message, String target) {
-		this.changeScore(target, 1);
+		if (target.equals(message.getSender())) {
+			this.bot.sendAction(slapUser(message.getSender()));
+		} else {
+			this.changeScore(target, 1);
+		}
 	}
 	
 	@Command("(.+)\\-\\-")
