@@ -96,33 +96,6 @@ public class NoiseBot extends PircBot {
 			}
 		}
 		
-		for(NoiseModule module : this.modules.values()) {
-			for(Class iface : module.getClass().getInterfaces()) {
-				if(iface == Serializable.class) {
-					final File f = new File("store", module.getClass().getSimpleName());
-					if(f.exists()) {
-						try {
-							final NoiseModule saved = (NoiseModule)new ObjectInputStream(new FileInputStream(f)).readObject();
-							for(Field field : saved.getClass().getDeclaredFields()) {
-								if((field.getModifiers() & Modifier.TRANSIENT) != 0 || (field.getModifiers() & Modifier.FINAL) != 0) {continue;}
-								final Field newField = module.getClass().getDeclaredField(field.getName());
-								final boolean accessible = newField.isAccessible();
-								if(!accessible) {field.setAccessible(true); newField.setAccessible(true);}
-								newField.set(module, field.get(saved));
-								if(!accessible) {field.setAccessible(false); newField.setAccessible(false);}
-							}
-						} catch(InvalidClassException e) {
-							Log.e("Incompatible save file for module " + module.getClass().getSimpleName() + "; ignoring");
-						} catch(Exception e) {
-							Log.e("Failed loading module " + module.getClass().getSimpleName());
-							Log.e(e);
-						}
-					}
-					break;
-				}
-			}
-		}
-		
 		{
 			final int moduleCount = this.modules.size();
 			final int patternCount = reduce(map(this.modules.values().toArray(new NoiseModule[0]), new MapFunction<NoiseModule, Integer>() {
@@ -181,6 +154,32 @@ public class NoiseBot extends PircBot {
 			}
 			
 			module.init(this);
+			
+			for(Class iface : module.getClass().getInterfaces()) {
+				if(iface == Serializable.class) {
+					final File f = new File("store", module.getClass().getSimpleName());
+					if(f.exists()) {
+						try {
+							final NoiseModule saved = (NoiseModule)new ObjectInputStream(new FileInputStream(f)).readObject();
+							for(Field field : saved.getClass().getDeclaredFields()) {
+								if((field.getModifiers() & Modifier.TRANSIENT) != 0 || (field.getModifiers() & Modifier.FINAL) != 0) {continue;}
+								final Field newField = module.getClass().getDeclaredField(field.getName());
+								final boolean accessible = newField.isAccessible();
+								if(!accessible) {field.setAccessible(true); newField.setAccessible(true);}
+								newField.set(module, field.get(saved));
+								if(!accessible) {field.setAccessible(false); newField.setAccessible(false);}
+							}
+						} catch(InvalidClassException e) {
+							Log.e("Incompatible save file for module " + module.getClass().getSimpleName() + "; ignoring");
+						} catch(Exception e) {
+							Log.e("Failed loading module " + module.getClass().getSimpleName());
+							Log.e(e);
+						}
+					}
+					break;
+				}
+			}
+			
 			this.modules.put(moduleName, module);
 		} catch(ClassCastException e) {
 			Log.e(e);
