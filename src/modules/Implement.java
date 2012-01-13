@@ -108,7 +108,7 @@ public class Implement extends NoiseModule implements Serializable {
 	
 	@Command("\\.implemented (.+)")
 	public void markImplemented (Message message, String argLine) {
-		Pattern requestPattern = Pattern.compile("\"(.+)\" \"?(.+)\"?");
+		Pattern requestPattern = Pattern.compile("\"(.+)\" \"(.+)\"");
 		Matcher match = requestPattern.matcher(argLine);
 		
 		if (!match.matches()) {
