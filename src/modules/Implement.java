@@ -34,8 +34,8 @@ public class Implement extends NoiseModule implements Serializable {
 	
 	private static final String AUTHOR = "arathald";
 	
-	private class RequestData implements Serializable {
-		private static final long serialVersionUID = 1L;
+	private static class RequestData implements Serializable {
+		private static final long serialVersionUID = 2L;
 		String description;
 		String requestedBy;
 		Date requestedDate;
@@ -47,9 +47,11 @@ public class Implement extends NoiseModule implements Serializable {
 	
 	private HashMap<String, RequestData> requests = new HashMap<String, RequestData>();
 	
-	@Command("\\.(?:implement|request|requests|requested)")
+	@Command("\\.(?:implement|request)")
 	public void showRequests(Message message) {
 		Set<String> requestKeys = this.requests.keySet();
+	
+		this.bot.sendMessage(requestKeys.size() + " active requests");
 		
 		for (String requestKey: requestKeys) {
 			RequestData requestData = this.requests.get(requestKey);
@@ -193,7 +195,7 @@ public class Implement extends NoiseModule implements Serializable {
 			
 	private void printRequest(String requestName, RequestData requestData) {
 		
-		String message = requestName + ": \"" + requestData.description +  "\"," +
+		String message = requestName + ": \"" + requestData.description +  "\", " +
 				"Requested by " + requestData.requestedBy + " on " + this.formatDate(requestData.requestedDate);
 		if (requestData.isImplemented) {
 			message = message +  ", Implemented by " + requestData.implementedBy + " on " + this.formatDate(requestData.implementedDate) + 
