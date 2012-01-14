@@ -29,8 +29,8 @@ import au.com.bytecode.opencsv.CSVParser;
  */
 
 public class Implement extends NoiseModule implements Serializable {
-	private static final String COLOR_POSITIVE = ""; // No color
-	private static final String COLOR_NEGATIVE = RED;
+	
+	private static final long serialVersionUID = 1L;
 	
 	private static final String AUTHOR = "arathald";
 	
