@@ -34,7 +34,8 @@ public class Implement extends NoiseModule implements Serializable {
 	
 	private static final String AUTHOR = "arathald";
 	
-	private class RequestData {
+	private class RequestData implements Serializable {
+		private static final long serialVersionUID = 1L;
 		String description;
 		String requestedBy;
 		Date requestedDate;
@@ -192,7 +193,7 @@ public class Implement extends NoiseModule implements Serializable {
 			
 	private void printRequest(String requestName, RequestData requestData) {
 		this.bot.sendMessage(requestName + ": \"" + requestData.description +  "\"");
-		this.bot.sendMessage("\tRequested by " + requestData.requestedBy + " on " +	this.formatDate(requestData.requestedDate));
+		this.bot.sendMessage("Requested by " + requestData.requestedBy + " on " +	this.formatDate(requestData.requestedDate));
 		if (requestData.isImplemented) {
 			this.bot.sendMessage("\tImplemented by " + requestData.implementedBy + " on " + this.formatDate(requestData.implementedDate) + 
 					" as " + requestData.moduleName);
