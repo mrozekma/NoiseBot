@@ -192,12 +192,15 @@ public class Implement extends NoiseModule implements Serializable {
 	}
 			
 	private void printRequest(String requestName, RequestData requestData) {
-		this.bot.sendMessage(requestName + ": \"" + requestData.description +  "\"");
-		this.bot.sendMessage("Requested by " + requestData.requestedBy + " on " +	this.formatDate(requestData.requestedDate));
+		
+		String message = requestName + ": \"" + requestData.description +  "\"," +
+				"Requested by " + requestData.requestedBy + " on " + this.formatDate(requestData.requestedDate);
 		if (requestData.isImplemented) {
-			this.bot.sendMessage("\tImplemented by " + requestData.implementedBy + " on " + this.formatDate(requestData.implementedDate) + 
-					" as " + requestData.moduleName);
+			message = message +  ", Implemented by " + requestData.implementedBy + " on " + this.formatDate(requestData.implementedDate) + 
+					" as " + requestData.moduleName;
 		}
+		
+		this.bot.sendMessage(message);
 	}
 	
 	private String formatDate(Date date) {
