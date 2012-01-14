@@ -37,7 +37,7 @@ public class Slap extends NoiseModule {
 		return "slaps " + victim + " " + getRandom(adverbs);
 	}
 
-	@Command("\\.slap ([^,]*)")
+	@Command("\\.slap ([^,]*).*")
 	public void slap(Message message, String target) {
 		this.bot.sendAction(slapUser(target));
 	}
