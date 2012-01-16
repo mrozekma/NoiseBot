@@ -17,7 +17,7 @@ public class Dance extends NoiseModule {
 	private static final String COLOR_FIRST_LINE = RED;
 	private static final String COLOR_SECOND_LINE = GREEN;
 	
-	@Command(".*\\b[Dd][Aa][Nn][Cc][Ee].*")
+	@Command(".*\\b[Dd][Aa][Nn][Cc](?:[Ee]|[Ii][Nn][Gg]).*")
 	public void dance(Message message) {
 		this.bot.sendAction("dances :D-<");
 		this.bot.sendAction("dances :D|-<");
