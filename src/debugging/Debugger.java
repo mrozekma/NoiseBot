@@ -69,6 +69,7 @@ public class Debugger {
 
 	public void log(Level level, String className, String methodName, int line, String msg) {
 		final Event event = new Event(level, className, methodName, line, msg);
+		System.out.println(event);
 		
 		this.log.add(event);
 		this.out(event);

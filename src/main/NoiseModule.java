@@ -1,23 +1,26 @@
 package main;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
+import java.io.FileNotFoundException;
 import java.io.UnsupportedEncodingException;
 import java.io.Serializable;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.ho.yaml.Yaml;
+import org.ho.yaml.YamlConfig;
 import org.jibble.pircbot.User;
+
 import static org.jibble.pircbot.Colors.*;
 
 import debugging.Log;
@@ -42,6 +45,15 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 	@Target(ElementType.METHOD)
 	protected static @interface PM {
 		String value();
+	}
+	
+	// Tell JYaml to serialize all non-transient fields (even if private), and to use any constructors it wants to unserialize
+	static {
+	    Yaml.config = new YamlConfig() {
+			@Override public boolean isFieldAccessibleForDecoding(Field field) {return this.isFieldAccessibleForEncoding(field);}
+			@Override public boolean isFieldAccessibleForEncoding(Field field) {return (field.getModifiers() & Modifier.TRANSIENT) == 0;}
+			@Override public boolean isConstructorAccessibleForDecoding(Class c) {return true;}
+	    };
 	}
 	
 	protected transient NoiseBot bot;
@@ -141,21 +153,34 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 		}
 	}
 	
-	public boolean save() {
-		Log.v(this + " - Saving");
-		for(Class iface : this.getClass().getInterfaces()) {
-			if(iface == Serializable.class) {
-				try {
-					new ObjectOutputStream(new FileOutputStream(new File("store", this.getClass().getSimpleName()))).writeObject(this);
-				} catch(IOException e) {
-					Log.e(e);
-					return false;
-				}
-				return true;
-			}
+	public static <T extends NoiseModule> T load(Class<T> moduleType) {
+		Log.v(moduleType.getSimpleName() + " - Loading");
+		if(!Arrays.asList(moduleType.getInterfaces()).contains(Serializable.class)) {return null;}
+		
+		try {
+			return Yaml.loadType(new File("store", moduleType.getSimpleName()), moduleType);
+		} catch(FileNotFoundException e) {
+			Log.v("No store file for " + moduleType.getSimpleName());
+		} catch(Exception e) { // Should just be IOException
+			Log.w("Unable to deserialize " + moduleType.getSimpleName());
+			Log.w(e);
 		}
 		
-		return true;
+		return null;
+	}
+	
+	public boolean save() {
+		Log.v(this + " - Saving");
+		if(!(this instanceof Serializable)) {return true;}
+		
+		try {
+			Yaml.dump(this); // Somehow this tricks JYaml into getting the most recent data from memory instead of outputting old data
+			Yaml.dump(this, new File("store", this.getClass().getSimpleName()));
+			return true;
+		} catch(Exception e) { // Should just be IOException
+			Log.e(e);
+			return false;
+		}
 	}
 
 	@Override public int compareTo(NoiseModule other) {return this.getFriendlyName().compareTo(other.getFriendlyName());}

@@ -4,14 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.UnsupportedEncodingException;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InvalidClassException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
@@ -19,11 +12,11 @@ import java.util.Vector;
 import static org.jibble.pircbot.Colors.NORMAL;
 import static panacea.Panacea.*;
 
-import debugging.Client;
 import debugging.Log;
 
 import modules.Help;
 
+import org.ho.yaml.Yaml;
 import org.jibble.pircbot.IrcException;
 import org.jibble.pircbot.NickAlreadyInUseException;
 import org.jibble.pircbot.PircBot;
@@ -78,7 +71,7 @@ public class NoiseBot extends PircBot {
 		final File moduleFile = new File("store", "modules");
 		if(moduleFile.exists()) {
 			try {
-				final String[] moduleNames = (String[])new ObjectInputStream(new FileInputStream(moduleFile)).readObject();
+				final String[] moduleNames = Yaml.loadType(moduleFile, String[].class);
 				Log.i("Loading " + moduleNames.length + " modules from store");
 		
 				for(String moduleName : moduleNames) {
@@ -119,7 +112,7 @@ public class NoiseBot extends PircBot {
 		final File moduleFile = new File("store", "modules");
 		final String[] moduleNames = this.modules.keySet().toArray(new String[0]);
 		try {
-			new ObjectOutputStream(new FileOutputStream(moduleFile)).writeObject(moduleNames);
+			Yaml.dump(moduleNames, moduleFile);
 		} catch(IOException e) {
 			throw new ModuleSaveException("Failed saving module list");
 		}
@@ -146,40 +139,22 @@ public class NoiseBot extends PircBot {
 		}
 		
 		try {
-			final Class c = getModuleLoader().loadClass("modules." + moduleName);
-			final NoiseModule module = (NoiseModule)c.newInstance();
+			final Class<? extends NoiseModule> c = (Class<? extends NoiseModule>)getModuleLoader().loadClass("modules." + moduleName);
+			NoiseModule module;
+			
+			// Try loading from disk
+			module = NoiseModule.load(c);
+			
+			// Otherwise just make a new one
+			if(module == null) {
+				module = c.newInstance();
+			}
 			
 			if(module.getFriendlyName() == null) {
 				throw new ModuleLoadException("Module " + moduleName + " does not have a friendly name");
 			}
 			
 			module.init(this);
-			
-			for(Class iface : module.getClass().getInterfaces()) {
-				if(iface == Serializable.class) {
-					final File f = new File("store", module.getClass().getSimpleName());
-					if(f.exists()) {
-						try {
-							final NoiseModule saved = (NoiseModule)new ObjectInputStream(new FileInputStream(f)).readObject();
-							for(Field field : saved.getClass().getDeclaredFields()) {
-								if((field.getModifiers() & Modifier.TRANSIENT) != 0 || (field.getModifiers() & Modifier.FINAL) != 0) {continue;}
-								final Field newField = module.getClass().getDeclaredField(field.getName());
-								final boolean accessible = newField.isAccessible();
-								if(!accessible) {field.setAccessible(true); newField.setAccessible(true);}
-								newField.set(module, field.get(saved));
-								if(!accessible) {field.setAccessible(false); newField.setAccessible(false);}
-							}
-						} catch(InvalidClassException e) {
-							Log.e("Incompatible save file for module " + module.getClass().getSimpleName() + "; ignoring");
-						} catch(Exception e) {
-							Log.e("Failed loading module " + module.getClass().getSimpleName());
-							Log.e(e);
-						}
-					}
-					break;
-				}
-			}
-			
 			this.modules.put(moduleName, module);
 		} catch(ClassCastException e) {
 			Log.e(e);
@@ -204,6 +179,7 @@ public class NoiseBot extends PircBot {
 		
 		if(this.modules.containsKey(moduleName)) {
 			final NoiseModule module = this.modules.get(moduleName);
+			module.save();
 			module.unload();
 			this.modules.remove(moduleName);
 		} else {

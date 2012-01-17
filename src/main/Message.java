@@ -11,6 +11,7 @@ public class Message {
 	private String sender;
 	private boolean pm;
 	
+	private Message() {}
 	public Message(String message, String sender, boolean pm) {
 		this.message = message;
 		this.sender = sender;

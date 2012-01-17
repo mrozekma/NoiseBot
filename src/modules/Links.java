@@ -17,11 +17,12 @@ import static panacea.Panacea.*;
  * @author Michael Mrozek
  *         Created Oct 10, 2009.
  */
-public class Links extends NoiseModule {
+public class Links extends NoiseModule implements Serializable {
 	private static class CachedMessage implements Serializable {
 		private Date date;
 		private Message message;
 		
+		private CachedMessage() {}
 		public CachedMessage(Message message) {
 			this.date = new Date();
 			this.message = message;

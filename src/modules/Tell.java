@@ -23,6 +23,7 @@ public class Tell extends NoiseModule implements Serializable {
 		private Date date;
 		private String message;
 		
+		private CachedMessage() {}
 		public CachedMessage(String sender, String message) {
 			this.sender = sender;
 			this.date = new Date();

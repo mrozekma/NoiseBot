@@ -30,12 +30,9 @@ import au.com.bytecode.opencsv.CSVParser;
 
 public class Implement extends NoiseModule implements Serializable {
 	
-	private static final long serialVersionUID = 1L;
-	
 	private static final String AUTHOR = "arathald";
 	
 	private static class RequestData implements Serializable {
-		private static final long serialVersionUID = 2L;
 		String description;
 		String requestedBy;
 		Date requestedDate;
