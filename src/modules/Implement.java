@@ -5,6 +5,7 @@ import static org.jibble.pircbot.Colors.*;
 import java.io.Serializable;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
@@ -18,7 +19,7 @@ import main.Message;
 import main.NoiseBot;
 import main.NoiseModule;
 
-import au.com.bytecode.opencsv.CSVParser;
+import static modules.Slap.slapUser;
 
 
 /**
@@ -43,6 +44,7 @@ public class Implement extends NoiseModule implements Serializable {
 	}
 	
 	private HashMap<String, RequestData> requests = new HashMap<String, RequestData>();
+	private ArrayList<String> disallowedUsers = new ArrayList<String>();
 	
 	@Command("\\.(?:implement|request)")
 	public void showRequests(Message message) {
@@ -74,35 +76,40 @@ public class Implement extends NoiseModule implements Serializable {
 	
 	@Command("\\.(?:implement|request) (.+)")
 	public void addRequest(Message message, String argLine) {
-		Pattern requestPattern = Pattern.compile("\"(.+)\" \"(.+)\"");
-		Matcher match = requestPattern.matcher(argLine);
-		
-		if (match.matches()) {
+		if (this.disallowedUsers.contains(message.getSender().toLowerCase())) {
+			this.bot.sendAction(slapUser(message.getSender()));
+			this.bot.sendMessage("You don't have permission to make requests.");
+		} 
+		else {
+			Pattern requestPattern = Pattern.compile("\"(.+)\" \"(.+)\"");
+			Matcher match = requestPattern.matcher(argLine);
 			
-			String requestName = match.group(1);
-			String requestDescription = match.group(2);
-		
-			if (!this.requests.containsKey(requestName)) {
-				RequestData requestData = new RequestData();
-				requestData.description = requestDescription;
-				requestData.requestedBy = message.getSender();
-				requestData.requestedDate = java.util.Calendar.getInstance().getTime();
-				requestData.isImplemented = false;
+			if (match.matches()) {
 				
-				
-				this.requests.put(requestName, requestData);
-				this.save();
-				
-				this.printRequest(requestName, requestData);
-			} else {
-				this.bot.sendMessage(RED + requestName + " already exists. Choose a different name.");
+				String requestName = match.group(1);
+				String requestDescription = match.group(2);
+			
+				if (!this.requests.containsKey(requestName)) {
+					RequestData requestData = new RequestData();
+					requestData.description = requestDescription;
+					requestData.requestedBy = message.getSender();
+					requestData.requestedDate = java.util.Calendar.getInstance().getTime();
+					requestData.isImplemented = false;
+					
+					
+					this.requests.put(requestName, requestData);
+					this.save();
+					
+					this.printRequest(requestName, requestData);
+				} else {
+					this.bot.sendMessage(RED + requestName + " already exists. Choose a different name.");
+				}
+			}
+			else {
+				this.bot.sendMessage(RED + "Invalid syntax for .implement. Example:");
+				this.bot.sendMessage(RED + ".implement \"Request Name\" \"Description\"");
 			}
 		}
-		else {
-			this.bot.sendMessage(RED + "Invalid syntax for .implement. Example:");
-			this.bot.sendMessage(RED + ".implement \"Request Name\" \"Description\"");
-		}
-
 		
 	}
 	
@@ -144,6 +151,7 @@ public class Implement extends NoiseModule implements Serializable {
 			if (message.getSender().equalsIgnoreCase(bot.ME) || message.getSender().equalsIgnoreCase(this.AUTHOR)) {
 				this.requests.remove(requestName);
 				this.save();
+				this.bot.sendMessage(requestName + " has been deleted");
 			}
 			// If it's been implemented, no one else can remove it
 			else if (requestData.isImplemented) {
@@ -153,6 +161,7 @@ public class Implement extends NoiseModule implements Serializable {
 			} else if (message.getSender().equalsIgnoreCase(requestData.requestedBy)) {
 				this.requests.remove(requestName);
 				this.save();
+				this.bot.sendMessage(requestName + " has been deleted");
 			}
 			// But no one else can
 			else {
@@ -162,6 +171,56 @@ public class Implement extends NoiseModule implements Serializable {
 		// This request doesn't exist 
 		else {
 			this.bot.sendMessage(RED + "I can't find the request " + requestName);
+		}
+	}
+	
+	@Command("\\.(?:exterminaterequests|deleteallrequests)")
+	public void deleteAllRequests(Message message) {
+		if (message.getSender().equalsIgnoreCase(bot.ME) || message.getSender().equalsIgnoreCase(this.AUTHOR)) {
+			this.requests.clear();
+			this.save();
+			this.bot.sendMessage("All requests have been deleted");
+		}
+		else {
+			this.bot.sendMessage(RED + "You don't have permission to delete requests");
+		}
+	}
+	
+	@Command("\\.disallowrequests (.+)")
+	public void disallowRequests(Message message, String userName) {
+		userName = userName.toLowerCase();
+		
+		if (message.getSender().equalsIgnoreCase(bot.ME) || message.getSender().equalsIgnoreCase(this.AUTHOR)) {
+			if (!this.disallowedUsers.contains(userName)) {
+				this.disallowedUsers.add(userName);
+				this.save();
+				this.bot.sendMessage("User " + userName + " has been disallowed from making requests");
+			} 
+			else {
+				this.bot.sendMessage("User " + userName + " is already prohibited from making requests");
+			}
+		}
+		else {
+			this.bot.sendMessage(RED + "You don't have permission to disallow users from making requests");
+		}
+	}
+	
+	@Command("\\.allowrequests (.+)")
+	public void allowRequests(Message message, String userName) {
+		userName = userName.toLowerCase();
+		
+		if (message.getSender().equalsIgnoreCase(bot.ME) || message.getSender().equalsIgnoreCase(this.AUTHOR)) {
+			if (this.disallowedUsers.contains(userName)) {
+				this.disallowedUsers.remove(userName);
+				this.save();
+				this.bot.sendMessage("User " + userName + " is now allowed to make requests");
+			} 
+			else {
+				this.bot.sendMessage("User " + userName + " is already allowed to make requests");
+			}
+		}
+		else {
+			this.bot.sendMessage(RED + "You don't have permission to allow users to make requests");
 		}
 	}
 	
