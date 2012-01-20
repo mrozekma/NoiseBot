@@ -27,6 +27,24 @@ public class Score extends NoiseModule implements Serializable {
 	private Map<String, Integer> userScores = new HashMap<String, Integer>();
 	private Map<String, String> aliasToUsername = new HashMap<String, String>();
 
+	@Command("\\.winner")
+	public void winner(Message m) {
+		// bloody worthless language...
+		String winner = "";
+		int score = 0;
+
+		for (Map.Entry<String, Integer> e : userScores.entrySet()) {
+			// ties are a sign of oppression
+			if (e.getValue() > score) {
+				score = e.getValue();
+				winner = e.getKey();
+			}
+		}
+
+		if (!winner.equals(""))
+			this.bot.sendMessage(winner + " leads with " + score + " points.");
+	}
+
 	@Command("(.+)\\+\\+.*")
 	public void incrementScore(Message message, String target) {
 		if (this.isSameUser(target, message.getSender())) {
