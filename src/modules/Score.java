@@ -3,6 +3,9 @@ package modules;
 import static org.jibble.pircbot.Colors.*;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -26,6 +29,25 @@ public class Score extends NoiseModule implements Serializable {
 	
 	private Map<String, Integer> userScores = new HashMap<String, Integer>();
 	private Map<String, String> aliasToUsername = new HashMap<String, String>();
+	
+	// Shamelessly copied (and modified) from 
+	// http://stackoverflow.com/questions/3074154/sorting-a-hashmap-based-on-value-then-key
+	public class ValueThenKeyComparator<K extends Comparable<? super K>,
+	    								V extends Comparable<? super V>>
+		implements Comparator<Map.Entry<K, V>> {
+	
+		public int compare(Map.Entry<K, V> a, Map.Entry<K, V> b) {
+			// Reverse these so that we sort in descending order
+			int cmp1 = b.getValue().compareTo(a.getValue());
+			if (cmp1 != 0) {
+				return cmp1;
+			} else {
+				return a.getKey().compareTo(b.getKey());
+			}
+		}
+	
+	}
+
 
 	@Command("\\.winner")
 	public void winner(Message m) {
@@ -43,6 +65,26 @@ public class Score extends NoiseModule implements Serializable {
 
 		if (!winner.equals(""))
 			this.bot.sendMessage(winner + " leads with " + score + " points.");
+	}
+	
+	@Command("\\.(?:scores|scoreboard)")
+	public void scores(Message message) {
+		ArrayList<Map.Entry<String, Integer>> scores = new ArrayList<Map.Entry<String, Integer>>(this.userScores.entrySet());
+		Collections.sort(scores, new ValueThenKeyComparator<String, Integer>());
+
+		String scoreMessage = "";
+		
+		for (Map.Entry<String, Integer> e : scores) {
+			String user = e.getKey();
+			Integer score = e.getValue();
+			
+			String delimiter = scoreMessage.compareTo("") == 0 ? "" : ", ";
+			
+			scoreMessage += delimiter + user + ": " + score;
+		}
+		
+		this.bot.sendMessage("User Scores:");
+		this.bot.sendMessage(scoreMessage);
 	}
 
 	@Command("(.+)\\+\\+.*")
