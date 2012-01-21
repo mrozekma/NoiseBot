@@ -44,7 +44,7 @@ public class Implement extends NoiseModule implements Serializable {
 	}
 	
 	private HashMap<String, RequestData> requests = new HashMap<String, RequestData>();
-	private ArrayList<String> disallowedUsers = new ArrayList<String>();
+	private ArrayList<String> allowedUsers = new ArrayList<String>();
 	
 	@Command("\\.(?:implement|request)")
 	public void showRequests(Message message) {
@@ -76,7 +76,7 @@ public class Implement extends NoiseModule implements Serializable {
 	
 	@Command("\\.(?:implement|request) (.+)")
 	public void addRequest(Message message, String argLine) {
-		if (this.disallowedUsers.contains(message.getSender().toLowerCase())) {
+		if (!this.allowedUsers.contains(message.getSender().toLowerCase())) {
 			this.bot.sendAction(slapUser(message.getSender()));
 			this.bot.sendMessage("You don't have permission to make requests.");
 		} 
@@ -191,8 +191,8 @@ public class Implement extends NoiseModule implements Serializable {
 		userName = userName.toLowerCase();
 		
 		if (message.getSender().equalsIgnoreCase(bot.ME) || message.getSender().equalsIgnoreCase(this.AUTHOR)) {
-			if (!this.disallowedUsers.contains(userName)) {
-				this.disallowedUsers.add(userName);
+			if (this.allowedUsers.contains(userName)) {
+				this.allowedUsers.remove(userName);
 				this.save();
 				this.bot.sendMessage("User " + userName + " has been disallowed from making requests");
 			} 
@@ -210,8 +210,8 @@ public class Implement extends NoiseModule implements Serializable {
 		userName = userName.toLowerCase();
 		
 		if (message.getSender().equalsIgnoreCase(bot.ME) || message.getSender().equalsIgnoreCase(this.AUTHOR)) {
-			if (this.disallowedUsers.contains(userName)) {
-				this.disallowedUsers.remove(userName);
+			if (!this.allowedUsers.contains(userName)) {
+				this.allowedUsers.add(userName);
 				this.save();
 				this.bot.sendMessage("User " + userName + " is now allowed to make requests");
 			} 
