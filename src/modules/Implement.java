@@ -224,6 +224,17 @@ public class Implement extends NoiseModule implements Serializable {
 		}
 	}
 	
+	@Command("\\.allowrequests")
+	public void enumerateAllowRequestsList(Message message) {
+		String allowedRequestors = "The following users are allowed to make requests:";
+		
+		for (String user: this.allowedUsers) {
+			allowedRequestors += " " + user;
+		}
+		
+		this.bot.sendMessage(allowedRequestors);
+	}
+	
 	@Command("\\.unimplement (.+)")
 	public void unimplementRequest(Message message, String requestName) {
 		if (this.requests.containsKey(requestName)) {
