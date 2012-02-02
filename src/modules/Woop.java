@@ -1,7 +1,6 @@
 package modules;
 
 import main.Message;
-import main.NoiseBot;
 import main.NoiseModule;
 
 import static panacea.Panacea.*;
@@ -16,40 +15,25 @@ import static org.jibble.pircbot.Colors.*;
 public class Woop extends NoiseModule {
    @Command("\\.woop ([0-9]+\\.?[0-9]*)")
    public void woop(Message message, String woopsArg) {
-      float numWoops = Float.valueOf(woopsArg);
-	   
-	  // whole woops
-	  int wholeWoops = (int) Math.floor(numWoops);
-	  String woops = "";
-      int num = range(wholeWoops, 1, 20);
-
-      for (int i = 0; i < num; i++)
-         woops += " WOOP";
-      
-      // remainder partial woops, to the nearest 1/4 woop
-      int partialWoops = Math.round((numWoops - wholeWoops) * 4);
-      switch(partialWoops) {
-      case 1:
-    	  woops += " W";
-    	  break;
-      case 2:
-    	  woops += " WO";
-    	  break;
-      case 3:
-    	  woops += " WOO";
-    	  break;
-      case 4:
-    	  woops += " WOOP";
-    	  break;
-      default:
-    	  break;
-      }
-
-      this.bot.sendMessage(RED + woops.substring(1));
+	  float requestedWoops = Float.valueOf(woopsArg);
+	  
+	  int wholeWoops = (int) Math.floor(requestedWoops);
+	  int boundedWoops = range(wholeWoops, 1, 20);
+	  int woopPart = Math.round((requestedWoops - wholeWoops) * 4);
+	  
+	  String woops = new String(new char[boundedWoops]).replace("\0", "WOOP ") + "WOOP".substring(0, woopPart);
+	
+	  this.bot.sendMessage(RED + woops.trim());
    }
 
    @Command("\\.woop")
    public void woopDefault(Message message) {this.woop(message, "10");}
+   
+   @Command("\\.woo[o]+p ([0-9]+\\.?[0-9]*)")
+   public void woopLong(Message message, String woopsArg) {this.woop(message, woopsArg);}
+   
+   @Command("\\.woo([o]+)p")
+   public void woopLongDefault(Message message, String numOs) {this.woop(message, "" + (numOs.length() + 2));}
 
    @Override public String getFriendlyName() {return "Woop";}
    @Override public String getDescription() {return "Woop it up a bit (to the nearest quarter woop).";}
@@ -57,7 +41,8 @@ public class Woop extends NoiseModule {
       return new String[] {
             ".woop",
             ".woop 15",
-            ".woop 4.25"
+            ".woop 4.25",
+            ".woooooop"
       };
    }
 }
