@@ -50,6 +50,31 @@ public class NoiseBot extends PircBot {
 	public Git.Revision revision = Git.head();
 	private Map<String, NoiseModule> modules = new HashMap<String, NoiseModule>();
 	public static NoiseBot me;
+
+	public void connect() {
+		Log.i("Connecting to " + this.connection.getServer() + ":" + this.connection.getPort() + " as " + this.connection.getNick());
+		if(this.isConnected()) {
+			Log.w("Already connected");
+			return;
+		}
+		
+		try {
+			System.out.println("Connecting to " + this.connection.getServer() + ":" + this.connection.getPort() + " as " + this.connection.getNick());
+			this.connect(this.connection.getServer(), this.connection.getPort(), this.connection.getPassword());
+		} catch(NickAlreadyInUseException e) {
+			System.err.println("The nick " + this.connection.getNick() + " is already in use");
+			System.exit(1);
+		} catch(IrcException e) {
+			System.err.println("Unexpected IRC error: " + e.getMessage());
+			System.exit(1);
+		} catch(IOException e) {
+			System.err.println("Network error: " + e.getMessage());
+			System.exit(1);
+		}
+
+		System.out.println("Joining " + this.connection.getChannel());
+		this.joinChannel(this.connection.getChannel());
+	}
 	
 	public void quit() {
 		this.disconnect();
@@ -61,6 +86,11 @@ public class NoiseBot extends PircBot {
 	public Map<String, NoiseModule> getModules() {return this.modules;}
 	
 	private void loadModules() {
+		if(!this.modules.isEmpty()) {
+			Log.w(pluralize(this.modules.size(), "module", "modules") + " already loaded");
+			return;
+		}
+		
 		// Always load the module manager
 		try {
 			this.loadModule("ModuleManager");
@@ -140,6 +170,7 @@ public class NoiseBot extends PircBot {
 		
 		try {
 			final Class<? extends NoiseModule> c = (Class<? extends NoiseModule>)getModuleLoader().loadClass("modules." + moduleName);
+			c.newInstance();
 			NoiseModule module;
 			
 			// Try loading from disk
@@ -335,6 +366,12 @@ public class NoiseBot extends PircBot {
 		}
 	}
 
+	// This isn't called if we tell PircBot to disconnect, only if the server disconnects us
+	@Override protected void onDisconnect() {
+		Log.i("Disconnected");
+		this.connect();
+    }
+	
 	public static void main(String[] args) {
 		final String connectionName = args.length == 0 ? DEFAULT_CONNECTION : args[0];
 		final Connection connection;
@@ -367,22 +404,7 @@ public class NoiseBot extends PircBot {
 		}
 		this.setName(this.connection.getNick());
 		this.setLogin(this.connection.getNick());
-		try {
-			System.out.println("Connecting to " + this.connection.getServer() + ":" + this.connection.getPort() + " as " + this.connection.getNick());
-			this.connect(this.connection.getServer(), this.connection.getPort(), this.connection.getPassword());
-		} catch(NickAlreadyInUseException e) {
-			System.err.println("The nick " + this.connection.getNick() + " is already in use");
-			System.exit(1);
-		} catch(IrcException e) {
-			System.err.println("Unexpected IRC error: " + e.getMessage());
-			System.exit(1);
-		} catch(IOException e) {
-			System.err.println("Network error: " + e.getMessage());
-			System.exit(1);
-		}
-
-		System.out.println("Joining " + this.connection.getChannel());
-		this.joinChannel(this.connection.getChannel());
+		this.connect();
 	}
 	
 	private static ClassLoader getModuleLoader() {
