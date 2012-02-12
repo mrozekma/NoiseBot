@@ -51,29 +51,28 @@ public class NoiseBot extends PircBot {
 	private Map<String, NoiseModule> modules = new HashMap<String, NoiseModule>();
 	public static NoiseBot me;
 
-	public void connect() {
+	public boolean connect() {
 		Log.i("Connecting to " + this.connection.getServer() + ":" + this.connection.getPort() + " as " + this.connection.getNick());
 		if(this.isConnected()) {
 			Log.w("Already connected");
-			return;
+			return true;
 		}
 		
 		try {
 			System.out.println("Connecting to " + this.connection.getServer() + ":" + this.connection.getPort() + " as " + this.connection.getNick());
 			this.connect(this.connection.getServer(), this.connection.getPort(), this.connection.getPassword());
+			System.out.println("Joining " + this.connection.getChannel());
+			this.joinChannel(this.connection.getChannel());
+			return true;
 		} catch(NickAlreadyInUseException e) {
 			System.err.println("The nick " + this.connection.getNick() + " is already in use");
-			System.exit(1);
 		} catch(IrcException e) {
 			System.err.println("Unexpected IRC error: " + e.getMessage());
-			System.exit(1);
 		} catch(IOException e) {
 			System.err.println("Network error: " + e.getMessage());
-			System.exit(1);
 		}
-
-		System.out.println("Joining " + this.connection.getChannel());
-		this.joinChannel(this.connection.getChannel());
+		
+		return false;
 	}
 	
 	public void quit() {
@@ -369,7 +368,10 @@ public class NoiseBot extends PircBot {
 	// This isn't called if we tell PircBot to disconnect, only if the server disconnects us
 	@Override protected void onDisconnect() {
 		Log.i("Disconnected");
-		this.connect();
+
+		while(!this.connect()) {
+			sleep(30);
+		}
     }
 	
 	public static void main(String[] args) {
