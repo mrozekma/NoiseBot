@@ -106,22 +106,51 @@ public class Translate extends NoiseModule {
 		}
 	}
 
-	@Command("\\.translate ([a-z]+) ([a-z]+) \"(.*)\"")
-	public void translate(Message message, String fromCode, String toCode, String phrase) {
+	private void translationHelper(String fromCode, String toCode, String phrase) {
 		try {
-			fromCode = interpretCode(fromCode);
+			fromCode = fromCode == null ? null : interpretCode(fromCode);
 			toCode = interpretCode(toCode);
 		} catch(IllegalArgumentException e) {
 			this.bot.sendMessage(COLOR_ERROR + e.getMessage());
 			return;
 		}
-		
+
 		try {
-			final JSONObject json = getJSON(String.format("https://www.googleapis.com/language/translate/v2?key=%s&format=text&source=%s&target=%s&q=%s", urlEncode(this.key), urlEncode(fromCode), urlEncode(toCode), urlEncode(phrase))); 
+			final StringBuffer buffer = new StringBuffer();
+
+			if(fromCode == null) {
+				final JSONObject json = getJSON(String.format("https://www.googleapis.com/language/translate/v2/detect?key=%s&format=text&target=%s&q=%s", urlEncode(this.key), urlEncode(toCode), urlEncode(phrase)));
+				if(json.has("data")) {
+					final JSONObject data = json.getJSONObject("data");
+					final JSONArray detections = data.getJSONArray("detections");
+					final JSONArray inner = detections.getJSONArray(0);
+					final JSONObject detection = inner.getJSONObject(0);
+
+					fromCode = detection.getString("language");
+					final boolean isReliable = detection.getBoolean("isReliable");
+					final double confidence = detection.getDouble("confidence") * 100;
+
+					buffer.append(LANGUAGE_KEYS.get(fromCode)).append(String.format(" (%s%2.2f%%%s)", isReliable ? COLOR_RELIABLE : COLOR_UNRELIABLE, confidence, NORMAL));
+				} else if(json.has("error")) {
+					final JSONObject error = json.getJSONObject("error");
+					this.bot.sendMessage(COLOR_ERROR + "Google Translate error " + error.getInt("code") + ": " + error.get("message"));
+					return;
+				} else {
+					this.bot.sendMessage(COLOR_ERROR + "Unknown Google Translate error");
+					return;
+				}
+			} else {
+				buffer.append(LANGUAGE_KEYS.get(fromCode));
+			}
+
+			buffer.append(" -> ").append(LANGUAGE_KEYS.get(toCode)).append(": ");
+
+			final JSONObject json = getJSON(String.format("https://www.googleapis.com/language/translate/v2?key=%s&format=text&source=%s&target=%s&q=%s", urlEncode(this.key), urlEncode(fromCode), urlEncode(toCode), urlEncode(phrase)));
 			if(json.has("data")) {
 				final JSONObject data = json.getJSONObject("data");
 				final JSONArray translations = data.getJSONArray("translations");
-				this.bot.sendMessage(String.format("%s -> %s translation: %s", LANGUAGE_KEYS.get(fromCode), LANGUAGE_KEYS.get(toCode), translations.getJSONObject(0).get("translatedText")));
+				buffer.append(translations.getJSONObject(0).get("translatedText"));
+				this.bot.sendMessage(buffer.toString());
 			} else if(json.has("error")) {
 				final JSONObject error = json.getJSONObject("error");
 				this.bot.sendMessage(COLOR_ERROR + "Google Translate error " + error.getInt("code") + ": " + error.get("message"));
@@ -136,51 +165,22 @@ public class Translate extends NoiseModule {
 			this.bot.sendMessage(COLOR_ERROR + "Problem parsing Google Translate response");
 		}
 	}
-	
+
+	@Command("\\.translate ([a-z]+) ([a-z]+) \"(.*)\"")
+	public void translate(Message message, String fromCode, String toCode, String phrase) {
+		this.translationHelper(fromCode, toCode, phrase);
+	}
+
 	@Command("\\.translate ([a-z]+) \"(.*)\"")
 	public void detect(Message message, String toCode, String phrase) {
-		try {
-			toCode = interpretCode(toCode);
-		} catch(IllegalArgumentException e) {
-			this.bot.sendMessage(COLOR_ERROR + e.getMessage());
-			return;
-		}
-		
-		try {
-			final JSONObject json = getJSON(String.format("https://www.googleapis.com/language/translate/v2/detect?key=%s&format=text&target=%s&q=%s", urlEncode(this.key), urlEncode(toCode), urlEncode(phrase)));
-			if(json.has("data")) {
-				final JSONObject data = json.getJSONObject("data");
-				final JSONArray detections = data.getJSONArray("detections");
-				final JSONArray inner = detections.getJSONArray(0);
-				final JSONObject detection = inner.getJSONObject(0);
-
-				final String fromCode = detection.getString("language");
-				final boolean isReliable = detection.getBoolean("isReliable");
-				final double confidence = detection.getDouble("confidence") * 100;
-				
-				this.bot.sendMessage(String.format("%s guess at source language (%2.2f%%): %s", (isReliable ? COLOR_RELIABLE + "Reliable" : COLOR_UNRELIABLE + "Unreliable"), confidence, LANGUAGE_KEYS.get(fromCode)));
-				this.translate(message, fromCode, toCode, phrase);
-			} else if(json.has("error")) {
-				final JSONObject error = json.getJSONObject("error");
-				this.bot.sendMessage(COLOR_ERROR + "Google Translate error " + error.getInt("code") + ": " + error.get("message"));
-			} else {
-				this.bot.sendMessage(COLOR_ERROR + "Unknown Google Translate error");
-			}
-		} catch(IOException e) {
-			Log.e(e);
-			this.bot.sendMessage(COLOR_ERROR + "Unable to connect to Google Translate");
-		} catch(JSONException e) {
-			Log.e(e);
-			e.printStackTrace();
-			this.bot.sendMessage(COLOR_ERROR + "Problem parsing Google Translate response");
-		}
+		this.translationHelper(null, toCode, phrase);
 	}
-	
+
 	@Command("\\.translate \"(.*)\"")
 	public void toEnglish(Message message, String phrase) {
-		detect(message, "en", phrase);
+		this.translationHelper(null, "en", phrase);
 	}
-	
+
 	private static String interpretCode(String code) {
 		if(LANGUAGE_KEYS.containsKey(code)) {
 			return code;
@@ -190,7 +190,7 @@ public class Translate extends NoiseModule {
 			throw new IllegalArgumentException("Unrecognized language code: " + code);
 		}
 	}
-	
+
 	@Override public String getFriendlyName() {return "Translate";}
 	@Override public String getDescription() {return "Translates text between languages";}
 	@Override public String[] getExamples() {
