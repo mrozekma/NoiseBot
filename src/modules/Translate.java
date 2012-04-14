@@ -35,7 +35,7 @@ public class Translate extends NoiseModule {
 	private static final String COLOR_UNRELIABLE = YELLOW;
 
 	// http://code.google.com/apis/language/translate/v2/using_rest.html#language-params
-	private static final Map<String, String> LANGUAGES = new HashMap<String, String>() {{
+	private static final Map<String, String> LANGUAGE_KEYS = new HashMap<String, String>() {{
 		put("af", "Afrikaans");
 		put("sq", "Albanian");
 		put("ar", "Arabic");
@@ -90,6 +90,12 @@ public class Translate extends NoiseModule {
 		put("yi", "Yiddish");
 	}};
 
+	private static final Map<String, String> LANGUAGE_NAMES = new HashMap<String, String>() {{
+		for(Map.Entry<String, String> entry : LANGUAGE_KEYS.entrySet()) {
+			put(entry.getValue().toLowerCase(), entry.getKey());
+		}
+	}};
+
 	private String key;
 
 	@Override public void init(NoiseBot bot) {
@@ -102,11 +108,12 @@ public class Translate extends NoiseModule {
 
 	@Command("\\.translate ([a-z]+) ([a-z]+) \"(.*)\"")
 	public void translate(Message message, String fromCode, String toCode, String phrase) {
-		for(String code : new String[] {fromCode, toCode}) {
-			if(!LANGUAGES.containsKey(code)) {
-				this.bot.sendMessage(COLOR_ERROR + "Unrecognized language code: " + code);
-				return;
-			}
+		try {
+			fromCode = interpretCode(fromCode);
+			toCode = interpretCode(toCode);
+		} catch(IllegalArgumentException e) {
+			this.bot.sendMessage(COLOR_ERROR + e.getMessage());
+			return;
 		}
 		
 		try {
@@ -114,7 +121,7 @@ public class Translate extends NoiseModule {
 			if(json.has("data")) {
 				final JSONObject data = json.getJSONObject("data");
 				final JSONArray translations = data.getJSONArray("translations");
-				this.bot.sendMessage(String.format("%s -> %s translation: %s", LANGUAGES.get(fromCode), LANGUAGES.get(toCode), translations.getJSONObject(0).get("translatedText")));
+				this.bot.sendMessage(String.format("%s -> %s translation: %s", LANGUAGE_KEYS.get(fromCode), LANGUAGE_KEYS.get(toCode), translations.getJSONObject(0).get("translatedText")));
 			} else if(json.has("error")) {
 				final JSONObject error = json.getJSONObject("error");
 				this.bot.sendMessage(COLOR_ERROR + "Google Translate error " + error.getInt("code") + ": " + error.get("message"));
@@ -132,8 +139,10 @@ public class Translate extends NoiseModule {
 	
 	@Command("\\.translate ([a-z]+) \"(.*)\"")
 	public void detect(Message message, String toCode, String phrase) {
-		if(!LANGUAGES.containsKey(toCode)) {
-			this.bot.sendMessage(COLOR_ERROR + "Unrecognized language code: " + toCode);
+		try {
+			toCode = interpretCode(toCode);
+		} catch(IllegalArgumentException e) {
+			this.bot.sendMessage(COLOR_ERROR + e.getMessage());
 			return;
 		}
 		
@@ -149,7 +158,7 @@ public class Translate extends NoiseModule {
 				final boolean isReliable = detection.getBoolean("isReliable");
 				final double confidence = detection.getDouble("confidence") * 100;
 				
-				this.bot.sendMessage(String.format("%s guess at source language (%2.2f%%): %s", (isReliable ? COLOR_RELIABLE + "Reliable" : COLOR_UNRELIABLE + "Unreliable"), confidence, LANGUAGES.get(fromCode)));
+				this.bot.sendMessage(String.format("%s guess at source language (%2.2f%%): %s", (isReliable ? COLOR_RELIABLE + "Reliable" : COLOR_UNRELIABLE + "Unreliable"), confidence, LANGUAGE_KEYS.get(fromCode)));
 				this.translate(message, fromCode, toCode, phrase);
 			} else if(json.has("error")) {
 				final JSONObject error = json.getJSONObject("error");
@@ -170,6 +179,16 @@ public class Translate extends NoiseModule {
 	@Command("\\.translate \"(.*)\"")
 	public void toEnglish(Message message, String phrase) {
 		detect(message, "en", phrase);
+	}
+	
+	private static String interpretCode(String code) {
+		if(LANGUAGE_KEYS.containsKey(code)) {
+			return code;
+		} else if(LANGUAGE_NAMES.containsKey(code.toLowerCase())) {
+			return LANGUAGE_NAMES.get(code.toLowerCase());
+		} else {
+			throw new IllegalArgumentException("Unrecognized language code: " + code);
+		}
 	}
 	
 	@Override public String getFriendlyName() {return "Translate";}
