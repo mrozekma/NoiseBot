@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Scanner;
 
 import main.Message;
+import main.ModuleLoadException;
 import main.NoiseBot;
 import main.NoiseModule;
 import static main.Utilities.getJSON;
@@ -88,20 +89,16 @@ public class Translate extends NoiseModule {
 		put("cy", "Welsh");
 		put("yi", "Yiddish");
 	}};
-	
-	private static final File KEY_FILE = new File("translate-key");
+
 	private String key;
-	
+
 	@Override public void init(NoiseBot bot) {
-	    super.init(bot);
-	    
-		try {
-			key = new Scanner(KEY_FILE).nextLine();
-		} catch(IOException e) {
-			Log.e(e);
-			this.bot.sendNotice("Problem reading key file: " + e.getMessage());
+		super.init(bot);
+		this.key = this.bot.getSecretData("translate-key");
+		if(this.key == null) {
+			this.bot.sendNotice("Missing Google Translate key");
 		}
-    }
+	}
 
 	@Command("\\.translate ([a-z]+) ([a-z]+) \"(.*)\"")
 	public void translate(Message message, String fromCode, String toCode, String phrase) {
@@ -184,6 +181,4 @@ public class Translate extends NoiseModule {
 				".translate \"_message_\" -- Guess the from language and translate to English"
 		};
 	}
-
-	@Override public File[] getDependentFiles() {return new File[] {KEY_FILE};}
 }

@@ -33,7 +33,7 @@ import panacea.ReduceFunction;
  */
 public class NoiseBot extends PircBot {
 	private static Map<String, Connection> CONNECTIONS = new HashMap<String, Connection>() {{
-		put("default", new Connection());
+		put("default", new Connection.DefaultConnection());
 		put("test", new Connection("Morasique-test", "#morasique"));
 	}};
 	
@@ -49,6 +49,7 @@ public class NoiseBot extends PircBot {
 	private final Connection connection;
 	public Git.Revision revision = Git.head();
 	private Map<String, NoiseModule> modules = new HashMap<String, NoiseModule>();
+	private Map<String, String> secretData;
 	public static NoiseBot me;
 
 	public boolean connect() {
@@ -279,6 +280,10 @@ public class NoiseBot extends PircBot {
 		this.sendNotice("Changes: " + Git.gitweb(oldrev, this.revision));
 	}
 
+	public String getSecretData(String key) {
+		return this.secretData.containsKey(key) ? this.secretData.get(key) : null;
+	}
+
 	public void sendMessage(String message) {Log.out("M> " + message); this.sendMessage(this.connection.getChannel(), message);}
 	public void sendAction(String action) {Log.out("A> " + action); this.sendAction(this.connection.getChannel(), action);}
 	public void sendNotice(String notice) {Log.out("N> " + notice); this.sendNotice(this.connection.getChannel(), notice);}
@@ -399,11 +404,19 @@ public class NoiseBot extends PircBot {
 		me = this;
 		Log.i("NoiseBot has started");
 		this.connection = connection;
+		
 		try {
 			this.setEncoding("ISO8859_1");
 		} catch (UnsupportedEncodingException e) {
 			System.err.println("Unable to set encoding: " + e.getMessage());
 		}
+		
+		try {
+			this.secretData = Yaml.loadType(new File("secret-data"), HashMap.class);
+		} catch(FileNotFoundException e) {
+			this.secretData = new HashMap<String, String>();
+		}
+		
 		this.setName(this.connection.getNick());
 		this.setLogin(this.connection.getNick());
 		this.connect();
