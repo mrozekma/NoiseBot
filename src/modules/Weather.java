@@ -125,11 +125,11 @@ public class Weather extends NoiseModule
 	public void wx(Message message)
 	{
 		List<String> list = new ArrayList();
-		for (Map<String,String> cond : getWeather())
+		for (Map<String,String> wx : getWeather())
 			list.add(
-				cond.get("city") + " " +
-				cond.get("temp") + " " +
-				cond.get("txt"));
+				wx.get("city") + " " +
+				wx.get("temp") + " " +
+				wx.get("txt"));
 		this.bot.sendMessage(implode(list.toArray(new String[0]), "  |  "));
 	}
 
