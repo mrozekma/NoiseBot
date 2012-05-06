@@ -123,8 +123,10 @@ public class Weather extends NoiseModule
 			if (o.length() + w.length() > maxSize) {
 				this.bot.sendMessage(o.toString());
 				o.setLength(0);
+				o.append(w);
+			} else {
+				o.append(w);
 			}
-			o.append(w);
 		}
 		
 		if (o.length() != 0)
