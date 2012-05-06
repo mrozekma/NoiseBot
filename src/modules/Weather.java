@@ -119,7 +119,7 @@ public class Weather extends NoiseModule
 				COLOR_INFO + ", " +
 				COLOR_TEMP + wx.get("temp") + "F" +
 				COLOR_INFO + "]");
-		this.bot.sendMessage(implode(list.toArray(new String[0]), " "));
+		this.bot.sendMessage(list.toArray(new String[0]), " ");
 	}
 
 	@Command(".wx")
@@ -131,7 +131,7 @@ public class Weather extends NoiseModule
 				wx.get("city") + " " +
 				wx.get("temp") + " " +
 				wx.get("txt"));
-		this.bot.sendMessage(implode(list.toArray(new String[0]), "  |  "));
+		this.bot.sendMessage(list.toArray(new String[0]), "  |  ");
 	}
 
 	@Override public String getFriendlyName() { return "Weather"; }

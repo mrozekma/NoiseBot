@@ -284,6 +284,21 @@ public class NoiseBot extends PircBot {
 		return this.secretData.containsKey(key) ? this.secretData.get(key) : null;
 	}
 
+	public void sendMessage(String[] parts, String sep) {
+		final int maxSize = 200; // might be able to be kicked up a notch
+		StringBuffer msg = new StringBuffer();
+		for (int i = 0; i < parts.length; i++) {
+			String part = parts[i];
+			int nextSize = msg.length() + sep.length() + part.length();
+			if (nextSize > maxSize || i+1 == parts.length) {
+				this.sendMessage(msg.toString());
+				msg.setLength(0);
+			} else if (i > 0) {
+				msg.append(sep);
+			}
+			msg.append(part);
+		}
+	}
 	public void sendMessage(String message) {Log.out("M> " + message); this.sendMessage(this.connection.getChannel(), message);}
 	public void sendAction(String action) {Log.out("A> " + action); this.sendAction(this.connection.getChannel(), action);}
 	public void sendNotice(String notice) {Log.out("N> " + notice); this.sendNotice(this.connection.getChannel(), notice);}
