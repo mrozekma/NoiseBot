@@ -285,12 +285,12 @@ public class NoiseBot extends PircBot {
 	}
 
 	public void sendMessage(String[] parts, String sep) {
-		final int maxSize = 200; // might be able to be kicked up a notch
+		final int maxSize = 400; // might be able to be kicked up a notch
 		StringBuffer msg = new StringBuffer();
 		for (int i = 0; i < parts.length; i++) {
 			String part = parts[i];
 			int nextSize = msg.length() + sep.length() + part.length();
-			if (nextSize > maxSize || i+1 == parts.length) {
+			if (nextSize > maxSize) {
 				this.sendMessage(msg.toString());
 				msg.setLength(0);
 			} else if (i > 0) {
@@ -298,6 +298,8 @@ public class NoiseBot extends PircBot {
 			}
 			msg.append(part);
 		}
+		if (msg.length() > 0)
+			this.sendMessage(msg.toString());
 	}
 	public void sendMessage(String message) {Log.out("M> " + message); this.sendMessage(this.connection.getChannel(), message);}
 	public void sendAction(String action) {Log.out("A> " + action); this.sendAction(this.connection.getChannel(), action);}
