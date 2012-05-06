@@ -109,28 +109,17 @@ public class Weather extends NoiseModule
 	@Command(".weather")
 	public void weather(Message message)
 	{
-		final int maxSize = 200; // might be able to be kicked up a notch
-		StringBuffer o = new StringBuffer();
-		for (Map<String,String> wx : getWeather()) {
-			String w = 
+		List<String> list = new ArrayList();
+		for (Map<String,String> wx : getWeather())
+			list.add(
 				COLOR_INFO + "[" +
 				COLOR_LOC  + wx.get("city") + ", " + wx.get("state") +
 				COLOR_INFO + ": " +
 				COLOR_TEXT + wx.get("text") +
 				COLOR_INFO + ", " +
 				COLOR_TEMP + wx.get("temp") + "F" +
-				COLOR_INFO + "] ";
-			if (o.length() + w.length() > maxSize) {
-				this.bot.sendMessage(o.toString());
-				o.setLength(0);
-				o.append(w);
-			} else {
-				o.append(w);
-			}
-		}
-		
-		if (o.length() != 0)
-			this.bot.sendMessage(o.toString());
+				COLOR_INFO + "]");
+		this.bot.sendMessage(implode(list.toArray(new String[0]), " "));
 	}
 
 	@Command(".wx")
