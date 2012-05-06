@@ -40,6 +40,7 @@ public class Weather extends NoiseModule
 		{ "2402488",  "Farmington Hills", "MI"},
 		{ "2470874",  "Petaluma", "CA"},
 		{ "2490383",  "Seattle", "WA"},
+		{ "12794706", "Tucson", "AZ"},
 		{ "2517274",  "West Lafayette", "IN"},
 	};
 
