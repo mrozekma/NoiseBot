@@ -39,10 +39,12 @@ public class UrbanDictionary extends NoiseModule {
     // fetch webpage
     Document page = null;
     try {
-      page = Jsoup.connect(URBAN_URL + urlEncode(term)).get();
+      page = Jsoup.connect(URBAN_URL + urlEncode(term))
+          .timeout(10000) // 10 seems like a nice number
+          .get(); 
     } catch (IOException e) {
       e.printStackTrace();
-      this.bot.sendMessage(COLOR_ERROR + "Problem parsing urban dictionary page");
+      this.bot.sendMessage(COLOR_ERROR + "Error retrieving urban dictionary page");
     }
 
     // search page for definition
