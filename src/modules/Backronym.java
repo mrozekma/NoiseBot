@@ -46,6 +46,9 @@ public class Backronym extends NoiseModule {
 			while(s.hasNextLine()) {
 				final String line = s.nextLine();
 				final String word = line.substring(2);
+				if(word.contains(" ")) {
+					continue;
+				}
 				words.get(Character.toLowerCase(word.charAt(0))).add(word);
 				dict.add(line);
 			}
