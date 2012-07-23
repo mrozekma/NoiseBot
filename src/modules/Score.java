@@ -26,7 +26,7 @@ import static modules.Slap.slapUser;
 public class Score extends NoiseModule implements Serializable {
 	private static final String COLOR_POSITIVE = ""; // No color
 	private static final String COLOR_NEGATIVE = RED;
-	private static final String MAX_NICK_LENGTH = 16;
+	private static final int MAX_NICK_LENGTH = 16;
 	
 	private Map<String, Integer> userScores = new HashMap<String, Integer>();
 	private Map<String, String> aliasToUsername = new HashMap<String, String>();
