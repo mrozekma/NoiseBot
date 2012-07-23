@@ -26,6 +26,7 @@ import static modules.Slap.slapUser;
 public class Score extends NoiseModule implements Serializable {
 	private static final String COLOR_POSITIVE = ""; // No color
 	private static final String COLOR_NEGATIVE = RED;
+	private static final String MAX_NICK_LENGTH = 16;
 	
 	private Map<String, Integer> userScores = new HashMap<String, Integer>();
 	private Map<String, String> aliasToUsername = new HashMap<String, String>();
@@ -136,6 +137,9 @@ public class Score extends NoiseModule implements Serializable {
 	}
 	
 	private void changeScore(String nick, Integer amount) {
+        if(nick.length() > MAX_NICK_LENGTH)
+            return;
+
 		String user = this.getUser(nick);
 		Integer oldScore = (this.userScores.containsKey(user) ? this.userScores.get(user) : 0);
 		this.userScores.put(user, oldScore + amount);
