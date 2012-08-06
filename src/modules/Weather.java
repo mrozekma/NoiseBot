@@ -31,6 +31,7 @@ public class Weather extends NoiseModule
 	private static final String COLOR_TEXT = YELLOW;
 	private static final String COLOR_TEMP = MAGENTA;
 	private static final String COLOR_ERROR = RED + REVERSE;
+	private static final String COLOR_NORMAL = NORMAL;
 
 	private static final String[][] cities = {
 		{ "12778384", "Terre Haute", "IN"},
@@ -128,9 +129,9 @@ public class Weather extends NoiseModule
 		List<String> list = new ArrayList();
 		for (Map<String,String> wx : getWeather())
 			list.add(
-				wx.get("city") + " " +
-				wx.get("temp") + " " +
-				wx.get("txt"));
+				COLOR_LOC  + wx.get("city") + " " +
+				COLOR_TEMP + wx.get("temp") + " " +
+				COLOR_TEXT + wx.get("txt")  + COLOR_NORMAL);
 		this.bot.sendMessage(list.toArray(new String[0]), "  |  ");
 	}
 
