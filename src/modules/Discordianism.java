@@ -21,6 +21,7 @@ public class Discordianism extends NoiseModule {
 	private static String[] SEASONS = {"Chaos", "Discord", "Confusion", "Bureaucracy", "the Aftermath"};
 	private static String[] DOTW = {"Sweetmorn", "Boomtime", "Pungenday", "Prickle-Prickle", "Setting Orange"};
 	private static String LEAP_DOTW = "St. Tib's Day";
+	private static String[] HOLYDAYS = {"Mungday", "Chaoflux", "Mojoday", "Discoflux", "Syaday", "Confuflux", "Zaraday", "Bureflux", "Maladay", "Afflux"};
 
 	@Command("\\.ddate")
 	public void ddate(Message message) {
@@ -40,7 +41,8 @@ public class Discordianism extends NoiseModule {
 			dotw = DOTW[(dayOfYear - 1) % DOTW.length];
 		}
 
-		final String season = SEASONS[dayOfYear / (365 / SEASONS.length)];
+		final int seasonIndex = dayOfYear / (365 / SEASONS.length);
+		final String season = SEASONS[seasonIndex];
 		final int dayOfSeason = (dayOfYear % (365 / SEASONS.length));
 		final int year = now.get(Calendar.YEAR) + 1166;
 
@@ -65,7 +67,12 @@ public class Discordianism extends NoiseModule {
 			}
 		}
 
-		this.bot.sendMessage(String.format("Today is %s, the %d%s day of %s in the YOLD %d", dotw, dayOfSeason, daySuffix, season, year));
+		String holyday = "";
+		if(dayOfSeason == 5 || dayOfSeason == 50) {
+			holyday = HOLYDAYS[seasonIndex * 2 + (dayOfSeason == 50 ? 1 : 0)] + ", ";
+		}
+
+		this.bot.sendMessage(String.format("Today is %s%s, the %d%s day of %s in the YOLD %d", holyday, dotw, dayOfSeason, daySuffix, season, year));
 	}
 
 	@Override public String getFriendlyName() {return "Discordianism";}
