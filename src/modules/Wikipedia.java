@@ -92,6 +92,9 @@ public class Wikipedia extends NoiseModule {
 			}
 		}
 		if (el == null) { // First paragraph of any other page
+			el = doc.select("div#mw-content-text > p").first();
+		}
+		if (el == null) {
 			el = doc.select("div#bodyContent p").first();
 		}
 		return el == null ? null : el.text();
