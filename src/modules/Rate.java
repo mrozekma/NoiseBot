@@ -35,7 +35,7 @@ public class Rate extends NoiseModule {
 
 	private String tohms(long sec)
 	{
-		return String.format("%d:%02ld:%02ld", sec/(60*60), (sec/60)%60, sec%60);
+		return String.format("%d:%02d:%02d", sec/(60*60), (sec/60)%60, sec%60);
 	}
 	
 	@Command("\\.rate")
