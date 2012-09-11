@@ -24,7 +24,7 @@ import static main.Utilities.*;
  *         in the YOLD 3178
  */
 public class Drinkify extends NoiseModule {
-  private static final String COLOR_ERROR = RED + REVERSE;
+  private static final String COLOR_ERROR = RED;
 
   @Command("\\.drinkify (.+)")
   public void drinkify(Message message, String band)
