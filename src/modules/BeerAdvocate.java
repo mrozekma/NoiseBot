@@ -41,12 +41,11 @@ public class BeerAdvocate extends NoiseModule {
       this.bot.sendMessage(COLOR_ERROR + "Error retrieving BA page...");
     }
 
-    String name = extract(page, ".norm");
+    String name = extract(page, ".titleBar");
     String score = extract(page, ".BAscore_big");
     String style = extract(page, "[href^=/beer/style/]");
-    String brewery = extract(page, "[href~=/beer/profile/[0-9]+$]");
 
-    this.bot.sendMessage(brewery + " - " + name + " - " + style + " - " + score);
+    this.bot.sendMessage(name + " - " + style + " - " + score);
   }
 
   @Override
