@@ -2,14 +2,15 @@ package modules;
 
 import static org.jibble.pircbot.Colors.*;
 
+import javax.xml.parsers.*;
+import org.w3c.dom.*;
+import org.xml.sax.*;
+
 import java.util.*;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLConnection;
-
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import main.Message;
 import main.NoiseModule;
@@ -25,7 +26,7 @@ import static panacea.Panacea.*;
  */
 public class Weather extends NoiseModule
 {
-	private static final String WEATHER_URL = "http://weather.yahooapis.com/forecastjson?w=";
+	private static final String WEATHER_URL = "http://weather.yahooapis.com/forecastrss?w=";
 	private static final String COLOR_INFO = PURPLE;
 	private static final String COLOR_LOC = CYAN;
 	private static final String COLOR_TEXT = YELLOW;
@@ -63,17 +64,10 @@ public class Weather extends NoiseModule
 		{"Thunderstorms", "storms"},
 	};
 
-	private static JSONObject getJSON(String url) throws IOException, JSONException {
-		final URLConnection c = new URL(url).openConnection();
-		final DataInputStream s = new DataInputStream(c.getInputStream());
-		final StringBuffer b = new StringBuffer();
-		
-		byte[] buffer = new byte[1024];
-		int size;
-		while((size = s.read(buffer)) >= 0)
-			b.append(new String(buffer, 0, size));
-
-		return new JSONObject(b.toString());
+	private static Document getXML(String url) throws Exception {
+		final DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+		final InputSource src = new InputSource(new URL(url).openStream());
+		return db.parse(src);
 	}
 
 	public List<Map<String,String>> getWeather()
@@ -82,20 +76,21 @@ public class Weather extends NoiseModule
 		try {
 			for (int i = 0; i < cities.length; i++) {
 				final String uri = WEATHER_URL + cities[i][0];
-				final JSONObject cond = getJSON(uri).getJSONObject("condition");;
+				final Node cond = getXML(uri).getElementsByTagName("yweather:condition").item(0);
+				final NamedNodeMap attrs = cond.getAttributes();
 
-				String icon = cond.getString("text");
+				String icon = attrs.getNamedItem("text").getNodeValue();
 				for (int j = 0; j < icons.length; j++)
 					icon = icon.replace(icons[j][0], icons[j][1]);
-				String txt = cond.getString("text");
+				String txt = attrs.getNamedItem("text").getNodeValue();
 				for (int j = 0; j < names.length; j++)
 					txt = txt.replace(names[j][0], names[j][1]);
 
 				HashMap map = new HashMap();
 				map.put("city",  cities[i][1]);
 				map.put("state", cities[i][2]);
-				map.put("temp",  "" + cond.getInt("temperature"));
-				map.put("text",  cond.getString("text"));
+				map.put("temp",  "" + attrs.getNamedItem("temp").getNodeValue());
+				map.put("text",  attrs.getNamedItem("text").getNodeValue());
 				map.put("txt",   txt.toLowerCase());
 				map.put("icon",  icon);
 				list.add(map);
