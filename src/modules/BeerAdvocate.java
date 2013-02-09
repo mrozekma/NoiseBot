@@ -48,6 +48,23 @@ public class BeerAdvocate extends NoiseModule {
     this.bot.sendMessage(name + " - " + style + " - " + score);
   }
 
+  // Runs a search in BA and returns the first search result. Searches beer only.
+  @Command("\\.beer (.*)")
+  public void search(Message message, String toSearch)
+  {
+    Document searchResults = null;
+    toSearch = toSearch.replaceAll(" ", "\\+");
+    try {
+      searchResults = Jsoup.connect("http://beeradvocate.com/search?q="+toSearch+"&qt=beer").timeout(10000).get();
+      String url = "http://beeradvocate.com"+searchResults.body().getElementsByTag("li").get(1).getElementsByTag("a").get(0).attr("href");
+      this.beer(null, url);
+      this.bot.sendMessage(url);
+    } catch(IOException e) {
+      e.printStackTrace();
+      this.bot.sendMessage(COLOR_ERROR + "Error retrieving BA page...");
+    }
+  }
+
   @Override
   public String getFriendlyName() {
     return "BeerAdvocate";
