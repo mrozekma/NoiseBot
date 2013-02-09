@@ -1,163 +1,155 @@
 package modules;
 
-import static org.jibble.pircbot.Colors.*;
+import static org.jibble.pircbot.Colors.GREEN;
+import static org.jibble.pircbot.Colors.NORMAL;
+import static org.jibble.pircbot.Colors.RED;
 
 import java.io.Serializable;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 
 import main.Message;
-import main.NoiseBot;
 import main.NoiseModule;
-
-import static modules.Slap.slapUser;
-
+import panacea.MapFunction;
+import panacea.Panacea;
+import panacea.ReduceFunction;
 
 /**
  * Score
- *
- * @author Arathald (Greg Jackson)
- *         Created January 10, 2012.
+ * 
+ * @author Arathald (Greg Jackson) Created January 10, 2012.
+ * @author Will Fuqua February 09, 2013.
  */
 
 public class Score extends NoiseModule implements Serializable {
-	private static final String COLOR_POSITIVE = ""; // No color
+	private static final String COLOR_POSITIVE = GREEN;
 	private static final String COLOR_NEGATIVE = RED;
-	private static final int MAX_NICK_LENGTH = 16;
-	
-	private Map<String, Integer> userScores = new HashMap<String, Integer>();
-	private Map<String, String> aliasToUsername = new HashMap<String, String>();
-	
-	// Shamelessly copied (and modified) from 
-	// http://stackoverflow.com/questions/3074154/sorting-a-hashmap-based-on-value-then-key
-	public class ValueThenKeyComparator<K extends Comparable<? super K>,
-	    								V extends Comparable<? super V>>
-		implements Comparator<Map.Entry<K, V>> {
-	
-		public int compare(Map.Entry<K, V> a, Map.Entry<K, V> b) {
-			// Reverse these so that we sort in descending order
-			int cmp1 = b.getValue().compareTo(a.getValue());
-			if (cmp1 != 0) {
-				return cmp1;
-			} else {
-				return a.getKey().compareTo(b.getKey());
-			}
-		}
-	
-	}
 
+	// track username => score. username key is always lowercase, ScoreEntry.username is formatted
+	private Map<String, ScoreEntry> userScores = new HashMap<String, ScoreEntry>();
 
-	@Command("\\.winner")
-	public void winner(Message m) {
-		// bloody worthless language...
-		String winner = "";
-		int score = 0;
+	public static class ScoreEntry implements Comparable<ScoreEntry>, Serializable {
+		public String username;
+		public int score;
 
-		for (Map.Entry<String, Integer> e : userScores.entrySet()) {
-			// ties are a sign of oppression
-			if (e.getValue() > score) {
-				score = e.getValue();
-				winner = e.getKey();
-			}
-		}
-
-		if (!winner.equals(""))
-			this.bot.sendMessage(winner + " leads with " + score + " points.");
-	}
-	
-	@Command("\\.(?:scores|scoreboard)")
-	public void scores(Message message) {
-		ArrayList<Map.Entry<String, Integer>> scores = new ArrayList<Map.Entry<String, Integer>>(this.userScores.entrySet());
-		Collections.sort(scores, new ValueThenKeyComparator<String, Integer>());
-
-		String scoreMessage = "";
+		public ScoreEntry() {}
 		
-		for (Map.Entry<String, Integer> e : scores) {
-			String user = e.getKey();
-			Integer score = e.getValue();
-			
-			String delimiter = scoreMessage.compareTo("") == 0 ? "" : ", ";
-			
-			scoreMessage += delimiter + user + ": " + score;
+		public ScoreEntry(String username, int score) {
+			this.username = username;
+			this.score = score;
+		}
+
+		@Override
+		public int compareTo(ScoreEntry o) {
+			return this.score - o.score;
 		}
 		
-		this.bot.sendMessage("User Scores:");
-		this.bot.sendMessage(scoreMessage);
+		public String ircFormat() {
+			String scoreColor = (this.score >= 0 ? Score.COLOR_POSITIVE	: Score.COLOR_NEGATIVE);
+			return this.username  + ": " + scoreColor + this.score + NORMAL;
+		}
 	}
 
-	@Command("(.+)\\+\\+.*")
+	@Command(".*\\b([a-zA-Z0-9]{3,16})\\+\\+.*")
 	public void incrementScore(Message message, String target) {
-		if (this.isSameUser(target, message.getSender())) {
-			this.bot.sendAction(slapUser(message.getSender()));
-		} else {
-			this.changeScore(target, 1);
-		}
+		this.changeScore(target, 1);
 	}
-	
-	@Command("(.+)\\-\\-.*")
+
+	@Command(".*\\b([a-zA-Z0-9]{3,16})\\-\\-.*")
 	public void decrementScore(Message message, String target) {
 		this.changeScore(target, -1);
 	}
-	
+
+	private void changeScore(String nick, Integer amount) {
+		String userKey = nick.toLowerCase();
+		ScoreEntry currentScore = this.userScores.get(userKey);
+		if (currentScore == null)
+			currentScore = new ScoreEntry(nick, 0);
+		currentScore.score += amount;
+		
+		//update the score data, stop tracking the user if they have 0 points
+		if(currentScore.score == 0)
+			this.userScores.remove(userKey);
+		else
+			this.userScores.put(userKey, currentScore);
+		
+		this.save();
+	}
+
 	@Command("\\.score (.+)")
-	public void getScore(Message message, String target) {
-		String user = this.getUser(target);
-		if (this.userScores.containsKey(user)) {
-			Integer score = this.userScores.get(user);
-			String color = (score >= 0 ? this.COLOR_POSITIVE : this.COLOR_NEGATIVE);
-			this.bot.sendMessage(target + "'s score is " + color + score);
+	public void getScore(Message message, String nick) {
+		String userKey = nick.toLowerCase();
+		ScoreEntry entry = this.userScores.get(userKey);
+		if (entry != null) {
+			this.bot.sendMessage(entry.ircFormat());
 		} else {
-			this.bot.sendMessage(target + " has no score");
+			this.bot.sendMessage(nick + " has no score");
 		}
 	}
-	
+
 	@Command("\\.score")
 	public void getSelfScore(Message message) {
 		this.getScore(message, message.getSender());
 	}
-	
-	@Override public void onNickChange(String oldNick, String login, String hostname, String newNick) {
-		if (!this.aliasToUsername.containsKey(newNick)) {
-			this.aliasToUsername.put(newNick, getUser(oldNick));
-			this.save();
-		} 
-	}
-	
-	@Override public String getFriendlyName() {return "Score";}
-	@Override public String getDescription() {return "Keeps users' scores";}
-	@Override public String[] getExamples() {
-		return new String[] {
-				"_nick_++ -- Increment _nick_'s score",
-				"_nick_-- -- Decrement _nick_'s score",
-				".score _nick_ -- Display _nick_'s score"
-		};
-	}
-	
-	private void changeScore(String nick, Integer amount) {
-        if(nick.length() > MAX_NICK_LENGTH)
-            return;
 
-		String user = this.getUser(nick);
-		Integer oldScore = (this.userScores.containsKey(user) ? this.userScores.get(user) : 0);
-		this.userScores.put(user, oldScore + amount);
-		this.save();
-	}
-	
-	private String getUser(String nick) {
-		if (this.aliasToUsername.containsKey(nick)) {
-			return this.aliasToUsername.get(nick);
-		} else {
-			this.aliasToUsername.put(nick, nick);
-			this.save();
-			return nick;
+	@Command("\\.winner")
+	public void winner(Message m) {
+		
+		ScoreEntry[] scores = this.userScores.values().toArray(new ScoreEntry[0]);
+		
+		if(scores.length == 0) {
+			this.bot.sendMessage("No scores available");
+			return;
 		}
-			
+		
+		ScoreEntry winner = Panacea.reduce(scores, new ReduceFunction<ScoreEntry, ScoreEntry>() {
+			@Override public ScoreEntry reduce(ScoreEntry source, ScoreEntry accum) {
+				return (accum.score > source.score) ? accum : source;
+			}
+		}, new ScoreEntry(null, Integer.MIN_VALUE));
+
+		this.bot.sendMessage(winner.ircFormat());
 	}
-	
-	private boolean isSameUser(String nick1, String nick2) {
-		return getUser(nick1).equals(getUser(nick2));
+
+	@Command("\\.(?:scores|scoreboard)")
+	public void scores(Message message) {
+		ScoreEntry[] scores = this.userScores.values().toArray(new ScoreEntry[0]);
+		
+		if(scores.length == 0) {
+			this.bot.sendMessage("No scores available");
+			return;
+		}
+		
+		Arrays.sort(scores, Collections.reverseOrder());
+		String scoreboard = Panacea.implode(
+			Panacea.map(scores, new MapFunction<ScoreEntry, String>() {
+				@Override public String map(ScoreEntry source) {
+					return source.ircFormat();
+				}
+			}),
+			", "
+		);
+		
+		this.bot.sendMessage("User Scores: ");
+		this.bot.sendMessage(scoreboard);
+	}
+
+	@Override
+	public String getFriendlyName() {
+		return "Score";
+	}
+
+	@Override
+	public String getDescription() {
+		return "Keeps users' scores";
+	}
+
+	@Override
+	public String[] getExamples() {
+		return new String[] { "_nick_++ -- Increment _nick_'s score",
+				"_nick_-- -- Decrement _nick_'s score",
+				".score _nick_ -- Display _nick_'s score" };
 	}
 }
