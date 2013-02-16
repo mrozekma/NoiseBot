@@ -12,7 +12,7 @@ import java.util.Vector;
 import debugging.Log;
 
 public class Git {
-	static final String gitwebUri = "http://lug.rose-hulman.edu/git/?p=~mrozekma/NoiseBot/.git";
+	static final String githubUri = "https://github.com/mrozekma/NoiseBot";
 
 	public static class SyncException extends RuntimeException {
 		public SyncException(String msg) {super(msg);}
@@ -41,12 +41,12 @@ public class Git {
 		}
 	}
 
-	public static String gitweb(Revision rev) {
-		return Git.gitwebUri + ";a=commitdiff;h=" + rev.getHash();
+	public static String revisionLink(Revision rev) {
+		return String.format("%s/commit/%s", Git.githubUri, rev.getHash());
 	}
 
-	public static String gitweb(Revision fromRev, Revision toRev) {
-		return Git.gitweb(toRev) + ";hp=" + fromRev.getHash();
+	public static String diffLink(Revision fromRev, Revision toRev) {
+		return String.format("%s/compare/%s...%s", Git.githubUri, fromRev.getHash(), toRev.getHash());
 	}
 
 	public static Revision head() {

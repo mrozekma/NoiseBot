@@ -82,7 +82,7 @@ public class ModuleManager extends NoiseModule {
 	public void rev(Message message) {
 		final Git.Revision rev = this.bot.revision;
 		this.bot.reply(message, "Currently on revision " + COLOR_HASH + rev.getHash() + NORMAL + " by " + COLOR_AUTHOR + rev.getAuthor() + NORMAL + " -- " + COLOR_DESCRIPTION + rev.getDescription() + NORMAL);
-		this.bot.reply(message, Git.gitweb(rev));
+		this.bot.reply(message, Git.revisionLink(rev));
 	}
 
 	@Override public String getDescription() {return "Manages modules";}

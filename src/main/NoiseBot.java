@@ -277,7 +277,7 @@ public class NoiseBot extends PircBot {
 		for(Git.Revision rev : reverse(revs))
 			this.sendNotice("    " + rev);
 		this.sendNotice("Reloaded modules: " + implode(coloredNames, ", "));
-		this.sendNotice("Changes: " + Git.gitweb(oldrev, this.revision));
+		this.sendNotice("Changes: " + Git.diffLink(oldrev, this.revision));
 	}
 
 	public String getSecretData(String key) {
