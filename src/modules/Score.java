@@ -51,12 +51,12 @@ public class Score extends NoiseModule implements Serializable {
 		}
 	}
 
-	@Command(".*\\b([a-zA-Z0-9]{3,16})\\+\\+.*")
+	@Command(".*\\b([a-zA-Z0-9_]{3,16})\\+\\+.*")
 	public void incrementScore(Message message, String target) {
 		this.changeScore(target, 1);
 	}
 
-	@Command(".*\\b([a-zA-Z0-9]{3,16})\\-\\-.*")
+	@Command(".*\\b([a-zA-Z0-9_]{3,16})\\-\\-.*")
 	public void decrementScore(Message message, String target) {
 		this.changeScore(target, -1);
 	}
