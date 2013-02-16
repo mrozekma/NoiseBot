@@ -61,6 +61,7 @@ public class QDB extends NoiseModule {
 		public ParseException(String message) {super(message);}
 	}
 	
+	private static final String URI = "http://rhlug.pileus.org/qdb";
 	private static final String COLOR_ERROR = RED;
 	private static final String COLOR_QUOTE = CYAN;
 	private static final int MAX_LINES = 2; // maximum lines in a random quote
@@ -147,12 +148,7 @@ public class QDB extends NoiseModule {
 	
 		Log.v("QDB poll; old ID was " + this.curID + ", new ID is " + maxID);
 		for(this.curID++; this.curID <= maxID; this.curID++) {
-			// try {
-				// for(String line : getQuote(this.curID))
-					// this.bot.sendMessage(COLOR_QUOTE + line);
-				this.bot.sendMessage("http://lug.rose-hulman.edu/qdb/" + this.curID);
-			// } catch(IOException e) {
-			// } catch(ParseException e) {}
+			this.bot.sendMessage(String.format("%s/%d", URI, this.curID));
 		}
 
 		this.curID--; // The for loop pushes it just past maxID
@@ -160,7 +156,7 @@ public class QDB extends NoiseModule {
 	
 	private static Quote getQuote(int id) throws IOException, ParseException {
 		Log.i("Getting quote " + id);
-		final Document doc = Jsoup.connect("http://lug.rose-hulman.edu/qdb/" + id).timeout(TIMEOUT * 1000).get();
+		final Document doc = Jsoup.connect(String.format("%s/%d", URI, id)).timeout(TIMEOUT * 1000).get();
 
 		int upvotes = -1, downvotes = -1;
 		try {
@@ -204,7 +200,7 @@ public class QDB extends NoiseModule {
 	}
 	
 	private static int getMaxID() throws IOException, ParseException {
-		final Document doc = Jsoup.connect("http://lug.rose-hulman.edu/qdb/browse").timeout(TIMEOUT * 1000).get();
+		final Document doc = Jsoup.connect(URI + "/browse").timeout(TIMEOUT * 1000).get();
 		Elements e = doc.select("ul.quote-list > li");
 		if(e.isEmpty())
 			throw new ParseException("Unable to find top quote on browse page");
@@ -232,7 +228,7 @@ public class QDB extends NoiseModule {
 	*/
 	
 	@Override public String getFriendlyName() {return "QDB";}
-	@Override public String getDescription() {return "Displays quotes from the RHLUG Quote Database at http://lug.rose-hulman.edu/qdb/";}
+	@Override public String getDescription() {return "Displays quotes from the RHLUG Quote Database at " + URI;}
 	@Override public String[] getExamples() {
 		return new String[] {
 				".qdb -- Shows a random short quote",
