@@ -2,6 +2,7 @@ package main;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -16,7 +17,6 @@ import debugging.Log;
 
 import modules.Help;
 
-import org.ho.yaml.Yaml;
 import org.jibble.pircbot.IrcException;
 import org.jibble.pircbot.NickAlreadyInUseException;
 import org.jibble.pircbot.PircBot;
@@ -98,10 +98,10 @@ public class NoiseBot extends PircBot {
 			Log.e(e);
 		}
 		
-		final File moduleFile = new File("store", "modules");
+		final File moduleFile = new File(YamlSerializer.ROOT, "modules");
 		if(moduleFile.exists()) {
 			try {
-				final String[] moduleNames = Yaml.loadType(moduleFile, String[].class);
+				final String[] moduleNames = YamlSerializer.deserialize(moduleFile.getName(), String[].class);
 				Log.i("Loading " + moduleNames.length + " modules from store");
 		
 				for(String moduleName : moduleNames) {
@@ -139,10 +139,11 @@ public class NoiseBot extends PircBot {
 	
 	public void saveModules() throws ModuleSaveException {
 		Log.i("Saving " + this.modules.size() + " modules to store");
-		final File moduleFile = new File("store", "modules");
+		
 		final String[] moduleNames = this.modules.keySet().toArray(new String[0]);
+
 		try {
-			Yaml.dump(moduleNames, moduleFile);
+            YamlSerializer.serialize("modules", moduleNames);
 		} catch(IOException e) {
 			throw new ModuleSaveException("Failed saving module list");
 		}
@@ -429,7 +430,7 @@ public class NoiseBot extends PircBot {
 		}
 		
 		try {
-			this.secretData = Yaml.loadType(new File("secret-data"), HashMap.class);
+			this.secretData = YamlSerializer.deserialize("secret-data", HashMap.class);
 		} catch(FileNotFoundException e) {
 			this.secretData = new HashMap<String, String>();
 		}

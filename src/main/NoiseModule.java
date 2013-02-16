@@ -2,6 +2,8 @@ package main;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Serializable;
 import java.lang.annotation.ElementType;
@@ -17,8 +19,6 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.ho.yaml.Yaml;
-import org.ho.yaml.YamlConfig;
 import org.jibble.pircbot.User;
 
 import static org.jibble.pircbot.Colors.*;
@@ -45,15 +45,6 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 	@Target(ElementType.METHOD)
 	protected static @interface PM {
 		String value();
-	}
-	
-	// Tell JYaml to serialize all non-transient fields (even if private), and to use any constructors it wants to unserialize
-	static {
-	    Yaml.config = new YamlConfig() {
-			@Override public boolean isFieldAccessibleForDecoding(Field field) {return this.isFieldAccessibleForEncoding(field);}
-			@Override public boolean isFieldAccessibleForEncoding(Field field) {return (field.getModifiers() & Modifier.TRANSIENT) == 0;}
-			@Override public boolean isConstructorAccessibleForDecoding(Class c) {return true;}
-	    };
 	}
 	
 	protected transient NoiseBot bot;
@@ -158,7 +149,7 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 		if(!Arrays.asList(moduleType.getInterfaces()).contains(Serializable.class)) {return null;}
 		
 		try {
-			return Yaml.loadType(new File("store", moduleType.getSimpleName()), moduleType);
+			return YamlSerializer.deserialize(moduleType.getSimpleName(), moduleType);
 		} catch(FileNotFoundException e) {
 			Log.v("No store file for " + moduleType.getSimpleName());
 		} catch(Exception e) { // Should just be IOException
@@ -174,8 +165,7 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 		if(!(this instanceof Serializable)) {return true;}
 		
 		try {
-			Yaml.dump(this); // Somehow this tricks JYaml into getting the most recent data from memory instead of outputting old data
-			Yaml.dump(this, new File("store", this.getClass().getSimpleName()));
+            YamlSerializer.serialize(this.getClass().getSimpleName(), this);
 			return true;
 		} catch(Exception e) { // Should just be IOException
 			Log.e(e);
