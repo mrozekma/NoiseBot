@@ -23,12 +23,10 @@ fi
 
 # Rebuild objects
 if make all; then
+	git push origin master
 	netcat -e 'echo -n sync' localhost 41932
 else
 	git reset --hard $MASTER
 	make clean
 	make all
 fi
-
-# Let other people commit too
-chmod -Rf g+w bin
