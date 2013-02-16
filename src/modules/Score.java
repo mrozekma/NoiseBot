@@ -22,7 +22,6 @@ import panacea.ReduceFunction;
  * @author Arathald (Greg Jackson) Created January 10, 2012.
  * @author Will Fuqua February 09, 2013.
  */
-
 public class Score extends NoiseModule implements Serializable {
 	private static final String COLOR_POSITIVE = GREEN;
 	private static final String COLOR_NEGATIVE = RED;
@@ -132,7 +131,6 @@ public class Score extends NoiseModule implements Serializable {
 			", "
 		);
 		
-		this.bot.sendMessage("User Scores: ");
 		this.bot.sendMessage(scoreboard);
 	}
 
