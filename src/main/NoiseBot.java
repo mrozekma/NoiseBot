@@ -430,7 +430,7 @@ public class NoiseBot extends PircBot {
 		}
 		
 		try {
-			this.secretData = YamlSerializer.deserialize("secret-data", HashMap.class);
+			this.secretData = YamlSerializer.deserialize("../secret-data", HashMap.class);
 		} catch(FileNotFoundException e) {
 			this.secretData = new HashMap<String, String>();
 		}
