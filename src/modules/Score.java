@@ -59,8 +59,14 @@ public class Score extends NoiseModule implements Serializable {
 	@Command(".*\\b([a-zA-Z0-9_]{3,16})\\-\\-.*")
 	public void decrementScore(Message message, String target) {
 		this.changeScore(target, -1);
-		if (target.equals("arathald"))
-			this.changeScore(target, -9);
+		if (target.equals("arathald")) {
+			String userKey = target.toLowerCase();
+			ScoreEntry entry = this.userScores.get(userKey);
+			if (entry == null)
+				this.changeScore(target, -9);
+			else
+				this.changeScore(target, -1 * entry.score * entry.score);
+		}
 	}
 
 	private void changeScore(String nick, Integer amount) {
