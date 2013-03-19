@@ -102,7 +102,7 @@ public class Weather extends NoiseModule
 	}
 
 
-	@Command(".weather")
+	@Command("\\.weather")
 	public void weather(Message message)
 	{
 		List<String> list = new ArrayList();
@@ -118,7 +118,7 @@ public class Weather extends NoiseModule
 		this.bot.sendMessage(list.toArray(new String[0]), " ");
 	}
 
-	@Command(".wx")
+	@Command("\\.wx")
 	public void wx(Message message)
 	{
 		List<String> list = new ArrayList();
