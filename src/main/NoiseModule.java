@@ -149,7 +149,7 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 		if(!Arrays.asList(moduleType.getInterfaces()).contains(Serializable.class)) {return null;}
 		
 		try {
-			return YamlSerializer.deserialize(moduleType.getSimpleName(), moduleType);
+			return Serializer.deserialize(moduleType.getSimpleName(), moduleType);
 		} catch(FileNotFoundException e) {
 			Log.v("No store file for " + moduleType.getSimpleName());
 		} catch(Exception e) { // Should just be IOException
@@ -165,7 +165,7 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 		if(!(this instanceof Serializable)) {return true;}
 		
 		try {
-            YamlSerializer.serialize(this.getClass().getSimpleName(), this);
+            Serializer.serialize(this.getClass().getSimpleName(), this);
 			return true;
 		} catch(Exception e) { // Should just be IOException
 			Log.e(e);

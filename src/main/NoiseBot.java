@@ -98,10 +98,10 @@ public class NoiseBot extends PircBot {
 			Log.e(e);
 		}
 		
-		final File moduleFile = new File(YamlSerializer.ROOT, "modules");
+		final File moduleFile = new File(Serializer.ROOT, "modules");
 		if(moduleFile.exists()) {
 			try {
-				final String[] moduleNames = YamlSerializer.deserialize(moduleFile.getName(), String[].class);
+				final String[] moduleNames = Serializer.deserialize(moduleFile.getName(), String[].class);
 				Log.i("Loading " + moduleNames.length + " modules from store");
 		
 				for(String moduleName : moduleNames) {
@@ -143,7 +143,7 @@ public class NoiseBot extends PircBot {
 		final String[] moduleNames = this.modules.keySet().toArray(new String[0]);
 
 		try {
-            YamlSerializer.serialize("modules", moduleNames);
+            Serializer.serialize("modules", moduleNames);
 		} catch(IOException e) {
 			throw new ModuleSaveException("Failed saving module list");
 		}
@@ -430,7 +430,7 @@ public class NoiseBot extends PircBot {
 		}
 		
 		try {
-			this.secretData = YamlSerializer.deserialize("../secret-data", HashMap.class);
+			this.secretData = Serializer.deserialize("../secret-data", HashMap.class);
 		} catch(FileNotFoundException e) {
 			this.secretData = new HashMap<String, String>();
 		}
