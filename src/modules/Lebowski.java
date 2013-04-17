@@ -166,6 +166,16 @@ public class Lebowski extends NoiseModule {
 		}
 	}
 
+	@Command(".*fascist.*")
+	public void fascist(Message message) {
+		this.lebowski(message, "fucking fascist");
+	}
+
+	@Command(".*shut the fuck up.*")
+	public void shutTheFuckUp(Message message) {
+		this.lebowski(message, "shut the fuck up");
+	}
+
 	// Single char at the beginning doesn't allow . to avoid matching commands
 	// [a-zA-Z0-9,\\'\\\" !-][a-zA-Z0-9,\\'\\\"\\. !-]
 	@Command("([^\\.].{" + (MIN_MESSAGE - 1) + "," + (PATTERN_MAX - 1) + "})")
