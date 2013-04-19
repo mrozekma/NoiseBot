@@ -122,16 +122,13 @@ public class Score extends NoiseModule implements Serializable {
 		}
 		
 		Arrays.sort(scores, Collections.reverseOrder());
-		String scoreboard = Panacea.implode(
-			Panacea.map(scores, new MapFunction<ScoreEntry, String>() {
-				@Override public String map(ScoreEntry source) {
-					return source.ircFormat();
-				}
-			}),
-			", "
-		);
+		String[] scoreboard = Panacea.map(scores, new MapFunction<ScoreEntry, String>() {
+			@Override public String map(ScoreEntry source) {
+				return source.ircFormat();
+			}
+		});
 		
-		this.bot.sendMessage(scoreboard);
+		this.bot.sendMessage(scoreboard, ", ");
 	}
 
 	@Override
