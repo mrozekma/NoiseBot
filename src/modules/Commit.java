@@ -14,6 +14,8 @@ import main.Message;
 import main.NoiseBot;
 import main.NoiseModule;
 
+import org.jibble.pircbot.User;
+
 import static panacea.Panacea.*;
 
 /**
@@ -50,12 +52,13 @@ public class Commit extends NoiseModule {
 	@Command("\\.commit")
 	public void commit(Message message) {
 		if(this.messages.length > 0) {
-			this.bot.sendMessage(getRandom(this.messages));
+			final User user = getRandom(this.bot.getUsers());
+			this.bot.sendMessage(getRandom(this.messages).replace("XNAMEX", user.getNick()).replace("XUPPERNAMEX", user.getNick().toUpperCase()));
 		}
 	}
 
 	@Override public String getFriendlyName() {return "Commit";}
-	@Override public String getDescription() {return "Outputs random commit messages if you can't think of one to use";}
+	@Override public String getDescription() {return "Outputs random commit messages from http://github.com/ngerakines/commitment";}
 	@Override public String[] getExamples() {
 		return new String[] {
 				".commit"
