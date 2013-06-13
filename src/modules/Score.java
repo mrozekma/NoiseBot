@@ -12,6 +12,7 @@ import java.util.Map;
 
 import main.Message;
 import main.NoiseModule;
+import panacea.Condition;
 import panacea.MapFunction;
 import panacea.Panacea;
 import panacea.ReduceFunction;
@@ -122,7 +123,11 @@ public class Score extends NoiseModule implements Serializable {
 		}
 		
 		Arrays.sort(scores, Collections.reverseOrder());
-		String[] scoreboard = Panacea.map(scores, new MapFunction<ScoreEntry, String>() {
+		String[] scoreboard = Panacea.map(Panacea.filter(scores, new Condition<ScoreEntry>() {
+			@Override public boolean satisfies(ScoreEntry score) {
+				return Math.abs(score.score) > 2;
+			}
+		}), new MapFunction<ScoreEntry, String>() {
 			@Override public String map(ScoreEntry source) {
 				return source.ircFormat();
 			}
