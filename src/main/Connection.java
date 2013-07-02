@@ -17,7 +17,7 @@ public class Connection {
 	private final int port;
 	
 	public Connection() {this("rhnoise", null, "#rhnoise");}
-	public Connection(String nick, String password, String channel) {this("irc.lug.rose-hulman.edu", 6667, nick, password, channel);}
+	public Connection(String nick, String password, String channel) {this("irc.freenode.net", 6667, nick, password, channel);}
 	public Connection(String nick, String channel) {this(nick, null, channel);}
 	public Connection(String server, int port, String nick, String password, String channel) {
 		this.server = server;
