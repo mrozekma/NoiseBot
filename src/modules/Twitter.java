@@ -4,9 +4,14 @@ import static main.Utilities.getJSON;
 import static main.Utilities.urlEncode;
 import static org.jibble.pircbot.Colors.*;
 
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.net.HttpURLConnection;
+import java.net.URL;
+
+import migbase64.Base64;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -18,6 +23,8 @@ import main.Message;
 import main.NoiseBot;
 import main.NoiseModule;
 
+import static main.Utilities.urlEncode;
+
 /**
  * Twitter
  *
@@ -28,6 +35,7 @@ public class Twitter extends NoiseModule {
 	private static final String TWITTER_URL_PATTERN = "https?://(?:mobile\\.)?twitter.com/.*/status(?:es)?/([0-9]+)";
 	private static final int PERIOD = 30; // seconds
 
+	private String token;
 	private long sinceID = 0;
 	private final Timer timer = new Timer();
 
@@ -36,11 +44,14 @@ public class Twitter extends NoiseModule {
 
 	@Override public void init(NoiseBot bot) {
 		super.init(bot);
-		this.timer.scheduleAtFixedRate(new TimerTask() {
-			@Override public void run() {
-				Twitter.this.poll();
-			}
-		}, 0, PERIOD * 1000);
+		this.token = this.authenticate();
+		if(this.token != null) {
+			this.timer.scheduleAtFixedRate(new TimerTask() {
+				@Override public void run() {
+					Twitter.this.poll();
+				}
+			}, 0, PERIOD * 1000);
+		}
 	}
 
 	@Override public void unload() {
@@ -48,10 +59,61 @@ public class Twitter extends NoiseModule {
 		this.timer.cancel();
 	}
 
+	private String authenticate() {
+		final String key = this.bot.getSecretData("twitter-key");
+		final String secret = this.bot.getSecretData("twitter-secret");
+		if(key == null || secret == null) {
+			this.bot.sendMessage(COLOR_ERROR + "Missing Twitter application key/secret");
+			return null;
+		}
+
+		final String auth = Base64.encodeToString(String.format("%s:%s", urlEncode(key), urlEncode(secret)).getBytes(), false);
+		try {
+			final URL url = new URL("https://api.twitter.com/oauth2/token");
+			final HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+			conn.setDoOutput(true);
+			conn.setRequestMethod("POST");
+			conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded;charset=UTF-8");
+			conn.setRequestProperty("Authorization", "Basic " + auth);
+			final DataOutputStream writer = new DataOutputStream(conn.getOutputStream());
+			writer.writeBytes("grant_type=client_credentials");
+			writer.flush();
+			writer.close();
+
+			final JSONObject json = getJSON(conn);
+			if(!json.getString("token_type").equals("bearer")) {
+				Log.d(json.toString());
+				this.bot.sendMessage(COLOR_ERROR + "Unexpected token type: " + json.getString("token_type"));
+				return null;
+			}
+
+			return json.getString("access_token");
+		} catch(IOException e) {
+			Log.e(e);
+			this.bot.sendMessage(COLOR_ERROR + "Unable to authenticate with Twitter: " + e.getMessage());
+			return null;
+		} catch(JSONException e) {
+			Log.e(e);
+			this.bot.sendMessage(COLOR_ERROR + "Unable to interpret Twitter response: " + e.getMessage());
+			return null;
+		}
+	}
+
+	private JSONObject api(String route) throws IOException, JSONException {
+		if(this.token == null) {
+			return null;
+		}
+
+		final URL url = new URL("https://api.twitter.com/1.1" + route);
+		final HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+		conn.setRequestProperty("Authorization", "Bearer " + this.token);
+		return getJSON(conn);
+	}
+
 	@Command(".*" + TWITTER_URL_PATTERN + ".*")
 	public void tweet(Message message, String id) {
 		try {
-			final JSONObject json = getJSON("http://api.twitter.com/1/statuses/show/" + id + ".json");
+			final JSONObject json = api("/statuses/show/" + id + ".json");
 			if(json.has("user") && json.has("text")) {
 				this.emitTweet(json.getJSONObject("user").getString("screen_name"), json.getString("text"));
 			} else if(json.has("error")) {
@@ -60,20 +122,23 @@ public class Twitter extends NoiseModule {
 				this.bot.sendMessage(COLOR_ERROR + "Unknown Twitter error");
 			}
 		} catch(IOException e) {
+			Log.e(e);
 			if(e.getMessage().contains("Server returned HTTP response code: 403")) {
 				this.bot.sendMessage(COLOR_ERROR + "Tweet is protected");
 			} else {
 				this.bot.sendMessage(COLOR_ERROR + "Unable to connect to Twitter");
 			}
 		} catch(JSONException e) {
+			Log.e(e);
 			this.bot.sendMessage(COLOR_ERROR + "Problem parsing Twitter response");
 		}
 	}
 	
 	public void poll() {
 		try {
-			final JSONObject json = getJSON("http://search.twitter.com/search.json?result_type=recent&q=" + urlEncode("#rhnoise") + (sinceID > 0 ? "&since_id=" + sinceID : ""));
-			final JSONArray results = json.getJSONArray("results");
+			final JSONObject json = api("/search/tweets.json?result_type=recent&q=" + urlEncode("#rhnoise") + (sinceID > 0 ? "&since_id=" + sinceID : ""));
+			Log.v(json.toString());
+			final JSONArray results = json.getJSONArray("statuses");
 			
 			if(this.sinceID == 0) {
 				Log.i("Initial poll");
@@ -87,7 +152,7 @@ public class Twitter extends NoiseModule {
 				for(int i = results.length() - 1; i >= 0; i--) {
 					final JSONObject tweet = results.getJSONObject(i);
 					Log.i("Emitting tweet ID " + tweet.getLong("id"));
-					this.emitTweet(tweet.getString("from_user"), tweet.getString("text"));
+					this.emitTweet(tweet.getJSONObject("user").getString("name"), tweet.getString("text"));
 					this.sinceID = tweet.getLong("id");
 				}
 			}
