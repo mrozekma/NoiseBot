@@ -35,7 +35,10 @@ public class Utilities {
 	}
 	
 	public static JSONObject getJSON(String url) throws IOException, JSONException {
-		final URLConnection c = new URL(url).openConnection();
+		return getJSON(new URL(url).openConnection());
+	}
+	
+	public static JSONObject getJSON(URLConnection c) throws IOException, JSONException {
 		final Scanner s = new Scanner(c.getInputStream());
 		final StringBuffer buffer = new StringBuffer();
 		while(s.hasNextLine()) {
