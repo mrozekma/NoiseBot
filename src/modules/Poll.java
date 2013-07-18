@@ -156,7 +156,7 @@ public class Poll extends NoiseModule {
 		this.pollTimer = null;
 		
 		this.bot.sendMessage(COLOR_SUCCESS + "Poll finished" + NORMAL + ": " + this.pollText);
-		this.bot.sendMessage("Results: " + (this.votes.isEmpty() ? COLOR_VOTE + "No votes" : this.tabulate()));
+		this.bot.sendMessage("Results: " + (this.votes.isEmpty() ? COLOR_VOTE + "No votes. You all suck." : this.tabulate()));
 	}
 	
 	private String tabulate() {
