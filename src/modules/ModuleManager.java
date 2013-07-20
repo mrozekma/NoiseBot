@@ -53,11 +53,6 @@ public class ModuleManager extends NoiseModule {
 				this.bot.sendNotice(COLOR_ERROR + ".unload cannot unload the ModuleManager");
 				continue;
 			}
-			// Haters gon' hate. (Yes, I expect this to be reverted...)
-			if (message.getSender().equals("ZetaSyanthis") && moduleName.equals("Lebowski"))
-				continue;
-			if (message.getSender().equals("twm") && moduleName.equals("UrbanDictionary"))
-				continue;
 			
 			try {
 				this.bot.unloadModule(moduleName);
