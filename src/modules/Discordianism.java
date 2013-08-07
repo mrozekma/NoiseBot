@@ -41,9 +41,14 @@ public class Discordianism extends NoiseModule {
 			dotw = DOTW[(dayOfYear - 1) % DOTW.length];
 		}
 
-		final int seasonIndex = dayOfYear / (365 / SEASONS.length);
+		int seasonIndex = dayOfYear / (365 / SEASONS.length);
+		int dayOfSeason = (dayOfYear % (365 / SEASONS.length));
+		if(dayOfSeason == 0) {
+			dayOfSeason = 365 / SEASONS.length;
+			seasonIndex--;
+		}
+
 		final String season = SEASONS[seasonIndex];
-		final int dayOfSeason = (dayOfYear % (365 / SEASONS.length));
 		final int year = now.get(Calendar.YEAR) + 1166;
 
 		// It's sad that this is the most complicated part
