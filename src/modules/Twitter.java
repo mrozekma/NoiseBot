@@ -164,7 +164,7 @@ public class Twitter extends NoiseModule {
 	}
 	
 	private void emitTweet(String username, String text) {
-		this.bot.sendMessage(COLOR_INFO + UNDERLINE + "@" + username + NORMAL + COLOR_INFO + ": " + encoded(text));
+		this.bot.sendMessage(COLOR_INFO + UNDERLINE + "@" + username + NORMAL + COLOR_INFO + ": " + encoded(text.replace("\n", " ")));
 	}
 	
 	@Override public String getFriendlyName() {return "Twitter";}
