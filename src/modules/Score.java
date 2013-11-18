@@ -117,17 +117,19 @@ public class Score extends NoiseModule implements Serializable {
 	public void scores(Message message) {
 		ScoreEntry[] scores = this.userScores.values().toArray(new ScoreEntry[0]);
 		
+		scores = Panacea.filter(scores, new Condition<ScoreEntry>() {
+			@Override public boolean satisfies(ScoreEntry score) {
+				return Math.abs(score.score) > 2;
+			}
+		});
+		
 		if(scores.length == 0) {
 			this.bot.sendMessage("No scores available");
 			return;
 		}
 		
 		Arrays.sort(scores, Collections.reverseOrder());
-		String[] scoreboard = Panacea.map(Panacea.filter(scores, new Condition<ScoreEntry>() {
-			@Override public boolean satisfies(ScoreEntry score) {
-				return Math.abs(score.score) > 2;
-			}
-		}), new MapFunction<ScoreEntry, String>() {
+		String[] scoreboard = Panacea.map(scores, new MapFunction<ScoreEntry, String>() {
 			@Override public String map(ScoreEntry source) {
 				return source.ircFormat();
 			}
