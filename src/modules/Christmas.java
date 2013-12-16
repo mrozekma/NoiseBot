@@ -29,7 +29,7 @@ public class Christmas extends NoiseModule {
 
 	@Command("[^\\.].*")
 	public void talked(Message message) {
-		if (getRandomInt(0, 10) == 0) {
+		if (getRandomInt(0, 50) == 0) {
 			if (odd) {
 				this.bot.sendMessage(RED + "Ho " + GREEN + "Ho " + RED + "Ho!");
 			} else {
