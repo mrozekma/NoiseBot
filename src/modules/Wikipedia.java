@@ -43,12 +43,12 @@ public class Wikipedia extends NoiseModule {
 			return;
 		}
 		
-		sendEntry(term, "http://en.wikipedia.org/wiki/" + urlEncode(fixTitle(term)), true);
+		sendEntry(term, "http://en.wikipedia.org/wiki/" + urlEncode(fixTitle(term)), true, true);
 	}
 	
 	@Command(".*((?:http:\\/\\/en\\.wikipedia\\.org|https:\\/\\/secure\\.wikimedia\\.org\\/wikipedia(?:\\/commons|\\/en))\\/wiki\\/((?:\\S+)(?::[0-9]+)?(?:\\/|\\/(?:[\\w#!:.?+=&%@!\\-\\/]))?)).*")
 	public void wikipediaLink(Message message, String url, String term) {
-		sendEntry(urlDecode(term).replace("_", " "), url, true);
+		sendEntry(urlDecode(term).replace("_", " "), url, true, false);
 	}
 	
 	@Command(".*\\[\\[([^\\]]+)]].*")
@@ -58,7 +58,7 @@ public class Wikipedia extends NoiseModule {
 			return;
 		}
 		
-		sendEntry(term, "http://en.wikipedia.org/wiki/" + urlEncode(fixTitle(term)), false);
+		sendEntry(term, "http://en.wikipedia.org/wiki/" + urlEncode(fixTitle(term)), false, true);
 	}
 	
 	private static String fixTitle(String term) {
@@ -100,7 +100,7 @@ public class Wikipedia extends NoiseModule {
 		return el == null ? null : el.text();
 	}
 	
-	private void sendEntry(final String term, final String url, boolean showErrors) {
+	private void sendEntry(final String term, final String url, boolean showErrors, boolean includeLink) {
 		final Document doc;
 		try {
 			doc = Jsoup.connect(url).get();
@@ -127,7 +127,9 @@ public class Wikipedia extends NoiseModule {
 			text = text.substring(0, text.lastIndexOf(' '));
 		}
 		if(!text.endsWith("...")) {text += "...";}
-		text += " " + url;
+		if(includeLink) {
+			text += " " + url;
+		}
 		this.bot.sendMessage(text);
 	}
 	
