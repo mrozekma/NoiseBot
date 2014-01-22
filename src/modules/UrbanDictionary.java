@@ -48,7 +48,7 @@ public class UrbanDictionary extends NoiseModule {
     }
 
     // search page for definition
-    Element node = page.select("#entries .definition").first();
+    Element node = page.select(".definition").first();
     if (node == null) {
       this.bot.sendMessage(COLOR_WARNING + "Not found");
       return;
