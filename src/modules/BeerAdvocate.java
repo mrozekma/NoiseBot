@@ -20,6 +20,7 @@ import static main.Utilities.*;
  */
 public class BeerAdvocate extends NoiseModule {
   private static final String COLOR_ERROR = RED + REVERSE;
+  private static final String USER_AGENT = "Mozilla/5.0 (Windows NT 6.2; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1667.0 Safari/537.36";
 
   // Yeah, you wanna fight?
   public static String extract(Document page, String selector)
@@ -35,7 +36,10 @@ public class BeerAdvocate extends NoiseModule {
   {
     Document page = null;
     try {
-      page = Jsoup.connect(beerUrl).timeout(10000).get();
+      page = Jsoup.connect(beerUrl)
+                  .timeout(10000)
+                  .userAgent(USER_AGENT)
+                  .get();
     } catch (IOException e) {
       e.printStackTrace();
       this.bot.sendMessage(COLOR_ERROR + "Error retrieving BA page...");
