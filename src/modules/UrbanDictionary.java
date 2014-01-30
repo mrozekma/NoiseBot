@@ -23,6 +23,7 @@ public class UrbanDictionary extends NoiseModule {
   private static final String COLOR_WARNING = RED;
   private static final String COLOR_ERROR = RED + REVERSE;
   private static final String URBAN_URL = "http://www.urbandictionary.com/define.php?term=";
+  private static final String DEFINITION_SELECTOR = ".meaning";
 
   @Command("\\.(?:ud|urban) (.+)")
   public void urban(Message message, String term) {
@@ -48,7 +49,7 @@ public class UrbanDictionary extends NoiseModule {
     }
 
     // search page for definition
-    Element node = page.select(".definition").first();
+    Element node = page.select(DEFINITION_SELECTOR).first();
     if (node == null) {
       this.bot.sendMessage(COLOR_WARNING + "Not found");
       return;
