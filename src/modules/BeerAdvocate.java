@@ -58,9 +58,20 @@ public class BeerAdvocate extends NoiseModule {
   {
     Document searchResults = null;
     toSearch = toSearch.replaceAll(" ", "\\+");
+               toSearch = "\""+toSearch+"\"";
     try {
-      searchResults = Jsoup.connect("http://beeradvocate.com/search?q="+toSearch+"&qt=beer").timeout(10000).get();
-      String url = "http://beeradvocate.com"+searchResults.body().getElementsByTag("li").get(1).getElementsByTag("a").get(0).attr("href");
+      searchResults = Jsoup.connect("http://beeradvocate.com/search?q="+toSearch+"&qt=beer")
+                                                                       .timeout(10000)
+                                                                       .userAgent(USER_AGENT)
+                                                                       .get();
+                       //this.bot.sendMessage("DEBUG: " + "http://beeradvocate.com"+searchResults.getElementsByTag("li").html());
+      String url = "http://beeradvocate.com"+searchResults
+                                                                       .body()
+                                                                       .getElementsByTag("li")
+                                                                       .get(2)
+                                                                       .getElementsByTag("a")
+                                                                       .get(0)
+                                                                       .attr("href");
       this.beer(null, url);
       this.bot.sendMessage(url);
     } catch(IOException e) {
