@@ -1,5 +1,6 @@
 package modules;
 
+import main.Message;
 import main.NoiseModule;
 
 import java.io.BufferedReader;
@@ -32,9 +33,9 @@ public class Nestroyeti extends NoiseModule {
     }
 
     @Command("\\.nestroyeti")
-    public void getTemp() {
+    public void getTemp(Message message) {
         try{
-        URL url = new URL("http://http://phire.org/nest/");
+        URL url = new URL("http://phire.org/nest/");
         URLConnection con = url.openConnection();
         BufferedReader in = new BufferedReader(
                                 new InputStreamReader(con.getInputStream()));
