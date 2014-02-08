@@ -36,11 +36,11 @@ public class Nestroyeti extends NoiseModule {
     public void getTemp(Message message) {
         try{
         URL url = new URL("http://phire.org/nest/");
-        URLConnection con = url.openConnection();
         BufferedReader in = new BufferedReader(
-                                new InputStreamReader(con.getInputStream()));
+                                new InputStreamReader(url.openStream()));
         String output = in.readLine();
         this.bot.sendMessage(output);
+        in.close();
         } catch (IOException e) {
             e.printStackTrace();
             this.bot.sendMessage("Error retrieving yeti weather...");
