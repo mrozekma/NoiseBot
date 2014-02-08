@@ -1,14 +1,12 @@
 package modules;
 
+import java.io.IOException;
+
 import main.Message;
 import main.NoiseModule;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.URL;
-import java.net.URLConnection;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 
 /**
  * Created by whitelje on 2/7/14.
@@ -35,12 +33,8 @@ public class Nestroyeti extends NoiseModule {
     @Command("\\.nestroyeti")
     public void getTemp(Message message) {
         try{
-        URL url = new URL("http://phire.org/nest/");
-        BufferedReader in = new BufferedReader(
-                                new InputStreamReader(url.openStream()));
-        String output = in.readLine();
-        this.bot.sendMessage(output);
-        in.close();
+        	Document page = Jsoup.connect("http://phire.org/nest/").ignoreContentType(true).get();
+        	this.bot.sendMessage(page.text());
         } catch (IOException e) {
             e.printStackTrace();
             this.bot.sendMessage("Error retrieving yeti weather...");
