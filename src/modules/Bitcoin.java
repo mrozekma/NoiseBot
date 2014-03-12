@@ -20,6 +20,7 @@ import main.NoiseBot;
 import main.NoiseModule;
 
 import static panacea.Panacea.*;
+import panacea.Condition;
 import panacea.ReduceFunction;
 
 /**
@@ -78,7 +79,11 @@ public class Bitcoin extends NoiseModule {
 				return;
 			}
 
-			final Price[] prices = this.exchanges.values().toArray(new Price[0]);
+			final Price[] prices = filter(this.exchanges.values().toArray(new Price[0]), new Condition<Price>() {
+				@Override public boolean satisfies(Price price) {
+					return price.avg > 0;
+				}
+			});
 			final double avg = reduce(prices, new ReduceFunction<Price, Double>() {
 				@Override public Double reduce(Price price, Double accum) {
 					return accum + (price.avg / prices.length);
@@ -113,8 +118,11 @@ public class Bitcoin extends NoiseModule {
 		this.exchanges.clear();
 		for(int i = 0; i < json.length(); i++) {
 			final JSONObject obj = json.getJSONObject(i);
-			if(obj.getString("currency").equals("USD") && obj.getInt("currency_volume") > 0 && !obj.isNull("bid") && !obj.isNull("ask") && !obj.isNull("avg")) {
-				this.exchanges.put(obj.getString("symbol").toLowerCase(), new Price(obj.getDouble("bid"), obj.getDouble("ask"), obj.getDouble("avg")));
+			if(obj.getString("currency").equals("USD")) {
+				final double bid = obj.isNull("bid") ? 0.0 : obj.getDouble("bid");
+				final double ask = obj.isNull("ask") ? 0.0 : obj.getDouble("ask");
+				final double avg = obj.isNull("avg") ? 0.0 : obj.getDouble("avg");
+				this.exchanges.put(obj.getString("symbol").toLowerCase(), new Price(bid, ask, avg));
 			}
 		}
 	}
