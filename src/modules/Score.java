@@ -8,6 +8,7 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import main.Message;
@@ -115,11 +116,12 @@ public class Score extends NoiseModule implements Serializable {
 
 	@Command("\\.(?:scores|scoreboard)")
 	public void scores(Message message) {
+		final List<String> nicks = Arrays.asList(this.bot.getNicks());
 		ScoreEntry[] scores = this.userScores.values().toArray(new ScoreEntry[0]);
 		
 		scores = Panacea.filter(scores, new Condition<ScoreEntry>() {
 			@Override public boolean satisfies(ScoreEntry score) {
-				return Math.abs(score.score) > 2;
+				return Math.abs(score.score) > 2 || nicks.contains(score.username);
 			}
 		});
 		
