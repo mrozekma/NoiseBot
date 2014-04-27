@@ -45,6 +45,7 @@ public class Weather extends NoiseModule
 		{ "12794706", "Tucson", "AZ"},
 		{ "2517274",  "West Lafayette", "IN"},
 		{ "2380358",  "Cincinnati", "OH"},
+		{ "1225448",  "Bangkok", "TH"},
 	};
 
 	private static final String[][] icons = {
