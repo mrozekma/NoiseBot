@@ -42,7 +42,7 @@ public class BeerAdvocate extends NoiseModule {
     }
   }
 
-  @Command(".*(http://beeradvocate.com/beer/profile/[0-9]+/[0-9]+).*")
+  @Command(".*(http://(?:www\\.)?beeradvocate.com/beer/profile/[0-9]+/[0-9]+).*")
   public void beer(Message message, String beerUrl)
   {
     Document page = snarf(beerUrl);
