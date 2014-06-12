@@ -46,7 +46,7 @@ public class Wikipedia extends NoiseModule {
 		sendEntry(term, "http://en.wikipedia.org/wiki/" + urlEncode(fixTitle(term)), true, true);
 	}
 	
-	@Command(".*((?:http:\\/\\/en\\.wikipedia\\.org|https:\\/\\/secure\\.wikimedia\\.org\\/wikipedia(?:\\/commons|\\/en))\\/wiki\\/((?:\\S+)(?::[0-9]+)?(?:\\/|\\/(?:[\\w#!:.?+=&%@!\\-\\/]))?)).*")
+	@Command(".*((?:https?:\\/\\/en\\.wikipedia\\.org|https:\\/\\/secure\\.wikimedia\\.org\\/wikipedia(?:\\/commons|\\/en))\\/wiki\\/((?:\\S+)(?::[0-9]+)?(?:\\/|\\/(?:[\\w#!:.?+=&%@!\\-\\/]))?)).*")
 	public void wikipediaLink(Message message, String url, String term) {
 		sendEntry(urlDecode(term).replace("_", " "), url, true, false);
 	}
