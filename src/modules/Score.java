@@ -18,9 +18,11 @@ import panacea.MapFunction;
 import panacea.Panacea;
 import panacea.ReduceFunction;
 
+import static panacea.Panacea.*;
+
 /**
  * Score
- * 
+ *
  * @author Arathald (Greg Jackson) Created January 10, 2012.
  * @author Will Fuqua February 09, 2013.
  */
@@ -36,7 +38,7 @@ public class Score extends NoiseModule implements Serializable {
 		public int score;
 
 		public ScoreEntry() {}
-		
+
 		public ScoreEntry(String username, int score) {
 			this.username = username;
 			this.score = score;
@@ -46,7 +48,7 @@ public class Score extends NoiseModule implements Serializable {
 		public int compareTo(ScoreEntry o) {
 			return this.score - o.score;
 		}
-		
+
 		public String ircFormat() {
 			String scoreColor = (this.score >= 0 ? Score.COLOR_POSITIVE	: Score.COLOR_NEGATIVE);
 			return this.username  + ": " + scoreColor + this.score + NORMAL;
@@ -69,13 +71,13 @@ public class Score extends NoiseModule implements Serializable {
 		if (currentScore == null)
 			currentScore = new ScoreEntry(nick, 0);
 		currentScore.score += amount;
-		
+
 		//update the score data, stop tracking the user if they have 0 points
 		if(currentScore.score == 0)
 			this.userScores.remove(userKey);
 		else
 			this.userScores.put(userKey, currentScore);
-		
+
 		this.save();
 	}
 
@@ -97,14 +99,14 @@ public class Score extends NoiseModule implements Serializable {
 
 	@Command("\\.winner")
 	public void winner(Message m) {
-		
+
 		ScoreEntry[] scores = this.userScores.values().toArray(new ScoreEntry[0]);
-		
+
 		if(scores.length == 0) {
 			this.bot.sendMessage("No scores available");
 			return;
 		}
-		
+
 		ScoreEntry winner = Panacea.reduce(scores, new ReduceFunction<ScoreEntry, ScoreEntry>() {
 			@Override public ScoreEntry reduce(ScoreEntry source, ScoreEntry accum) {
 				return (accum.score > source.score) ? accum : source;
@@ -118,26 +120,26 @@ public class Score extends NoiseModule implements Serializable {
 	public void scores(Message message) {
 		final List<String> nicks = Arrays.asList(this.bot.getNicks());
 		ScoreEntry[] scores = this.userScores.values().toArray(new ScoreEntry[0]);
-		
+
 		scores = Panacea.filter(scores, new Condition<ScoreEntry>() {
 			@Override public boolean satisfies(ScoreEntry score) {
 				return Math.abs(score.score) > 2 || nicks.contains(score.username);
 			}
 		});
-		
+
 		if(scores.length == 0) {
 			this.bot.sendMessage("No scores available");
 			return;
 		}
-		
+
 		Arrays.sort(scores, Collections.reverseOrder());
 		String[] scoreboard = Panacea.map(scores, new MapFunction<ScoreEntry, String>() {
 			@Override public String map(ScoreEntry source) {
 				return source.ircFormat();
 			}
 		});
-		
-		this.bot.sendMessage(scoreboard, ", ");
+
+		this.bot.sendMessage(implode(scoreboard, ", "));
 	}
 
 	@Override

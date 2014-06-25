@@ -1,10 +1,12 @@
 package modules;
 
 import java.io.File;
+import java.util.Map;
 
 import eliza.ElizaMain;
 
 import main.Message;
+import main.ModuleLoadException;
 import main.NoiseBot;
 import main.NoiseModule;
 
@@ -15,19 +17,19 @@ import main.NoiseModule;
  *         Created Jan 1, 2011.
  */
 public class Eliza extends NoiseModule {
-	private static final File SCRIPT_FILE = new File("eliza-script");
-	
+	private static final File SCRIPT_FILE = NoiseBot.getDataFile("eliza-script");
+
 	private ElizaMain eliza;
-	
-	@Override public void init(NoiseBot bot) {
-		super.init(bot);
+
+	@Override public void init(NoiseBot bot, Map<String, String> config) throws ModuleLoadException {
+		super.init(bot, config);
 		this.eliza = new ElizaMain();
 		this.eliza.readScript(true, SCRIPT_FILE.getAbsolutePath());
 	}
-	
+
 	@Command("([^:]+): (.*)")
 	public void eliza(Message message, String nick, String userMessage) {
-		if(!nick.equals(NoiseBot.me.getNick())) return;
+		if(!nick.equals(this.bot.getNick())) return;
 		this.bot.reply(message, this.eliza.processInput(userMessage));
 	}
 
@@ -38,5 +40,4 @@ public class Eliza extends NoiseModule {
 				this.bot.getNick() + ": You are the best"
 		};
 	}
-	@Override public File[] getDependentFiles() {return new File[] {SCRIPT_FILE};}
 }

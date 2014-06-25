@@ -18,7 +18,7 @@ public class Git {
 		public SyncException(String msg) {super(msg);}
 		public SyncException(Exception e) {super(e);}
 	}
-	
+
 	public static class Revision {
 		private String hash;
 		private String author;
@@ -80,7 +80,7 @@ public class Git {
 			files.add(new File(s.next()));
 		return files.toArray(new File[0]);
 	}
-	
+
 	public static boolean branchExists(String branch) {
 		try {
 			final Process p = Runtime.getRuntime().exec("git branch");
@@ -93,16 +93,16 @@ public class Git {
 		} catch(IOException e) {
 			Log.e(e);
 		}
-		
+
 		return false;
 	}
-	
+
 	public static void sync(String branch) throws SyncException {
 		try {
 			branch = branch.toLowerCase();
 			if(branch.equals("master"))
 				throw new SyncException("Can't sync to master");
-			
+
 			{
 				boolean branchExists = false;
 				final Process p = Runtime.getRuntime().exec("git branch");
@@ -117,7 +117,7 @@ public class Git {
 				if(!branchExists)
 					throw new SyncException("No branch named " + branch + " exists");
 			}
-			
+
 			{
 				boolean descendent = false;
 				final Process p = Runtime.getRuntime().exec("git branch --contains master");
@@ -131,7 +131,7 @@ public class Git {
 				if(!descendent)
 					throw new SyncException("Branch " + branch + " does not descend from master");
 			}
-			
+
 			{
 				final File[] files = getFiles("master", branch);
 				for(File f : files) {
@@ -142,7 +142,7 @@ public class Git {
 						throw new SyncException("Unable to dynamically switch branches -- core classes are modified");
 				}
 			}
-			
+
 			try {
 				Process p = Runtime.getRuntime().exec("git merge " + branch);
 				int retCode = p.waitFor();
@@ -159,24 +159,28 @@ public class Git {
 			throw new SyncException(e);
 		}
 	}
-	
+
 	private static String filterFilename(String filename) {
 		return filename.substring(filename.indexOf("NoiseBot/") + "NoiseBot/".length());
 	}
-	
-	public static String[] affectedModules(String from, String to) throws SyncException {
+
+	public static String[] affectedModules(NoiseBot bot, String from, String to) throws SyncException {
 		final Map<File, String> dependentFiles = new HashMap<File, String>();
 		{
-			final Map<String, NoiseModule> modules = NoiseBot.me.getModules();
+			final Map<String, NoiseModule> modules = bot.getModules();
 			for(Map.Entry<String, NoiseModule> entry : modules.entrySet()) {
 				dependentFiles.put(new File("src/modules", entry.getKey() + ".java"), entry.getKey());
-				for(File f : entry.getValue().getDependentFiles()) {
-					dependentFiles.put(f, entry.getKey());
+				synchronized(NoiseBot.moduleFileDeps) {
+					if(NoiseBot.moduleFileDeps.containsKey(entry.getKey())) {
+						for(File f : NoiseBot.moduleFileDeps.get(entry.getKey())) {
+							dependentFiles.put(f, entry.getKey());
+						}
+					}
 				}
 			}
 		}
-		
-		TreeSet<String> moduleNames = new TreeSet<String>();
+
+		final TreeSet<String> moduleNames = new TreeSet<String>();
 		try {
 			for(File f : getFiles(from, to)) {
 				if(dependentFiles.containsKey(f)) {
@@ -186,8 +190,8 @@ public class Git {
 		} catch(IOException e) {
 			throw new SyncException(e);
 		}
-		
-		String[] rtn = moduleNames.toArray(new String[0]);
+
+		final String[] rtn = moduleNames.toArray(new String[0]);
 		Arrays.sort(rtn);
 		return rtn;
 	}

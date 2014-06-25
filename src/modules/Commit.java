@@ -5,12 +5,14 @@ import static org.jibble.pircbot.Colors.*;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.Vector;
 
 import debugging.Log;
 
 import main.Message;
+import main.ModuleLoadException;
 import main.NoiseBot;
 import main.NoiseModule;
 
@@ -26,15 +28,15 @@ import static panacea.Panacea.*;
  */
 public class Commit extends NoiseModule {
 	// https://raw.github.com/ngerakines/commitment/master/commit_messages.txt
-	private static File MESSAGES_FILE = new File("commit_messages.txt");
+	private static File MESSAGES_FILE = NoiseBot.getDataFile("commit_messages.txt");
 
 	private static final String COLOR_QUOTE = CYAN;
 	private static final String COLOR_ERROR = RED;
 
 	private String[] messages;
 
-	@Override public void init(NoiseBot bot) {
-		super.init(bot);
+	@Override public void init(NoiseBot bot, Map<String, String> config) throws ModuleLoadException {
+		super.init(bot, config);
 		this.messages = new String[0];
 		try {
 			final Vector<String> messages = new Vector<String>();
@@ -43,7 +45,7 @@ public class Commit extends NoiseModule {
 				messages.add(s.nextLine());
 			}
 			this.messages = messages.toArray(new String[0]);
-			Log.i("Loaded messages file: " + this.messages.length);
+			Log.i("Loaded messages file: %d", this.messages.length);
 		} catch(FileNotFoundException e) {
 			this.bot.sendNotice("No commit messages file found");
 		}
@@ -64,5 +66,4 @@ public class Commit extends NoiseModule {
 				".commit"
 		};
 	}
-	@Override public File[] getDependentFiles() {return new File[] {MESSAGES_FILE};}
 }

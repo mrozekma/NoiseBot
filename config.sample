@@ -1,0 +1,34 @@
+// Sample configuration file
+// Copy this to 'config' to use
+
+{
+	// Potential IRC connections. The key is the name of the connection, used
+	// on the command-line. The value is a map of settings. If no names are
+	// specified on the command-line, 'default' will be used
+	connections: {
+		default: {
+			server: 'irc.freenode.net',
+			port: 6667,
+			nick: 'noisebot',
+			// password: '',
+			channel: '#freenode'
+		}
+	},
+
+	// Per-module configuration
+	modules: {
+		Backronym: {
+			dictionary-file: '/usr/share/dict/words'
+		},
+		Imgur: {
+			// client-id: ''
+		},
+		Translate: {
+			// key: ''
+		},
+		Twitter: {
+			// key: '',
+			// secret: ''
+		}
+	}
+}

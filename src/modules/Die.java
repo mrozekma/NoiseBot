@@ -5,16 +5,18 @@ import org.jibble.pircbot.PircBot;
 import org.jibble.pircbot.Queue;
 
 import java.lang.reflect.Field;
+import java.util.Map;
 
 import main.Message;
+import main.ModuleLoadException;
 import main.NoiseBot;
 import main.NoiseModule;
 
 public class Die extends NoiseModule {
 	public Queue queue = null;
 
-	@Override public void init(NoiseBot bot) {
-		super.init(bot);
+	@Override public void init(NoiseBot bot, Map<String, String> config) throws ModuleLoadException {
+		super.init(bot, config);
 
 		/* Damn java programmers */
 		try {

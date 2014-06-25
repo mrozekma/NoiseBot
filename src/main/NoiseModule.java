@@ -46,36 +46,36 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 	protected static @interface PM {
 		String value();
 	}
-	
+
 	protected transient NoiseBot bot;
 	protected transient Map<Pattern, Method> patterns = new LinkedHashMap<Pattern, Method>();
 	protected transient Map<Pattern, Method> pmPatterns = new LinkedHashMap<Pattern, Method>();
-	
-	public void init(NoiseBot bot) {
+
+	public void init(NoiseBot bot, Map<String, String> config) throws ModuleLoadException {
 		this.bot = bot;
 		Log.v(this + " - Init");
-		
+
 		for(Method method : this.getClass().getDeclaredMethods()) {
 			final Command command = method.getAnnotation(Command.class);
 			if(command != null) {
 				final Pattern pattern = Pattern.compile(command.value());
-				Log.i(this + " - Added pattern " + command.value() + " for method " + method);
+				Log.i(this + " - Added pattern %s for method %s", command.value(), method);
 				this.patterns.put(pattern, method);
 			}
 
 			final PM pm = method.getAnnotation(PM.class);
 			if(pm != null) {
 				final Pattern pattern = Pattern.compile(pm.value());
-				Log.i(this + " - Added PM pattern " + pm.value() + " for method " + method);
+				Log.i(this + " - Added PM pattern %s for method %s", pm.value(), method);
 				this.pmPatterns.put(pattern, method);
 			}
 		}
 	}
-	
+
 	public void unload() {
 		Log.v(this + " - Unload");
 	}
-	
+
 	public void onJoin(String sender, String login, String hostname) {this.joined(sender);}
 	public void onPart(String sender, String login, String hostname) {this.left(sender);}
 	public void onQuit(String sender, String login, String hostname, String reason) {this.left(sender);}
@@ -89,31 +89,29 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 		this.left(oldNick);
 		this.joined(newNick);
 	}
-	
+
 	public void onTopic(String topic, String setBy, long date, boolean changed) {}
-	
+
 	protected void joined(String nick) {}
 	protected void left(String nick) {}
-	
+
 	public abstract String getFriendlyName();
 	public abstract String getDescription();
 	public abstract String[] getExamples();
-	
+
 	// Doesn't show in the help listing, and only I can trigger
 	public boolean isPrivate() {return false;}
-	
-	public File[] getDependentFiles() {return new File[0];}
-	
+
 	public Pattern[] getPatterns() {return this.patterns.keySet().toArray(new Pattern[0]);}
-	
+
 	public void processMessage(Message message) {
-		Log.v(this + " - Processing message: " + message);
+		Log.v(this + " - Processing message: %s", message);
 		for(Pattern pattern : (message.isPM() ? this.pmPatterns : this.patterns).keySet()) {
-			Log.v("Trying pattern: " + pattern);
+			Log.v("Trying pattern: %s", pattern);
 			final Matcher matcher = pattern.matcher(message.getMessage());
 			if(matcher.matches()) {
 				final Method method = (message.isPM() ? this.pmPatterns : this.patterns).get(pattern);
-				Log.i(this + " - Handling message: " +  message + " -- " + method.getDeclaringClass().getName() + "." + method.getName());
+				Log.i(this + " - Handling message: %s -- %s.%s", message, method.getDeclaringClass().getName(), method.getName());
 				final Class[] params = method.getParameterTypes();
 				if(matcher.groupCount() == params.length - 1) {
 					Object[] args = new Object[params.length];
@@ -129,9 +127,9 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 							args[i] = matcher.group(i);
 						}
 					}
-					
+
 					try {
-						Log.v("Invoking with " + args.length + " args");
+						Log.v("Invoking with %d args", args.length);
 						method.invoke(this, args);
 						break;
 					} catch(Exception e) {
@@ -143,29 +141,29 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 			}
 		}
 	}
-	
+
 	public static <T extends NoiseModule> T load(Class<T> moduleType) {
-		Log.v(moduleType.getSimpleName() + " - Loading");
+		Log.v("%s - Loading", moduleType.getSimpleName());
 		if(!Arrays.asList(moduleType.getInterfaces()).contains(Serializable.class)) {return null;}
-		
+
 		try {
-			return Serializer.deserialize(moduleType.getSimpleName(), moduleType);
+			return Serializer.deserialize(new File(NoiseBot.STORE_DIRECTORY, moduleType.getSimpleName()), moduleType);
 		} catch(FileNotFoundException e) {
-			Log.v("No store file for " + moduleType.getSimpleName());
+			Log.v("No store file for %s", moduleType.getSimpleName());
 		} catch(Exception e) { // Should just be IOException
-			Log.w("Unable to deserialize " + moduleType.getSimpleName());
+			Log.w("Unable to deserialize %s", moduleType.getSimpleName());
 			Log.w(e);
 		}
-		
+
 		return null;
 	}
-	
+
 	public boolean save() {
 		Log.v(this + " - Saving");
 		if(!(this instanceof Serializable)) {return true;}
-		
+
 		try {
-            Serializer.serialize(this.getClass().getSimpleName(), this);
+            Serializer.serialize(new File(NoiseBot.STORE_DIRECTORY, this.getClass().getSimpleName()), this);
 			return true;
 		} catch(Exception e) { // Should just be IOException
 			Log.e(e);

@@ -98,12 +98,12 @@ public class Translate extends NoiseModule {
 
 	private String key;
 
-	@Override public void init(NoiseBot bot) {
-		super.init(bot);
-		this.key = this.bot.getSecretData("translate-key");
-		if(this.key == null) {
-			this.bot.sendNotice("Missing Google Translate key");
+	@Override public void init(NoiseBot bot, Map<String, String> config) throws ModuleLoadException {
+		super.init(bot, config);
+		if(!config.containsKey("key")) {
+			throw new ModuleLoadException("No Google Translate key specified in configuration");
 		}
+		this.key = config.get("key");
 	}
 
 	private void translationHelper(String fromCode, String toCode, String phrase) {

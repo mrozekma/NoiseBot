@@ -2,7 +2,10 @@ package modules;
 
 import static org.jibble.pircbot.Colors.*;
 
+import java.util.Map;
+
 import main.Message;
+import main.ModuleLoadException;
 import main.NoiseBot;
 import main.NoiseModule;
 
@@ -22,9 +25,9 @@ public class Christmas extends NoiseModule {
 
 	private boolean odd = false;
 
-	@Override public void init(NoiseBot bot) {
-		super.init(bot);
-		talked(null);
+	@Override public void init(NoiseBot bot, Map<String, String> config) throws ModuleLoadException {
+		super.init(bot, config);
+		this.talked(null);
 	}
 
 	@Command("[^\\.].*")
@@ -49,8 +52,5 @@ public class Christmas extends NoiseModule {
 
 	@Override public String getFriendlyName() {return "Christmas";}
 	@Override public String getDescription() {return "Says `Ho Ho Ho' a lot, and maybe other stuff";}
-	@Override public String[] getExamples() {
-		return new String[] {
-		};
-	}
+	@Override public String[] getExamples() {return new String[0];}
 }

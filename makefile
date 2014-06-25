@@ -15,8 +15,7 @@ run: $(OBJECTS)
 
 test: $(OBJECTS)
 	ulimit -v 4096000; \
-	java -cp $(CLASSPATH) -ea -Xms64m -Xmx512m main.NoiseBot \
-		cmdline irc.freenode.net 6667 "rh$(USER)bot" "pass$(PASS)" "#rh$(USER)"
+	java -cp $(CLASSPATH) -ea -Xms64m -Xmx512m main.NoiseBot test
 
 clean:
 	rm -rf bin

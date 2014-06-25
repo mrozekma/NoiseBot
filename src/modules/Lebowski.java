@@ -16,6 +16,7 @@ import java.util.Vector;
 import debugging.Log;
 
 import main.Message;
+import main.ModuleLoadException;
 import main.NoiseBot;
 import main.NoiseModule;
 
@@ -78,13 +79,13 @@ public class Lebowski extends NoiseModule {
 		private String line;
 		private int lineNum;
 		private int pos;
-		
+
 		public Match(String line, int lineNum, int pos) {
 			this.line = line;
 			this.lineNum = lineNum;
 			this.pos = pos;
 		}
-		
+
 		public String getLine() {return this.line;}
 		public int getLineNum() {return this.lineNum;}
 		public int getPos() {return this.pos;}
@@ -116,9 +117,9 @@ public class Lebowski extends NoiseModule {
 			return Math.random() < prob;
 		}
 	}
-	
-	private static File TRANSCRIPT_FILE = new File("lebowski");
-	
+
+	private static File TRANSCRIPT_FILE = NoiseBot.getDataFile("lebowski");
+
 	private static final int CHAR_MAX = 127;
 	private static final int PATTERN_MAX = 31;
 
@@ -126,14 +127,14 @@ public class Lebowski extends NoiseModule {
 	private static final int MIN_MESSAGE = 8;
 	private static final int MAX_CONSECUTIVE_MATCHES = 3;
 	private static final int SPACER_LINES = 30;
-	
+
 	private static final String COLOR_QUOTE = CYAN;
 	private static final String COLOR_ERROR = RED;
 
 	static {
 		assert MIN_MESSAGE > TOLERANCE : "Messages must be longer than the number of errors allowed";
 	}
-	
+
 	private String[] lines;
 	private String lastNick = "";
 	private int lastNickMatches = 0;
@@ -142,9 +143,9 @@ public class Lebowski extends NoiseModule {
 	private RateLimiter limiter = null;
 	private List<Match> undisplayedMatches = null;
 	private String lastMatchedUserMessage = null;
-	
-	@Override public void init(NoiseBot bot) {
-		super.init(bot);
+
+	@Override public void init(NoiseBot bot, Map<String, String> config) throws ModuleLoadException {
+		super.init(bot, config);
 		this.limiter = new RateLimiter();
 		this.lines = new String[0];
 		try {
@@ -158,7 +159,7 @@ public class Lebowski extends NoiseModule {
 				}
 			}
 			this.lines = linesVec.toArray(new String[0]);
-			Log.i("Loaded lebowski file: " + this.lines.length);
+			Log.i("Loaded lebowski file: %d", this.lines.length);
 		} catch(FileNotFoundException e) {
 			this.bot.sendNotice("No lebowski quotes file found");
 		} catch(IOException e) {
@@ -180,9 +181,9 @@ public class Lebowski extends NoiseModule {
 	// [a-zA-Z0-9,\\'\\\" !-][a-zA-Z0-9,\\'\\\"\\. !-]
 	@Command("([^\\.].{" + (MIN_MESSAGE - 1) + "," + (PATTERN_MAX - 1) + "})")
 	public void lebowski(Message message, String userMessage) {
-		Log.i("Lebowski: Searching for matches for \"" + userMessage + "\"");
+		Log.i("Lebowski: Searching for matches for \"%s\"", userMessage);
 		this.linesSinceLastQuote++;
-		
+
 		final Vector<Match> matches = new Vector<Match>();
 		for(int lineNum = 0; lineNum < lines.length; lineNum++) {
 			final String line = lines[lineNum];
@@ -191,9 +192,9 @@ public class Lebowski extends NoiseModule {
 				matches.add(new Match(line, lineNum, match));
 			}
 		}
-		
-		Log.v("Matches: " + matches.size());
-		
+
+		Log.v("Matches: %d", matches.size());
+
 		if(!matches.isEmpty()) {
 			if(this.linesSinceLastQuote < SPACER_LINES) {
 				return;
@@ -214,7 +215,7 @@ public class Lebowski extends NoiseModule {
 			this.lastMatchedUserMessage = userMessage;
 		}
 	}
-	
+
 	@Command("\\.next") public void nextLine(Message message) {
 		if(this.lastLineMatched < 0) {
 			this.bot.sendMessage(COLOR_ERROR + "No matches yet");
@@ -229,7 +230,7 @@ public class Lebowski extends NoiseModule {
 				this.bot.sendAction(slapUser(message.getSender()));
 		}
 	}
-	
+
 	@Command("\\.other") public void other(Message message) {
 		if(this.lastLineMatched < 0 || this.undisplayedMatches == null) {
 			this.bot.sendMessage(COLOR_ERROR + "No matches yet");
@@ -242,7 +243,7 @@ public class Lebowski extends NoiseModule {
 			this.bot.sendMessage(renderMatch(match, 1, this.lastMatchedUserMessage));
 		}
 	}
-	
+
 	private static String renderMatch(Match match, int matches, String userMessage) {
 		final StringBuffer b = new StringBuffer();
 		if(matches > 1) {b.append("(").append(matches).append(") ");}
@@ -254,16 +255,16 @@ public class Lebowski extends NoiseModule {
 		if(match.getPos() + userMessage.length() < match.getLine().length()) {b.append(match.getLine().substring(match.getPos() + userMessage.length()));}
 		return b.toString();
 	}
-	
+
 	// http://en.wikipedia.org/wiki/Bitap_algorithm
 	private static int search(String text, String pattern, int k) {
 		final int m = pattern.length();
 		final long[] R = new long[k + 1];
 		final long[] patternMask = new long[CHAR_MAX + 1];
-		
+
 		if(m == 0) {return 0;} // return text
 		if(m > PATTERN_MAX) {throw new IllegalArgumentException("Pattern is too long");}
-		
+
 		for(int i =0; i <= k; i++) {R[i] = ~1;}
 		for(int i = 0; i <= CHAR_MAX; i++) {patternMask[i] = ~0;}
 		for(int i = 0; i < m; i++) {patternMask[pattern.charAt(i)] &= ~(1 << i);}
@@ -273,24 +274,24 @@ public class Lebowski extends NoiseModule {
 				long oldRd1 = R[0];
 				R[0] |= patternMask[text.charAt(i)];
 				R[0] <<= 1;
-				
+
 				for(int d = 1; d <= k; d++) {
 					long tmp = R[d];
 					R[d] = (oldRd1 & (R[d] | patternMask[text.charAt(i)])) << 1;
 					oldRd1 = tmp;
 				}
-				
+
 				if(0 == (R[k] & (1 << m))) {
 	//				result = text.substring(i - m + 1);
 					return i - m + 1;
 				}
 			}
 		} catch(Exception e) {}
-		
+
 //		return result;
 		return -1;
 	}
-	
+
 	@Override public String getFriendlyName() {return "Lebowski";}
 	@Override public String getDescription() {return "Outputs Big Lebowski quotes similar to user text";}
 	@Override public String[] getExamples() {
@@ -301,5 +302,4 @@ public class Lebowski extends NoiseModule {
 				".other -- Outputs another quote that matches the last pattern"
 		};
 	}
-	@Override public File[] getDependentFiles() {return new File[] {TRANSCRIPT_FILE};}
 }

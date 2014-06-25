@@ -6,6 +6,7 @@ import static org.jibble.pircbot.Colors.*;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.net.HttpURLConnection;
@@ -20,6 +21,7 @@ import org.json.JSONObject;
 import debugging.Log;
 
 import main.Message;
+import main.ModuleLoadException;
 import main.NoiseBot;
 import main.NoiseModule;
 
@@ -35,6 +37,7 @@ public class Twitter extends NoiseModule {
 	private static final String TWITTER_URL_PATTERN = "https?://(?:mobile\\.)?twitter.com/.*/status(?:es)?/([0-9]+)";
 	private static final int PERIOD = 30; // seconds
 
+	private String key, secret;
 	private String token;
 	private long sinceID = 0;
 	private final Timer timer = new Timer();
@@ -42,8 +45,17 @@ public class Twitter extends NoiseModule {
 	private static final String COLOR_ERROR = RED;
 	private static final String COLOR_INFO = PURPLE;
 
-	@Override public void init(NoiseBot bot) {
-		super.init(bot);
+	@Override public void init(NoiseBot bot, Map<String, String> config) throws ModuleLoadException {
+		super.init(bot, config);
+		if(!config.containsKey("key")) {
+			throw new ModuleLoadException("No Twitter key specified in configuration");
+		}
+		this.key = config.get("key");
+		if(!config.containsKey("secret")) {
+			throw new ModuleLoadException("No Twitter secret specified in configuration");
+		}
+		this.secret = config.get("secret");
+
 		this.token = this.authenticate();
 		if(this.token != null) {
 			this.timer.scheduleAtFixedRate(new TimerTask() {
@@ -60,14 +72,7 @@ public class Twitter extends NoiseModule {
 	}
 
 	private String authenticate() {
-		final String key = this.bot.getSecretData("twitter-key");
-		final String secret = this.bot.getSecretData("twitter-secret");
-		if(key == null || secret == null) {
-			this.bot.sendMessage(COLOR_ERROR + "Missing Twitter application key/secret");
-			return null;
-		}
-
-		final String auth = Base64.encodeToString(String.format("%s:%s", urlEncode(key), urlEncode(secret)).getBytes(), false);
+		final String auth = Base64.encodeToString(String.format("%s:%s", urlEncode(this.key), urlEncode(this.secret)).getBytes(), false);
 		try {
 			final URL url = new URL("https://api.twitter.com/oauth2/token");
 			final HttpURLConnection conn = (HttpURLConnection)url.openConnection();
@@ -82,7 +87,7 @@ public class Twitter extends NoiseModule {
 
 			final JSONObject json = getJSON(conn);
 			if(!json.getString("token_type").equals("bearer")) {
-				Log.d(json.toString());
+				Log.d("%s", json.toString());
 				this.bot.sendMessage(COLOR_ERROR + "Unexpected token type: " + json.getString("token_type"));
 				return null;
 			}
@@ -133,13 +138,13 @@ public class Twitter extends NoiseModule {
 			this.bot.sendMessage(COLOR_ERROR + "Problem parsing Twitter response");
 		}
 	}
-	
+
 	public void poll() {
 		try {
 			final JSONObject json = api("/search/tweets.json?result_type=recent&q=" + urlEncode("#rhnoise") + (sinceID > 0 ? "&since_id=" + sinceID : ""));
-			Log.v(json.toString());
+			Log.v("%s", json.toString());
 			final JSONArray results = json.getJSONArray("statuses");
-			
+
 			if(this.sinceID == 0) {
 				Log.i("Initial poll");
 				this.sinceID = results.length() == 0 ? 1 : results.getJSONObject(0).getLong("id");
@@ -148,10 +153,10 @@ public class Twitter extends NoiseModule {
 
 			Log.v("Polling for tweets since " + this.sinceID);
 			if(results.length() > 0) {
-				Log.i(results.length() + " new tweet(s)");
+				Log.i("%d new tweet(s)", results.length());
 				for(int i = results.length() - 1; i >= 0; i--) {
 					final JSONObject tweet = results.getJSONObject(i);
-					Log.i("Emitting tweet ID " + tweet.getLong("id"));
+					Log.i("Emitting tweet ID %ld", tweet.getLong("id"));
 					this.emitTweet(tweet.getJSONObject("user").getString("name"), tweet.getString("text"));
 					this.sinceID = tweet.getLong("id");
 				}
@@ -162,23 +167,23 @@ public class Twitter extends NoiseModule {
 			Log.e(e);
 		}
 	}
-	
+
 	private void emitTweet(String username, String text) {
 		this.bot.sendMessage(COLOR_INFO + UNDERLINE + "@" + username + NORMAL + COLOR_INFO + ": " + encoded(text.replace("\n", " ")));
 	}
-	
+
 	@Override public String getFriendlyName() {return "Twitter";}
 	@Override public String getDescription() {return "Outputs information about any Twitter URLs posted, and any tweets containing the #rhnoise hashtag";}
 	@Override public String[] getExamples() {
 		return new String[] {};
 	}
-	
+
 	/*
 	private static final int LENGTH = 140;
-	
+
 	private static final String COLOR_POST = YELLOW;
 	private static final String COLOR_ERROR = RED + REVERSE;
-	
+
 	@Override public void onTopic(String topic, String setBy, long date, boolean changed) {
 		if(!changed) return;
 		if(topic.length() > LENGTH)
@@ -191,7 +196,7 @@ public class Twitter extends NoiseModule {
 			this.bot.sendMessage(COLOR_ERROR + e.getMessage());
 		}
 	}
-	
+
 	@Override public String getFriendlyName() {return "Twitter";}
 	@Override public String getDescription() {return "Posts topics to Twitter";}
 	@Override public String[] getExamples() {

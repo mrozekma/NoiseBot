@@ -4,11 +4,13 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.FileNotFoundException;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.Vector;
 
 import main.Message;
+import main.ModuleLoadException;
 import main.NoiseBot;
 import main.NoiseModule;
 
@@ -25,13 +27,13 @@ import static org.jibble.pircbot.Colors.*;
  */
 public class Spook extends NoiseModule {
 	private static final String COLOR_ERROR = RED;
-	
-	private static File SPOOK_FILE = new File("spook.lines");
-	
+
+	private static File SPOOK_FILE = NoiseBot.getDataFile("spook.lines");
+
 	private Vector<String> lines;
-	
-	@Override public void init(NoiseBot bot) {
-		super.init(bot);
+
+	@Override public void init(NoiseBot bot, Map<String, String> config) throws ModuleLoadException {
+		super.init(bot, config);
 		try {
 			this.lines = new Vector<String>();
 			final Scanner s = new Scanner(SPOOK_FILE);
@@ -57,7 +59,7 @@ public class Spook extends NoiseModule {
 			this.bot.sendMessage("There are only " + this.lines.size() + " entries in the spook lines file");
 		}
 	}
-	
+
 	@Command("\\.addspook (.*)")
 	public void addspook(Message message, String spook) {
 		spook = spook.trim();
@@ -80,7 +82,7 @@ public class Spook extends NoiseModule {
 
 	@Command("\\.spook")
 	public void spookDefault(Message message) {this.spook(message, 10);}
-	
+
 	@Override public String getFriendlyName() {return "Spook";}
 	@Override public String getDescription() {return "Displays a random line from the Emacs spook file";}
 	@Override public String[] getExamples() {
@@ -89,5 +91,4 @@ public class Spook extends NoiseModule {
 				".spook 15"
 		};
 	}
-	@Override public File[] getDependentFiles() {return new File[] {SPOOK_FILE};}
 }

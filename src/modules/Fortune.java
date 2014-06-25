@@ -5,10 +5,12 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Map;
 import java.util.Vector;
 
 import debugging.Log;
 import main.Message;
+import main.ModuleLoadException;
 import main.NoiseBot;
 import main.NoiseModule;
 
@@ -23,13 +25,13 @@ import static panacea.Panacea.*;
  *         Created Jun 16, 2009.
  */
 public class Fortune extends NoiseModule {
-	private static File FORTUNE_FILE = new File("fortunes");
+	private static File FORTUNE_FILE = NoiseBot.getDataFile("fortunes");
 	private static final String COLOR_ERROR = RED;
-	
+
 	private String[] fortunes;
-	
-	@Override public void init(NoiseBot bot) {
-		super.init(bot);
+
+	@Override public void init(NoiseBot bot, Map<String, String> config) throws ModuleLoadException {
+		super.init(bot, config);
 		try {
 			final Vector<String> fortunesVec = new Vector<String>();
 			final BufferedReader r = new BufferedReader(new FileReader(FORTUNE_FILE));
@@ -38,7 +40,7 @@ public class Fortune extends NoiseModule {
 				fortunesVec.add(line);
 			}
 			this.fortunes = fortunesVec.toArray(new String[0]);
-			Log.i("Loaded fortune file: " + this.fortunes.length + " lines");
+			Log.i("Loaded fortune file: %d lines", this.fortunes.length);
 		} catch(FileNotFoundException e) {
 			this.bot.sendNotice("No fortune file found");
 		} catch(IOException e) {
@@ -60,7 +62,7 @@ public class Fortune extends NoiseModule {
 			this.bot.reply(message, COLOR_ERROR + "No matches");
 		}
 	}
-	
+
 	@Override public String getFriendlyName() {return "Fortune";}
 	@Override public String getDescription() {return "Displays a random fortune from the Plan 9 fortune file";}
 	@Override public String[] getExamples() {
@@ -68,5 +70,4 @@ public class Fortune extends NoiseModule {
 				".fortune"
 		};
 	}
-	@Override public File[] getDependentFiles() {return new File[] {FORTUNE_FILE};}
 }

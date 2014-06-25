@@ -5,6 +5,7 @@ import static org.jibble.pircbot.Colors.*;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -15,6 +16,7 @@ import org.jsoup.select.Elements;
 import debugging.Log;
 
 import main.Message;
+import main.ModuleLoadException;
 import main.NoiseBot;
 import main.NoiseModule;
 
@@ -32,18 +34,18 @@ public class QDB extends NoiseModule {
 		public final String[] lines;
 		public final int upvotes;
 		public final int downvotes;
-		
+
 		public Quote(int id, String[] lines, int upvotes, int downvotes) {
 			this.id = id;
 			this.lines = lines;
 			this.upvotes = upvotes;
 			this.downvotes = downvotes;
 		}
-		
+
 		private String getVoteString() {
 			return (this.upvotes >= 0 && this.downvotes >= 0) ? "(+" + this.upvotes + "/-" + this.downvotes + ")" : "(?/?)";
 		}
-		
+
 		public String[] render() {
 			final String[] rtn = new String[this.lines.length];
 			if(this.lines.length == 0) return rtn;
@@ -56,11 +58,11 @@ public class QDB extends NoiseModule {
 			return Arrays.asList(this.render()).iterator();
 		}
 	}
-	
+
 	private static class ParseException extends Exception {
 		public ParseException(String message) {super(message);}
 	}
-	
+
 	private static final String URI = "http://rhlug.pileus.org/qdb";
 	private static final String COLOR_ERROR = RED;
 	private static final String COLOR_QUOTE = CYAN;
@@ -70,9 +72,9 @@ public class QDB extends NoiseModule {
 
 	private final Timer timer = new Timer();
 	private int curID = 0;
-	
-	@Override public void init(NoiseBot bot) {
-		super.init(bot);
+
+	@Override public void init(NoiseBot bot, Map<String, String> config) throws ModuleLoadException {
+		super.init(bot, config);
 		this.timer.scheduleAtFixedRate(new TimerTask() {
 			@Override public void run() {
 				QDB.this.checkForNewQuotes();
@@ -110,7 +112,7 @@ public class QDB extends NoiseModule {
 					quote = getQuote(getRandomInt(1, maxId));
 				} catch(ParseException e) {} // Probably the particular quy
 			} while(quote == null || quote.lines.length > MAX_LINES);
-			
+
 			for(String line : quote)
 				this.bot.sendMessage(COLOR_QUOTE + line);
 		} catch(ParseException e) {
@@ -133,7 +135,7 @@ public class QDB extends NoiseModule {
 			Log.e(e);
 			return;
 		}
-		
+
 		if(this.curID == 0) {
 			this.curID = maxID;
 			Log.i("Initial QDB poll; set current ID to " + this.curID);
@@ -143,19 +145,19 @@ public class QDB extends NoiseModule {
 		if(maxID == this.curID) {
 			return;
 		} else if(maxID < this.curID) {
-			Log.e("QDB ID mismatch: " + maxID + " < " + this.curID);
+			Log.e("QDB ID mismatch: %d < %d", maxID, this.curID);
 		}
-	
-		Log.v("QDB poll; old ID was " + this.curID + ", new ID is " + maxID);
+
+		Log.v("QDB poll; old ID was %d, new ID is ", this.curID, maxID);
 		for(this.curID++; this.curID <= maxID; this.curID++) {
 			this.bot.sendMessage(String.format("%s/%d", URI, this.curID));
 		}
 
 		this.curID--; // The for loop pushes it just past maxID
 	}
-	
+
 	private static Quote getQuote(int id) throws IOException, ParseException {
-		Log.i("Getting quote " + id);
+		Log.i("Getting quote %d", id);
 		final Document doc = Jsoup.connect(String.format("%s/%d", URI, id)).timeout(TIMEOUT * 1000).get();
 
 		int upvotes = -1, downvotes = -1;
@@ -166,7 +168,7 @@ public class QDB extends NoiseModule {
 				final Elements totalSpan = doc.select("span.quote-vote-count");
 				if(!totalSpan.isEmpty() && totalSpan.first().text().charAt(0) == '/') {
 					final int total = Integer.parseInt(totalSpan.first().text().substring(1));
-					
+
 					// Andy depresses me
 					/*
 					int upvotes = 0, downvotes = 0;
@@ -198,7 +200,7 @@ public class QDB extends NoiseModule {
 			rtn[i] = Jsoup.parse(lines[i]).text();
 		return new Quote(id, rtn, upvotes, downvotes);
 	}
-	
+
 	private static int getMaxID() throws IOException, ParseException {
 		final Document doc = Jsoup.connect(URI + "/browse").timeout(TIMEOUT * 1000).get();
 		Elements e = doc.select("ul.quote-list > li");
@@ -209,7 +211,7 @@ public class QDB extends NoiseModule {
 			throw new ParseException("Unexpected ID on top quote on browse page");
 		return Integer.parseInt(id.substring("quote-".length()));
 	}
-	
+
 	// Old PHP method
 	/*
 	private static String[] getQuote(String id) throws IOException {
@@ -226,7 +228,7 @@ public class QDB extends NoiseModule {
 		return lines.toArray(new String[0]);
 	}
 	*/
-	
+
 	@Override public String getFriendlyName() {return "QDB";}
 	@Override public String getDescription() {return "Displays quotes from the RHLUG Quote Database at " + URI;}
 	@Override public String[] getExamples() {

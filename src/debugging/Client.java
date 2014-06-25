@@ -20,46 +20,49 @@ import main.NoiseBot;
  */
 public class Client {
 	private Socket socket;
+	private NoiseBot bot;
 	private Scanner in;
 	private PrintWriter out;
-	
+
 	private String authentication;
 	private String nick;
-	
+
 	private Map<String, Set<Level>> activeLevels;
-	
+
 	public Client(Socket socket) throws IOException {
 		this.socket = socket;
 		this.in = new Scanner(this.socket.getInputStream());
 		this.out = new PrintWriter(this.socket.getOutputStream(), true);
 		this.authentication = null;
 		this.nick = null;
+		this.bot = null;
 		this.activeLevels = new HashMap<String, Set<Level>>();
 
 		new Thread(new Runnable() {
 			@Override public void run() {
 				final Scanner in = Client.this.in;
-				
-				while (in.hasNextLine()) { 
+
+				while (in.hasNextLine()) {
 					Debugger.me.in(Client.this, in.nextLine());
 				}
-				
+
 				System.out.println("Removed debugging client: " + Client.this);
 				Debugger.me.clients.remove(Client.this);
 			}
 		}).start();
 	}
-	
+
 	public Socket getSocket() {return this.socket;}
 	public boolean isAuthenticated() {return this.authentication != null && this.authentication.isEmpty();}
 	public String getNick() {return this.nick;}
+	public NoiseBot getBot() {return this.bot;}
 	public void setLevels(Map<String, Set<Level>> levels) {this.activeLevels = levels;}
-	
+
 	public void send(Object object) {this.out.println(object.toString());}
 	public void send(Event event) {
 		final String fullName = event.getClassName() + "." + event.getMethodName();
 		final Level level = event.getLevel();
-		
+
 		for(Map.Entry<String, Set<Level>> entry : this.activeLevels.entrySet()) {
 			final String name = entry.getKey();
 			final Set<Level> levels = entry.getValue();
@@ -69,7 +72,7 @@ public class Client {
 			}
 		}
 	}
-	
+
 	public void send(Iterable iter) {
 		for(Object o : iter) {
 			if(o instanceof Event) {
@@ -79,12 +82,13 @@ public class Client {
 			}
 		}
 	}
-	
-	public void startAuthentication(String nick, String code) {
+
+	public void startAuthentication(String nick, String code, NoiseBot bot) {
 		this.nick = nick;
 		this.authentication = code;
+		this.bot = bot;
 	}
-	
+
 	public void authenticate(String code) {
 		if(this.authentication == null) {
 			this.send("No authentication in progress");
@@ -92,7 +96,7 @@ public class Client {
 			this.send("Invalid authentication code");
 		} else {
 			this.authentication = "";
-			NoiseBot.me.sendNotice("Debugger connected by " + Colors.BLUE + this.nick);
+			this.bot.sendMessage("Debugger connected by " + Colors.BLUE + this.nick);
 			this.send("Authentication complete");
 		}
 	}

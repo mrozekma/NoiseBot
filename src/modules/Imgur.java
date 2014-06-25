@@ -6,6 +6,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.Map;
 import java.util.Scanner;
 
 import org.json.JSONException;
@@ -14,6 +15,7 @@ import org.json.JSONObject;
 import debugging.Log;
 
 import main.Message;
+import main.ModuleLoadException;
 import main.NoiseBot;
 import main.NoiseModule;
 
@@ -33,12 +35,12 @@ public class Imgur extends NoiseModule {
 
 	private String clientID;
 
-	@Override public void init(NoiseBot bot) {
-		super.init(bot);
-		this.clientID = this.bot.getSecretData("imgur-client-id");
-		if(this.clientID == null) {
-			throw new RuntimeException("Missing Imgur client ID");
+	@Override public void init(NoiseBot bot, Map<String, String> config) throws ModuleLoadException {
+		super.init(bot, config);
+		if(!config.containsKey("client-id")) {
+			throw new ModuleLoadException("No Imgur client ID specified in configuration");
 		}
+		this.clientID = config.get("client-id");
 	}
 
 	@Command(".*" + URL_PATTERN + ".*")
