@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import static org.jibble.pircbot.Colors.NORMAL;
+import static org.jibble.pircbot.Colors.*;
 import static panacea.Panacea.*;
 
 import debugging.Log;
@@ -275,19 +275,30 @@ public class NoiseBot extends PircBot {
 	}
 
 	public void sync() {
-		final Git.Revision[] revs = Git.diff(this.revision.getHash(), "HEAD");
+		final String from = this.revision.getHash(), to = "HEAD";
+		final Git.Revision[] revs = Git.diff(from, to);
 		final Git.Revision oldrev = this.revision;
-		final String[] moduleNames = Git.affectedModules(this, this.revision.getHash(), "HEAD");
+
+		boolean coreChanged = false;
+		try {
+			final String src = new File("src").getAbsolutePath();
+			final String modules = new File("src", "modules").getAbsolutePath();
+			for(File f : Git.getFiles(from, to)) {
+				final String path = f.getAbsolutePath();
+				if(path.startsWith(src) && !path.startsWith(modules)) {
+					coreChanged = true;
+					break;
+				}
+			}
+		} catch(IOException e) {}
+
+		final String[] moduleNames = Git.affectedModules(this, from, to);
 		this.revision = Git.head();
-		if(moduleNames.length == 0) {
-			this.sendNotice("Unable to sync -- No classes changed");
-			return;
-		}
 		final String[] coloredNames = map(moduleNames, new MapFunction<String, String>() {
 			@Override public String map(String name) {
 				return Help.COLOR_MODULE +  name + NORMAL;
 			}
-		});
+		}, new String[0]);
 
 		for(String moduleName : moduleNames) {
 			try {
@@ -307,7 +318,12 @@ public class NoiseBot extends PircBot {
 		this.sendNotice("Synced " + pluralize(revs.length, "revision", "revisions") + ":");
 		for(Git.Revision rev : reverse(revs))
 			this.sendNotice("    " + rev);
-		this.sendNotice("Reloaded modules: " + implode(coloredNames, ", "));
+		if(moduleNames.length != 0) {
+			this.sendNotice("Reloaded modules: " + implode(coloredNames, ", "));
+		}
+		if(coreChanged) {
+			this.sendNotice(YELLOW + "Core files changed; NoiseBot may need to be restarted" + NORMAL);
+		}
 		this.sendNotice("Changes: " + Git.diffLink(oldrev, this.revision));
 	}
 
