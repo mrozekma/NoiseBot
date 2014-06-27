@@ -270,6 +270,12 @@ public class NoiseBot extends PircBot {
 		return false;
 	}
 
+	public void whois(String nick, WhoisHandler handler) {
+		handler.setNick(nick);
+		handler.startWaiting();
+		this.sendRawLine("WHOIS " + nick);
+	}
+
 	private boolean isOwner(String nick) {
 		return false; //TODO
 	}
@@ -427,6 +433,17 @@ public class NoiseBot extends PircBot {
 			sleep(30);
 		}
     }
+
+	@Override protected void onServerResponse(int code, String response) {
+		switch(code) {
+			case WhoisHandler.RPL_WHOISUSER:
+			case WhoisHandler.RPL_WHOISSERVER:
+			case WhoisHandler.RPL_WHOISACCOUNT:
+			case WhoisHandler.RPL_ENDOFWHOIS:
+				WhoisHandler.onServerResponse(code, response);
+				break;
+		}
+	}
 
 	public static void main(String[] args) {
 		try {
