@@ -15,6 +15,15 @@
 		}
 	},
 
+	// The owner/maintainer of the bot. Some commands can only be run by the bot owner
+	// All specified fields must match, but you can choose any combination to require
+	// (however, specifying none will disable owner commands)
+	owner: {
+		// nick: 'nick',
+		// hostname: 'example.com',
+		// account: 'nickserv account'
+	},
+
 	// Per-module configuration
 	modules: {
 		Backronym: {

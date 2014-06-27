@@ -21,27 +21,27 @@ public class Help extends NoiseModule {
 	public static final String COLOR_MODULE = RED;
 	public static final String COLOR_COMMAND = BLUE;
 	public static final String COLOR_ARGUMENT = GREEN;
-	
+
 	private void message(Message message, String text) {
 		this.bot.sendMessage(message.isPM() ? message.getSender() : this.bot.getChannels()[0], text);
 	}
-	
+
 	@Command("\\.help")
 	@PM("\\.help")
 	public void general(Message message) {
 		message(message, "Use ." + COLOR_COMMAND + "help" + NORMAL + " " + COLOR_MODULE + "MODULE" + NORMAL + " to get examples for a specific module:");
 		message(message, "List of modules: " + implode(sorted(map(filter(this.bot.getModules().values().toArray(new NoiseModule[0]), new Condition<NoiseModule>() {
-			@Override public boolean satisfies(NoiseModule module) {return !module.isPrivate();}
+			@Override public boolean satisfies(NoiseModule module) {return module.showInHelp();}
 		}), new MapFunction<NoiseModule, String>() {
 			@Override public String map(NoiseModule module) {return COLOR_MODULE + module.getFriendlyName() + NORMAL;}
 		})), ", "));
 	}
-	
+
 	@Command("\\.help (.+)")
 	@PM("\\.help (.+)")
 	public void specific(Message message, String moduleName) {
 		for(NoiseModule module : this.bot.getModules().values()) {
-			if(module.isPrivate()) {continue;}
+			if(!module.showInHelp()) {continue;}
 			if(moduleName.equalsIgnoreCase(module.getFriendlyName())) {
 				message(message, COLOR_MODULE + module.getFriendlyName() + NORMAL + " module -- " + module.getDescription());
 				message(message, "Examples:");

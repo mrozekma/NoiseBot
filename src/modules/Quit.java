@@ -15,12 +15,16 @@ import main.NoiseModule;
 public class Quit extends NoiseModule {
 	private static final String COLOR_SUCCESS = GREEN;
 	private static final String COLOR_ERROR = RED;
-	
+
 	@Command("\\.quit")
 	public void quit(Message message) {
-		this.bot.quit();
+		this.triggerIfOwner(message, new Runnable() {
+			@Override public void run() {
+				Quit.this.bot.quit();
+			}
+		}, true);
 	}
-	
+
 	@Command("\\.save")
 	public void save(Message message) {
 		try {
@@ -30,9 +34,9 @@ public class Quit extends NoiseModule {
 			this.bot.sendMessage(COLOR_ERROR + "Problem saving: " + e.getMessage());
 		}
 	}
-	
+
 	@Override public String getFriendlyName() {return "Quit";}
 	@Override public String getDescription() {return "Makes the bot leave IRC";}
 	@Override public String[] getExamples() {return null;}
-	@Override public boolean isPrivate() {return true;}
+	@Override public boolean showInHelp() {return false;}
 }

@@ -99,8 +99,7 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 	public abstract String getDescription();
 	public abstract String[] getExamples();
 
-	// Doesn't show in the help listing, and only I can trigger
-	public boolean isPrivate() {return false;}
+	public boolean showInHelp() {return true;}
 
 	public Pattern[] getPatterns() {return this.patterns.keySet().toArray(new Pattern[0]);}
 
@@ -182,5 +181,23 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 			this.bot.sendMessage(COLOR_ERROR + "He looks like a fuckin' loser.");
 			return s;
 		}
+	}
+
+	protected void triggerIfOwner(final Message message, final Runnable fn, final boolean errorOnFail) {
+		this.bot.whois(message.getSender(), new WhoisHandler() {
+			@Override public void onResponse() {
+				if(NoiseModule.this.bot.isOwner(this.nick, this.hostname, this.account)) {
+					fn.run();
+				} else if(errorOnFail) {
+					NoiseModule.this.bot.sendMessage(COLOR_ERROR + "Operation not permitted");
+				}
+			}
+
+			@Override public void onTimeout() {
+				if(errorOnFail) {
+					NoiseModule.this.bot.sendMessage(COLOR_ERROR + "Unable to whois " + message.getSender());
+				}
+			}
+		});
 	}
 }

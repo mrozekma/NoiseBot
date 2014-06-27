@@ -276,8 +276,27 @@ public class NoiseBot extends PircBot {
 		this.sendRawLine("WHOIS " + nick);
 	}
 
-	private boolean isOwner(String nick) {
-		return false; //TODO
+	boolean isOwner(String nick, String hostname, String account) {
+		if(!config.containsKey("owner")) {
+			return false;
+		}
+
+		final StringMap owner = (StringMap)config.get("owner");
+		if(owner.isEmpty()) {
+			return false;
+		}
+
+		if(owner.containsKey("nick") && !owner.get("nick").equals(nick)) {
+			return false;
+		}
+		if(owner.containsKey("hostname") && !owner.get("hostname").equals(hostname)) {
+			return false;
+		}
+		if(owner.containsKey("account") && !owner.get("account").equals(account)) {
+			return false;
+		}
+
+		return true;
 	}
 
 	public void sync() {
@@ -351,8 +370,6 @@ public class NoiseBot extends PircBot {
 		if(!channel.equals(this.connection.channel)) {Log.w("Ignoring message to channel %s", channel); return;}
 
 		for(NoiseModule module : this.modules.values()) {
-			if(module.isPrivate() && !this.isOwner(sender)) {continue;}
-
 			try {
 				module.processMessage(new Message(message.trim(), sender, false));
 			} catch(Exception e) {
@@ -366,8 +383,6 @@ public class NoiseBot extends PircBot {
 		Log.in("<" + sender + " (" + login + " @ " + hostname + ") -> (direct): " + message);
 
 		for(NoiseModule module : this.modules.values()) {
-			if(module.isPrivate() && !this.isOwner(sender)) {continue;}
-
 			try {
 				module.processMessage(new Message(message.trim(), sender, true));
 			} catch(Exception e) {
