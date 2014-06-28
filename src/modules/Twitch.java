@@ -19,6 +19,7 @@ import java.util.Locale;
 
 import main.Message;
 import main.NoiseModule;
+import static main.Utilities.formatSeconds;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -45,7 +46,7 @@ public class Twitch extends NoiseModule {
 			final StringBuffer info = new StringBuffer();
 			info.append(json.getString("title"));
 			info.append(" (");
-			info.append(formatTimestamp(json.getInt("length")));
+			info.append(formatSeconds(json.getInt("length")));
 			info.append(", recorded ");
 			final Calendar date = new GregorianCalendar();
 			date.setTime(dateFormat.parse(json.getString("recorded_at")));
@@ -103,17 +104,6 @@ public class Twitch extends NoiseModule {
 		}
 
 		return json;
-	}
-
-	private String formatTimestamp(int seconds) {
-		final StringBuffer rtn = new StringBuffer();
-		final int hours = seconds / 3600;
-		seconds -= hours * 3600;
-		final int minutes = seconds / 60;
-		seconds -= minutes * 60;
-		return (hours > 0)
-			? String.format("%d:%02d:%02d", hours, minutes, seconds)
-			: String.format("%d:%02d", minutes, seconds);
 	}
 
 	@Override public String getFriendlyName() {return "Twitch";}

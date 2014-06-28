@@ -3,6 +3,7 @@ package modules;
 import debugging.Log;
 import main.Message;
 import main.NoiseModule;
+import static main.Utilities.formatSeconds;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -33,7 +34,7 @@ public class Vimeo extends NoiseModule{
             buffer.append(" (");
             buffer.append("posted by ").append(data.getString("user_name"));
             if(data.getInt("duration") != 0)
-                buffer.append(", ").append(data.getInt("duration")).append(" seconds");
+                buffer.append(", ").append(formatSeconds(data.getInt("duration")));
             buffer.append(", ").append(pluralize(data.getInt("stats_number_of_plays"), "view", "views"));
             buffer.append(")");
 

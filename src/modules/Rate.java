@@ -9,6 +9,7 @@ import main.Message;
 import main.ModuleLoadException;
 import main.NoiseBot;
 import main.NoiseModule;
+import static main.Utilities.formatSeconds;
 
 import static panacea.Panacea.*;
 
@@ -34,11 +35,6 @@ public class Rate extends NoiseModule {
 		this.counter.put(nick, (this.counter.containsKey(nick) ? this.counter.get(nick) : 0) + 1);
 	}
 
-	private String tohms(long sec)
-	{
-		return String.format("%d:%02d:%02d", sec/(60*60), (sec/60)%60, sec%60);
-	}
-
 	@Command("\\.rate")
 	public void general(Message message) {
 		final int numMessages = reduce(this.counter.values().toArray(new Integer[0]), new ReduceFunction<Integer, Integer>() {
@@ -48,7 +44,7 @@ public class Rate extends NoiseModule {
 		}, 0);
 		final long secondsElapsed = (System.currentTimeMillis() - this.start) / 1000;
 		final double messagesPerMinute = ((double)numMessages / (double)secondsElapsed) * 60;
-		this.bot.reply(message, numMessages + " messages in " + tohms(secondsElapsed) + " seconds = " + round(messagesPerMinute, 2) + " messages per minute");
+		this.bot.reply(message, numMessages + " messages in " + formatSeconds(secondsElapsed) + " = " + round(messagesPerMinute, 2) + " messages per minute");
 	}
 
 	@Command("\\.rate (.+)")
@@ -61,7 +57,7 @@ public class Rate extends NoiseModule {
 		final int numMessages = this.counter.containsKey(nick) ? this.counter.get(nick) : 0;
 		final long secondsElapsed = (System.currentTimeMillis() - this.start) / 1000;
 		final double messagesPerMinute = ((double)numMessages / (double)secondsElapsed) * 60;
-		this.bot.reply(message, numMessages + " messages in " + tohms(secondsElapsed) + " seconds = " + round(messagesPerMinute, 2) + " messages per minute");
+		this.bot.reply(message, numMessages + " messages in " + formatSeconds(secondsElapsed) + " = " + round(messagesPerMinute, 2) + " messages per minute");
 	}
 
 	@Override public String getFriendlyName() {return "Rate";}

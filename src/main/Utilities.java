@@ -11,6 +11,8 @@ import java.util.Scanner;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import static panacea.Panacea.*;
+
 /**
  * Utilities
  *
@@ -25,7 +27,7 @@ public class Utilities {
 			throw new RuntimeException("UTF-8 unsupported");
 		}
 	}
-	
+
 	public static String urlDecode(String text) {
 		try {
 			return URLDecoder.decode(text, "UTF-8");
@@ -33,11 +35,11 @@ public class Utilities {
 			throw new RuntimeException("UTF-8 unsupported");
 		}
 	}
-	
+
 	public static JSONObject getJSON(String url) throws IOException, JSONException {
 		return getJSON(new URL(url).openConnection());
 	}
-	
+
 	public static JSONObject getJSON(URLConnection c) throws IOException, JSONException {
 		final Scanner s = new Scanner(c.getInputStream());
 		final StringBuffer buffer = new StringBuffer();
@@ -45,5 +47,15 @@ public class Utilities {
 			buffer.append(s.nextLine());
 		}
 		return new JSONObject(buffer.toString());
+	}
+
+	public static String formatSeconds(long seconds) {
+		if(seconds < 60) {
+			return pluralize((int)seconds, "second", "seconds");
+		} else if(seconds < 60 * 60) {
+			return String.format("%d:%02d", seconds / 60, seconds % 60);
+		} else {
+			return String.format("%d:%02d:%02d", seconds / (60 * 60), (seconds / 60) % 60, seconds % 60);
+		}
 	}
 }

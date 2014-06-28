@@ -2,6 +2,7 @@ package modules;
 
 import static org.jibble.pircbot.Colors.*;
 
+import java.io.FileNotFoundException;
 import java.io.UnsupportedEncodingException;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -21,6 +22,7 @@ import debugging.Log;
 
 import main.Message;
 import main.NoiseModule;
+import static main.Utilities.formatSeconds;
 
 /**
  * Youtube
@@ -31,7 +33,7 @@ import main.NoiseModule;
 public class Youtube extends NoiseModule {
 	private static final String COLOR_ERROR = RED;
 	private static final String COLOR_INFO = PURPLE;
-	
+
 	@Command(".*https?://(?:www.youtube.com/(?:watch\\?v=|v/|user/.*\\#p/u/[0-9]+/)|youtu.be/)([A-Za-z0-9_-]{11}).*")
 	public void youtube(Message message, String videoID) {
 		try {
@@ -45,12 +47,12 @@ public class Youtube extends NoiseModule {
 			} else if(entryList.getLength() != 1) {
 				this.bot.sendMessage(COLOR_ERROR + "Found " + entryList.getLength() + " videos with ID " + videoID);
 			}
-			
+
 			final Node entry = entryList.item(0);
-			
+
 			String author = null, title = null;
 			int duration = 0, viewCount = 0;
-			
+
 			final NodeList entryRootNodes = entry.getChildNodes();
 			for(int i = 0; i < entryRootNodes.getLength(); i++) {
 				final Node entryRootNode = entryRootNodes.item(i);
@@ -82,12 +84,15 @@ public class Youtube extends NoiseModule {
 			}
 
 			if(author != null  && title != null) {
-				this.bot.sendMessage(COLOR_INFO +  encoded(title) + " (posted by " + encoded(author) + ", " + duration + " seconds, " + viewCount + " views)");
+				this.bot.sendMessage(COLOR_INFO +  encoded(title) + " (posted by " + encoded(author) + ", " + formatSeconds(duration) + ", " + viewCount + " views)");
 			} else {
 				this.bot.sendMessage(COLOR_ERROR + "Problem parsing Youtube data");
 			}
 		} catch(ParserConfigurationException e) {
 			this.bot.sendMessage(COLOR_ERROR + "Unable to parse Youtube data");
+			Log.e(e);
+		} catch(FileNotFoundException e) {
+			this.bot.sendMessage(COLOR_ERROR + "Video not found");
 			Log.e(e);
 		} catch(MalformedURLException e) {
 			this.bot.sendMessage(COLOR_ERROR + "Unable to contact Youtube");
@@ -100,12 +105,12 @@ public class Youtube extends NoiseModule {
 			Log.e(e);
 		}
 	}
-	
+
 	@Override public String getFriendlyName() {return "Youtube";}
 	@Override public String getDescription() {return "Outputs information about any youtube URLs posted";}
 	@Override public String[] getExamples() {
 		return new String[] {
-				"http://www.youtube.com/watch?v=Yu_moia-oVI"
+				"http://www.youtube.com/watch?v=8AOfbnGkuGc"
 		};
 	}
 }
