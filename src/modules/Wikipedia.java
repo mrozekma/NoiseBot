@@ -38,27 +38,17 @@ public class Wikipedia extends NoiseModule {
 	
 	@Command("\\.(?:wik|wp) (.+)")
 	public void wikipedia(Message message, String term) {
-		if(term.isEmpty()) { // Should be impossible
-			this.bot.sendMessage(COLOR_ERROR + "Missing term");
-			return;
-		}
-		
-		sendEntry(term, "http://en.wikipedia.org/wiki/" + urlEncode(fixTitle(term)), true, true);
+		this.sendEntry(term, "http://en.wikipedia.org/wiki/" + urlEncode(fixTitle(term)), true, true);
 	}
 	
 	@Command(".*((?:https?:\\/\\/en\\.wikipedia\\.org|https:\\/\\/secure\\.wikimedia\\.org\\/wikipedia(?:\\/commons|\\/en))\\/wiki\\/((?:\\S+)(?::[0-9]+)?(?:\\/|\\/(?:[\\w#!:.?+=&%@!\\-\\/]))?)).*")
 	public void wikipediaLink(Message message, String url, String term) {
-		sendEntry(urlDecode(term).replace("_", " "), url, true, false);
+		this.sendEntry(urlDecode(term).replace("_", " "), url, true, false);
 	}
 	
 	@Command(".*\\[\\[([^\\]]+)]].*")
 	public void wikipediaInline(Message message, String term) {
-		if(term.isEmpty()) { // Should be impossible
-			this.bot.sendMessage(COLOR_ERROR + "Missing term");
-			return;
-		}
-		
-		sendEntry(term, "http://en.wikipedia.org/wiki/" + urlEncode(fixTitle(term)), false, true);
+		this.sendEntry(term, "http://en.wikipedia.org/wiki/" + urlEncode(fixTitle(term)), false, true);
 	}
 	
 	private static String fixTitle(String term) {
@@ -67,21 +57,15 @@ public class Wikipedia extends NoiseModule {
 			fixedTerm = Character.toUpperCase(fixedTerm.charAt(0)) + fixedTerm.substring(1);
 		return fixedTerm;
 	}
-	
-	/*
-	private static String normalizeTitle(String term) throws IOException, JSONException {
-		final JSONObject data = getJSON("http://en.wikipedia.org/w/api.php?action=query&titles=" + fixTitle(term) + "&redirects&format=json");
-		final JSONObject query = data.getJSONObject("query");
-		if(query.has("redirects"))
-			return query.getJSONArray("redirects").getJSONObject(0).getString("to");
-		else if(query.has("normalized"))
-			return query.getJSONArray("normalized").getJSONObject(0).getString("to");
-		else
-			return term;
-	}
-	*/
 
 	private String selectEntryText(final String term, final String url, final Document doc) {
+		String anchor = null;
+		try {
+			anchor = new URL(url).getRef();
+		} catch(MalformedURLException e) {
+			Log.e(e);
+		}
+
 		Element el = null;
 		if (term.contains("File:")) {
 			if (el == null) { // Image description on a Commons page
@@ -89,6 +73,18 @@ public class Wikipedia extends NoiseModule {
 			}
 			if (el == null) { // Alternative image description
 				el = doc.select("div#shared-image-desc > p").first();
+			}
+		}
+		if (el == null && anchor != null) {
+			el = doc.select("span.mw-headline#" + anchor).first(); // <span>
+			el = el.parent(); // <h2>
+			while((el = el.nextElementSibling()) != null) {
+				if(el.tagName().equals("p")) {
+					break;
+				} else if(el.hasClass("mw-headline")) {
+					el = null;
+					break;
+				}
 			}
 		}
 		if (el == null) { // First paragraph of any other page
