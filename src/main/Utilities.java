@@ -58,4 +58,27 @@ public class Utilities {
 			return String.format("%d:%02d:%02d", seconds / (60 * 60), (seconds / 60) % 60, seconds % 60);
 		}
 	}
+
+	public static String truncateOnWord(String line, int maxLength) {
+		if(line.length() <= maxLength) {
+			return line;
+		} else if(maxLength < 3) {
+			return "";
+		}
+
+		maxLength -= 3; // Ellipses
+		int prev = -1, cur = 0;
+		while((cur = line.indexOf(' ', prev + 1)) >= 0) {
+			if(cur > maxLength) {
+				break;
+			}
+			prev = cur;
+			System.out.printf("%d %d\n", prev, cur);
+		}
+		line = line.substring(0, prev);
+		if(!line.endsWith("...")) {
+			line += "...";
+		}
+		return line;
+	}
 }

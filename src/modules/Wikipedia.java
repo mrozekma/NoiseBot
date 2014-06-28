@@ -5,7 +5,6 @@ import static org.jibble.pircbot.Colors.*;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLDecoder;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -118,11 +117,7 @@ public class Wikipedia extends NoiseModule {
 			}
 			return;
 		}
-		text = encoded(text);
-		while(text.length() + url.length() + 4 > MAXIMUM_MESSAGE_LENGTH && text.contains(" ")) {
-			text = text.substring(0, text.lastIndexOf(' '));
-		}
-		if(!text.endsWith("...")) {text += "...";}
+		text = truncateOnWord(encoded(text), MAXIMUM_MESSAGE_LENGTH - (includeLink ? (1 + url.length()) : 0));
 		if(includeLink) {
 			text += " " + url;
 		}
