@@ -4,6 +4,7 @@ import static org.jibble.pircbot.Colors.*;
 
 import main.Message;
 import main.ModuleSaveException;
+import main.NoiseBot;
 import main.NoiseModule;
 
 /**
@@ -21,6 +22,17 @@ public class Quit extends NoiseModule {
 		this.triggerIfOwner(message, new Runnable() {
 			@Override public void run() {
 				Quit.this.bot.quit();
+			}
+		}, true);
+	}
+
+	@Command("\\.quit!")
+	public void quitAll(Message message) {
+		this.triggerIfOwner(message, new Runnable() {
+			@Override public void run() {
+				while(!NoiseBot.bots.isEmpty()) {
+					NoiseBot.bots.values().iterator().next().quit();
+				}
 			}
 		}, true);
 	}
