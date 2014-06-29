@@ -5,9 +5,12 @@ import java.io.FileInputStream;
 import java.io.UnsupportedEncodingException;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
@@ -35,7 +38,7 @@ import panacea.ReduceFunction;
  * @author Michael Mrozek
  *         Created June 13, 2009.
  */
-public class NoiseBot extends PircBot {
+public class NoiseBot {
 	public static final String DEFAULT_CONNECTION = "default";
 	private static final String CONFIG_FILENAME = "config";
 	private static final String DATA_DIRECTORY = "data";
@@ -46,36 +49,24 @@ public class NoiseBot extends PircBot {
 	public static Git.Revision revision = Git.head();
 	private static Map config;
 
-	private final Connection connection;
+	private final Server server;
+	private final String channel;
 	private Map<String, NoiseModule> modules = new HashMap<String, NoiseModule>();
 
-	public boolean connect() {
-		Log.i("Connecting to %s:%d as %s", this.connection.server, this.connection.port, this.connection.nick);
-		if(this.isConnected()) {
-			Log.w("Already connected");
-			return true;
-		}
-
-		try {
-			System.out.printf("Connecting to %s:%d as %s\n", this.connection.server, this.connection.port, this.connection.nick);
-			this.connect(this.connection.server, this.connection.port, this.connection.password);
-			System.out.printf("Joining %s\n", this.connection.channel);
-			this.joinChannel(this.connection.channel);
-			return true;
-		} catch(NickAlreadyInUseException e) {
-			System.err.printf("The nick %s is already in use\n", this.connection.nick);
-		} catch(IrcException e) {
-			System.err.printf("Unexpected IRC error: %s\n", e.getMessage());
-		} catch(IOException e) {
-			System.err.printf("Network error: %s\n", e.getMessage());
-		}
-
-		return false;
+	public NoiseBot(Server server, String channel) {
+		this.server = server;
+		this.channel = channel;
 	}
 
 	public void quit() {
-		Log.i("Disconnecting");
-		this.disconnect();
+		if(this.server.getChannels().length > 1) {
+			Log.i("Parting " + this.channel);
+			this.server.partChannel(this.channel);
+		} else {
+			Log.i("Disconnecting");
+			this.server.disconnect();
+		}
+
 		try {this.saveModules();} catch(ModuleSaveException e) {Log.e(e);}
 
 		for(Map.Entry<String, NoiseBot> entry : NoiseBot.bots.entrySet()) {
@@ -105,7 +96,7 @@ public class NoiseBot extends PircBot {
 			Log.e(e);
 		}
 
-		final File moduleFile = new File(STORE_DIRECTORY, "modules");
+		final File moduleFile = new File(this.getStoreDirectory(), "modules");
 		if(moduleFile.exists()) {
 			try {
 				final String[] moduleNames = Serializer.deserialize(moduleFile, String[].class);
@@ -150,7 +141,7 @@ public class NoiseBot extends PircBot {
 		final String[] moduleNames = this.modules.keySet().toArray(new String[0]);
 
 		try {
-            Serializer.serialize(new File(STORE_DIRECTORY, "modules"), moduleNames);
+            Serializer.serialize(new File(this.getStoreDirectory(), "modules"), moduleNames);
 		} catch(IOException e) {
 			throw new ModuleSaveException("Failed saving module list");
 		}
@@ -186,7 +177,7 @@ public class NoiseBot extends PircBot {
 				final Class<? extends NoiseModule> c = (Class<? extends NoiseModule>)getModuleLoader().loadClass("modules." + moduleName);
 
 				// Try loading from disk
-				module = NoiseModule.load(c);
+				module = NoiseModule.load(this, c);
 
 				// Otherwise just make a new one
 				if(module == null) {
@@ -253,7 +244,11 @@ public class NoiseBot extends PircBot {
 		}
 	}
 
-	public User[] getUsers() {return this.getUsers(this.connection.channel);}
+	public String getBotNick() {
+		return this.server.getConnection().nick;
+	}
+
+	public User[] getUsers() {return this.server.getUsers(this.channel);}
 	public String[] getNicks() {
 		return map(this.getUsers(), new MapFunction<User, String>() {
 			@Override public String map(User source) {
@@ -270,10 +265,38 @@ public class NoiseBot extends PircBot {
 		return false;
 	}
 
+	public void clearPendingSends() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
+		// I laugh at abstractions
+		final Field outQueueField = this.server.getClass().getSuperclass().getDeclaredField("_outQueue");
+		outQueueField.setAccessible(true);
+		final org.jibble.pircbot.Queue outQueue = (org.jibble.pircbot.Queue)outQueueField.get(this.server);
+
+		// I laugh at them further
+		// Also, implementing a queue using a vector is terrible
+		final Field queueField = outQueue.getClass().getDeclaredField("_queue");
+		queueField.setAccessible(true);
+		final Vector queue = (Vector)queueField.get(outQueue);
+
+		synchronized(queue) {
+			final Iterator iter = queue.iterator();
+			while(iter.hasNext()) {
+				final Object obj = iter.next();
+				if(obj.toString().startsWith("PRIVMSG " + this.channel + " ")) {
+					iter.remove();
+				}
+			}
+		}
+	}
+
+	File getStoreDirectory() {
+		final Connection conn = this.server.getConnection();
+		return new File(STORE_DIRECTORY, String.format("%s@%s:%d%s", conn.nick, conn.server, conn.port, this.channel));
+	}
+
 	public void whois(String nick, WhoisHandler handler) {
 		handler.setNick(nick);
 		handler.startWaiting();
-		this.sendRawLine("WHOIS " + nick);
+		this.server.sendRawLine("WHOIS " + nick);
 	}
 
 	boolean isOwner(String nick, String hostname, String account) {
@@ -358,109 +381,25 @@ public class NoiseBot extends PircBot {
 		}
 	}
 
-	public void sendMessage(String message) {Log.out("M> " + message); this.sendMessage(this.connection.channel, message);}
-	public void sendAction(String action) {Log.out("A> " + action); this.sendAction(this.connection.channel, action);}
-	public void sendNotice(String notice) {Log.out("N> " + notice); this.sendNotice(this.connection.channel, notice);}
+	// Most things should use send*(String)
+	// The target versions should only be used for PMing
+	public void sendMessage(String target, String message) {this.server.sendMessage(target, message);}
+	public void sendAction(String target, String message) {this.server.sendAction(target, message);}
+	public void sendNotice(String target, String message) {this.server.sendNotice(target, message);}
+
+	public void sendMessage(String message) {Log.out("M> " + message); this.server.sendMessage(this.channel, message);}
+	public void sendAction(String action) {Log.out("A> " + action); this.server.sendAction(this.channel, action);}
+	public void sendNotice(String notice) {Log.out("N> " + notice); this.server.sendNotice(this.channel, notice);}
 	public void reply(Message sender, String message) {this.reply(sender.getSender(), message);}
 	public void reply(String username, String message) {this.sendMessage((username == null ? "" : username + ": ") + message);}
-	public void kickVictim(String victim, String reason) {this.kick(this.connection.channel, victim, reason);}
+	public void kickVictim(String victim, String reason) {this.server.kick(this.channel, victim, reason);}
 
-	@Override protected void onMessage(String channel, String sender, String login, String hostname, String message) {
-		Log.in("<" + sender + " (" + login + " @ " + hostname + ") -> " + channel + ": " + message);
-		if(!channel.equals(this.connection.channel)) {Log.w("Ignoring message to channel %s", channel); return;}
-
-		for(NoiseModule module : this.modules.values()) {
-			try {
-				module.processMessage(new Message(message.trim(), sender, false));
-			} catch(Exception e) {
-				this.sendNotice(e.getMessage());
-				Log.e(e);
-			}
-		}
-	}
-
-	@Override protected void onPrivateMessage(String sender, String login, String hostname, String message) {
-		Log.in("<" + sender + " (" + login + " @ " + hostname + ") -> (direct): " + message);
-
-		for(NoiseModule module : this.modules.values()) {
-			try {
-				module.processMessage(new Message(message.trim(), sender, true));
-			} catch(Exception e) {
-				this.sendNotice(sender, e.getMessage());
-				Log.e(e);
-			}
-		}
-	}
-
-	@Override protected void onJoin(String channel, String sender, String login, String hostname) {
-		if(sender.equals(this.connection.nick)) { // Done joining channel
-			Log.v("Done joining channel: %s", channel);
-			if(this.connection.password != null)
-				this.sendMessage("ChanServ", "VOICE " + this.connection.channel);
-			this.loadModules();
-		} else {
-			Log.v("Joined %s: %s (%s2%s)", channel, sender, login, hostname);
-			for(NoiseModule module : this.modules.values()) {module.onJoin(sender, login, hostname);}
-		}
-	}
-
-	@Override protected void onPart(String channel, String sender, String login, String hostname) {
-		Log.v("Parted %s: %s (%s@%s)", channel, sender, login, hostname);
-		for(NoiseModule module : this.modules.values()) {module.onPart(sender, login, hostname);}
-	}
-
-	@Override protected void onQuit(String sourceNick, String sourceLogin, String sourceHostname, String reason) {
-		Log.v("Quit: %s (%s@%s): %s", sourceNick, sourceLogin, sourceHostname, reason);
-		for(NoiseModule module : this.modules.values()) {module.onQuit(sourceNick, sourceLogin, sourceHostname, reason);}
-	}
-
-	@Override protected void onUserList(String channel, User[] users) {
-		for(NoiseModule module : this.modules.values()) {module.onUserList(users);}
-	}
-
-	@Override protected void onKick(String channel, String kickerNick, String kickerLogin, String kickerHostname, String recipientNick, String reason) {
-		Log.v("Kick %s: %s (%s@%s) -> %s: %s", channel, kickerNick, kickerLogin, kickerHostname, recipientNick, reason);
-		for(NoiseModule module : this.modules.values()) {module.onKick(kickerNick, kickerLogin, kickerHostname, recipientNick, reason);}
-	}
-
-	@Override protected void onTopic(String channel, String topic, String setBy, long date, boolean changed) {
-		Log.v("Topic %s: %s: %s", channel, setBy, topic);
-		for(NoiseModule module : this.modules.values()) {module.onTopic(topic, setBy, date, changed);}
-	}
-
-	@Override protected void onNickChange(String oldNick, String login, String hostname, String newNick) {
-		Log.v("Nick change: %s -> %s (%s@%s)", oldNick, newNick, login, hostname);
-		for(NoiseModule module : this.modules.values()) {module.onNickChange(oldNick, login, hostname, newNick);}
-	}
-
-	@Override protected void onOp(String channel, String sourceNick, String sourceLogin, String sourceHostname, String recipient) {
-		if(recipient.equalsIgnoreCase(this.connection.nick)) {
-			Log.v("Bot opped -- requesting deop");
-			this.sendMessage("ChanServ", "DEOP " + this.connection.channel);
-		}
-	}
-
-	// This isn't called if we tell PircBot to disconnect, only if the server disconnects us
-	@Override protected void onDisconnect() {
-		Log.i("Disconnected");
-
-		while(!this.connect()) {
-			sleep(30);
-		}
-    }
-
-	@Override protected void onServerResponse(int code, String response) {
-		switch(code) {
-			case WhoisHandler.RPL_WHOISUSER:
-			case WhoisHandler.RPL_WHOISSERVER:
-			case WhoisHandler.RPL_WHOISACCOUNT:
-			case WhoisHandler.RPL_ENDOFWHOIS:
-				WhoisHandler.onServerResponse(code, response);
-				break;
-		}
+	void onChannelJoin() {
+		this.loadModules();
 	}
 
 	public static void main(String[] args) {
+		Log.i("NoiseBot has started");
 		try {
 			NoiseBot.config = Serializer.deserialize(CONFIG_FILENAME, StringMap.class);
 		} catch(FileNotFoundException e) {
@@ -477,8 +416,12 @@ public class NoiseBot extends PircBot {
 			for(Object entry : configConnections.entrySet()) {
 				final String name = (String)((Map.Entry)entry).getKey();
 				final StringMap values = (StringMap)((Map.Entry)entry).getValue();
+				if(name.contains("#")) {
+					System.out.printf("Bad connection name (contains #): %s\n", name);
+					bad = true;
+				}
 				checkSet.remove(name);
-				if(!values.keySet().containsAll(Arrays.asList(new String[] {"server", "port", "nick", "channel"}))) {
+				if(!values.keySet().containsAll(Arrays.asList(new String[] {"server", "port", "nick", "channels"}))) {
 					System.out.printf("Malformed connection: %s\n", name);
 					bad = true;
 				}
@@ -494,28 +437,23 @@ public class NoiseBot extends PircBot {
 
 		for(String connectionName : connectionNames) {
 			final StringMap data = (StringMap)configConnections.get(connectionName);
-			final String server = (String)data.get("server");
+			final String host = (String)data.get("server");
 			final int port = (int)Double.parseDouble("" + data.get("port"));
 			final String nick = (String)data.get("nick");
 			final String pass = data.containsKey("password") ? (String)data.get("password") : null;
-			final String channel = (String)data.get("channel");
-			NoiseBot.bots.put(connectionName, new NoiseBot(new Connection(server, port, nick, pass, channel)));
+			final Server server = new Server(new Connection(host, port, nick, pass));
+
+			final List<String> channels = (List<String>)data.get("channels");
+			for(String channel : channels) {
+				final NoiseBot bot = new NoiseBot(server, channel);
+				NoiseBot.bots.put(connectionName + channel, bot);
+				server.addBot(channel, bot);
+			}
+
+			if(!server.connect()) {
+				exit();
+			}
 		}
-	}
-
-	public NoiseBot(Connection connection) {
-		Log.i("NoiseBot has started");
-		this.connection = connection;
-
-		try {
-			this.setEncoding("ISO8859_1");
-		} catch (UnsupportedEncodingException e) {
-			System.err.println("Unable to set encoding: " + e.getMessage());
-		}
-
-		this.setName(this.connection.nick);
-		this.setLogin(this.connection.nick);
-		this.connect();
 	}
 
 	public static File getDataFile(String filename) {

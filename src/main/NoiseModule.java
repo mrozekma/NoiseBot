@@ -78,7 +78,6 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 
 	public void onJoin(String sender, String login, String hostname) {this.joined(sender);}
 	public void onPart(String sender, String login, String hostname) {this.left(sender);}
-	public void onQuit(String sender, String login, String hostname, String reason) {this.left(sender);}
 	public void onUserList(User[] users) {
 		for(User user : users) {
 			this.joined(user.getNick());
@@ -141,12 +140,12 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 		}
 	}
 
-	public static <T extends NoiseModule> T load(Class<T> moduleType) {
+	public static <T extends NoiseModule> T load(NoiseBot bot, Class<T> moduleType) {
 		Log.v("%s - Loading", moduleType.getSimpleName());
 		if(!Arrays.asList(moduleType.getInterfaces()).contains(Serializable.class)) {return null;}
 
 		try {
-			return Serializer.deserialize(new File(NoiseBot.STORE_DIRECTORY, moduleType.getSimpleName()), moduleType);
+			return Serializer.deserialize(new File(bot.getStoreDirectory(), moduleType.getSimpleName()), moduleType);
 		} catch(FileNotFoundException e) {
 			Log.v("No store file for %s", moduleType.getSimpleName());
 		} catch(Exception e) { // Should just be IOException
@@ -162,7 +161,7 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 		if(!(this instanceof Serializable)) {return true;}
 
 		try {
-            Serializer.serialize(new File(NoiseBot.STORE_DIRECTORY, this.getClass().getSimpleName()), this);
+            Serializer.serialize(new File(this.bot.getStoreDirectory(), this.getClass().getSimpleName()), this);
 			return true;
 		} catch(Exception e) { // Should just be IOException
 			Log.e(e);

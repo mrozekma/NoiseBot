@@ -29,7 +29,7 @@ public class Eliza extends NoiseModule {
 
 	@Command("([^:]+): (.*)")
 	public void eliza(Message message, String nick, String userMessage) {
-		if(!nick.equals(this.bot.getNick())) return;
+		if(!nick.equals(this.bot.getBotNick())) return;
 		this.bot.reply(message, this.eliza.processInput(userMessage));
 	}
 
@@ -37,7 +37,7 @@ public class Eliza extends NoiseModule {
 	@Override public String getDescription() {return "Implementation of ELIZA";}
 	@Override public String[] getExamples() {
 		return new String[] {
-				this.bot.getNick() + ": You are the best"
+				this.bot.getBotNick() + ": You are the best"
 		};
 	}
 }

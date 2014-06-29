@@ -15,13 +15,13 @@ import static panacea.Panacea.*;
 public class Ping extends NoiseModule {
 	@Command("(.*)!")
 	public void direct(Message message, String nick) {
-		if(!nick.equals(this.bot.getNick())) return;
+		if(!nick.equals(this.bot.getBotNick())) return;
 		this.bot.sendMessage(message.getSender() + "!");
 	}
-	
+
 	@Command("(?:[hH]i|[hH]ello|[hH]ey) (.*)")
 	public void indirect(Message message, String nick) {
-		if(!nick.equals(this.bot.getNick())) return;
+		if(!nick.equals(this.bot.getBotNick())) return;
 		this.bot.sendMessage(getRandom(new String[] {"Hi", "Hello", "Hey"}) + " " + message.getSender());
 	}
 
@@ -29,8 +29,8 @@ public class Ping extends NoiseModule {
 	@Override public String getDescription() {return "Greets the user";}
 	@Override public String[] getExamples() {
 		return new String[] {
-				"Hi " + this.bot.getNick(),
-				this.bot.getNick() + "!"
+				"Hi " + this.bot.getBotNick(),
+				this.bot.getBotNick() + "!"
 		};
 	}
 }

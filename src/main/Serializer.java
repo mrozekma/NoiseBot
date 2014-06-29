@@ -18,6 +18,7 @@ public class Serializer {
 	}
 
 	public static void serialize(File file, Object data) throws IOException {
+		file.getParentFile().mkdirs();
 		final FileWriter w = new FileWriter(file);
 		Log.d(String.format("Writing %s to %s", data, file.getAbsolutePath()));
 		gson.toJson(data, w);

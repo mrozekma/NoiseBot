@@ -27,18 +27,18 @@ public class Cloud extends NoiseModule {
 	public void kill(Message message, String target) {
 		this.bot.sendMessage(getRandom(swords) + "  " + target);
 	}
-	
+
 	@Command("\\.(?:kill|stab)")
 	public void killRandom(Message message) {
 		final User[] users = this.bot.getUsers();
 		String choice;
 		do {
 			choice = getRandom(users).getNick();
-		} while(choice.equals(this.bot.getNick()));
+		} while(choice.equals(this.bot.getBotNick()));
 
 		kill(message, choice);
 	}
-	
+
 	@Override public String getFriendlyName() {return "Cloud";}
 	@Override public String getDescription() {return "Kills stuff with Cloud's sword";}
 	@Override public String[] getExamples() {

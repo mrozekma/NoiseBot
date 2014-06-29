@@ -23,7 +23,11 @@ public class Help extends NoiseModule {
 	public static final String COLOR_ARGUMENT = GREEN;
 
 	private void message(Message message, String text) {
-		this.bot.sendMessage(message.isPM() ? message.getSender() : this.bot.getChannels()[0], text);
+		if(message.isPM()) {
+			this.bot.sendMessage(message.getSender(), text);
+		} else {
+			this.bot.sendMessage(text);
+		}
 	}
 
 	@Command("\\.help")
@@ -58,10 +62,10 @@ public class Help extends NoiseModule {
 				return;
 			}
 		}
-		
+
 		message(message, "Unknown module: " + moduleName);
 	}
-	
+
 	@Override public String getFriendlyName() {return "Help";}
 	@Override public String getDescription() {return "Provides help for all public commands";}
 	@Override public String[] getExamples() {

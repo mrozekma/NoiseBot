@@ -88,12 +88,12 @@ public class Debugger {
 				final String nick, connection;
 				switch(args.length) {
 					case 1:
-						nick = args[0];
 						connection = NoiseBot.DEFAULT_CONNECTION;
+						nick = args[0];
 						break;
 					case 2:
-						nick = args[0];
-						connection = args[1];
+						connection = args[0];
+						nick = args[1];
 						break;
 					default:
 						client.send("Bad auth string");

@@ -49,7 +49,7 @@ public class Rate extends NoiseModule {
 
 	@Command("\\.rate (.+)")
 	public void specific(Message message, String nick) {
-		if(nick.equals(this.bot.getNick())) {
+		if(nick.equals(this.bot.getBotNick())) {
 			this.bot.reply(message, "I do not record my own messages");
 			return;
 		}

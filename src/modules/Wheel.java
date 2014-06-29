@@ -26,7 +26,7 @@ import static modules.Slap.slapUser;
  */
 public class Wheel extends NoiseModule implements Serializable {
 	private Map<String, Integer> victims = new HashMap<String, Integer>();
-	
+
 	@Command("\\.(?:wheel|spin)")
 	public void wheel(Message message) {
 		final String[] wheels = new String[] {
@@ -34,29 +34,29 @@ public class Wheel extends NoiseModule implements Serializable {
 			"futility", "utility", "arbitrary choice", "wood", "chrome"
 			 // THIS LIST MUST GROW!
 		};
-	
+
 		this.bot.sendMessage("Spin, Spin, Spin! the wheel of " + getRandom(wheels));
 		sleep(2);
-		
+
 		final User[] users = this.bot.getUsers();
 		String choice;
 		do {
 			choice = getRandom(users).getNick();
-		} while(choice.equals(this.bot.getNick()));
-		
+		} while(choice.equals(this.bot.getBotNick()));
+
 		this.victims.put(choice, (this.victims.containsKey(choice) ? this.victims.get(choice) : 0) + 1);
 		this.save();
 
 		this.bot.sendAction(slapUser(choice));
 	}
-	
+
 	@Command("\\.wheelstats")
 	public void wheelStats(Message message) {
 		if(victims.isEmpty()) {
 			this.bot.sendMessage("No victims yet");
 			return;
 		}
-		
+
 		final String[] nicks = victims.keySet().toArray(new String[0]);
 		Arrays.sort(nicks, new Comparator<String>() {
 			@Override public int compare(String s1, String s2) {
@@ -69,7 +69,7 @@ public class Wheel extends NoiseModule implements Serializable {
 				return source + accum;
 			}
 		}, 0);
-		
+
 		this.bot.sendMessage(implode(map(nicks, new MapFunction<String, String>() {
 			@Override public String map(String nick) {
 				final int amt = victims.get(nick);
@@ -77,7 +77,7 @@ public class Wheel extends NoiseModule implements Serializable {
 			}
 		}), ", "));
 	}
-	
+
 	@Override public String getFriendlyName() {return "Wheel";}
 	@Override public String getDescription() {return "Slaps a random user";}
 	@Override public String[] getExamples() {
