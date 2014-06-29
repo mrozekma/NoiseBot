@@ -51,11 +51,13 @@ public class NoiseBot {
 
 	private final Server server;
 	private final String channel;
+	private final boolean quiet;
 	private Map<String, NoiseModule> modules = new HashMap<String, NoiseModule>();
 
-	public NoiseBot(Server server, String channel) {
+	public NoiseBot(Server server, String channel, boolean quiet) {
 		this.server = server;
 		this.channel = channel;
+		this.quiet = quiet;
 	}
 
 	public void quit() {
@@ -130,8 +132,9 @@ public class NoiseBot {
 			}, 0);
 
 			Log.i("Done loading revision %s", this.revision.getHash());
-			this.sendNotice("NoiseBot revision " + this.revision.getHash());
-			this.sendNotice("Done loading " + moduleCount + " modules watching for " + patternCount + " patterns");
+			if(!this.quiet) {
+				this.sendNotice(String.format("NoiseBot revision %s (loaded %s watching for %s)", this.revision.getHash(), pluralize(moduleCount, "module", "modules"), pluralize(patternCount, "pattern", "patterns")));
+			}
 		}
 	}
 
@@ -441,11 +444,12 @@ public class NoiseBot {
 			final int port = (int)Double.parseDouble("" + data.get("port"));
 			final String nick = (String)data.get("nick");
 			final String pass = data.containsKey("password") ? (String)data.get("password") : null;
+			final boolean quiet = data.containsKey("quiet") ? (Boolean)data.get("quiet") : false;
 			final Server server = new Server(new Connection(host, port, nick, pass));
 
 			final List<String> channels = (List<String>)data.get("channels");
 			for(String channel : channels) {
-				final NoiseBot bot = new NoiseBot(server, channel);
+				final NoiseBot bot = new NoiseBot(server, channel, quiet);
 				NoiseBot.bots.put(connectionName + channel, bot);
 				server.addBot(channel, bot);
 			}
