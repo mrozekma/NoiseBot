@@ -2,6 +2,10 @@ package main;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -9,10 +13,23 @@ import java.util.Scanner;
 import java.util.TreeSet;
 import java.util.Vector;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+
+import org.apache.commons.codec.binary.Hex;
+import org.apache.http.Header;
+import org.apache.http.HttpEntityEnclosingRequest;
+import org.apache.http.HttpException;
+import org.apache.http.impl.DefaultHttpServerConnection;
+import org.apache.http.params.BasicHttpParams;
+
+import panacea.Panacea;
+
 import debugging.Log;
 
 public class Git {
-	static final String githubUri = "https://github.com/mrozekma/NoiseBot";
+	private static final String GITHUB_URI = "https://github.com/mrozekma/NoiseBot";
+	private static final int GITHUB_SIGNAL_PORT = 41933;
 
 	public static class SyncException extends RuntimeException {
 		public SyncException(String msg) {super(msg);}
@@ -42,11 +59,11 @@ public class Git {
 	}
 
 	public static String revisionLink(Revision rev) {
-		return String.format("%s/commit/%s", Git.githubUri, rev.getHash());
+		return String.format("%s/commit/%s", Git.GITHUB_URI, rev.getHash());
 	}
 
 	public static String diffLink(Revision fromRev, Revision toRev) {
-		return String.format("%s/compare/%s...%s", Git.githubUri, fromRev.getHash(), toRev.getHash());
+		return String.format("%s/compare/%s...%s", Git.GITHUB_URI, fromRev.getHash(), toRev.getHash());
 	}
 
 	public static Revision head() {
@@ -71,9 +88,24 @@ public class Git {
 		return revs.toArray(new Revision[0]);
 	}
 
+	public static boolean pull() {
+		try {
+			final int rtn = Runtime.getRuntime().exec("git pull").waitFor();
+			if(rtn == 0) {
+				return true;
+			}
+			Log.e("Unexpected return code from git: %d", rtn);
+		} catch(IOException e) {
+			Log.e(e);
+		} catch(InterruptedException e) {
+			Log.e(e);
+		}
+		return false;
+	}
+
 	public static File[] getFiles(Revision from, Revision to) throws IOException {return getFiles(from.getHash(), to.getHash());}
 	public static File[] getFiles(String from, String to) throws IOException {
-		Vector<File>  files = new Vector<File>();
+		Vector<File> files = new Vector<File>();
 		final Process p = Runtime.getRuntime().exec("git diff --name-only " + from + ".." + to);
 		final Scanner s = new Scanner(p.getInputStream());
 		while(s.hasNext())
@@ -95,69 +127,6 @@ public class Git {
 		}
 
 		return false;
-	}
-
-	public static void sync(String branch) throws SyncException {
-		try {
-			branch = branch.toLowerCase();
-			if(branch.equals("master"))
-				throw new SyncException("Can't sync to master");
-
-			{
-				boolean branchExists = false;
-				final Process p = Runtime.getRuntime().exec("git branch");
-				final Scanner s = new Scanner(p.getInputStream());
-				while(s.hasNext()) {
-					final String line = s.nextLine();
-					if(line.trim().equals(branch))
-						branchExists = true;
-					if(line.charAt(0) == '*' && !line.equals("* master"))
-						throw new SyncException("Not on master");
-				}
-				if(!branchExists)
-					throw new SyncException("No branch named " + branch + " exists");
-			}
-
-			{
-				boolean descendent = false;
-				final Process p = Runtime.getRuntime().exec("git branch --contains master");
-				final Scanner s = new Scanner(p.getInputStream());
-				while(s.hasNext()) {
-					if(s.nextLine().replaceFirst("\\*", "").trim().equals(branch)) {
-						descendent = true;
-						break;
-					}
-				}
-				if(!descendent)
-					throw new SyncException("Branch " + branch + " does not descend from master");
-			}
-
-			{
-				final File[] files = getFiles("master", branch);
-				for(File f : files) {
-					final String filename = filterFilename(f.getCanonicalPath());
-					if(filename.startsWith("src/") && !filename.startsWith("src/modules/"))
-						throw new SyncException("Unable to dynamically switch branches -- core sources are modified");
-					if(filename.startsWith("bin/") && !filename.startsWith("bin/modules/"))
-						throw new SyncException("Unable to dynamically switch branches -- core classes are modified");
-				}
-			}
-
-			try {
-				Process p = Runtime.getRuntime().exec("git merge " + branch);
-				int retCode = p.waitFor();
-				if(retCode != 0)
-					throw new SyncException("Merge returned code " + retCode);
-				p = Runtime.getRuntime().exec("git branch -D " + branch);
-				retCode = p.waitFor();
-				if(retCode != 0)
-					throw new SyncException("Branch returned code " + retCode);
-			} catch(InterruptedException e) {
-				throw new SyncException(e);
-			}
-		} catch(IOException e) {
-			throw new SyncException(e);
-		}
 	}
 
 	private static String filterFilename(String filename) {
@@ -194,5 +163,86 @@ public class Git {
 		final String[] rtn = moduleNames.toArray(new String[0]);
 		Arrays.sort(rtn);
 		return rtn;
+	}
+
+	public static void startGithubListener(final String secret) {
+		new Thread(new Runnable() {
+			@Override public void run() {
+				final ServerSocket server;
+				try {
+					server = new ServerSocket(GITHUB_SIGNAL_PORT);
+				} catch(IOException e) {
+					Log.e("Unable to listen for github updates");
+					Log.e(e);
+					return;
+				}
+				while(true) {
+					try {
+						final Socket socket = server.accept();
+						synchronized(server) {
+							new Thread(new Runnable() {
+								@Override public void run() {
+									try {
+										Log.i("Received new Github alert from %s", socket.getRemoteSocketAddress());
+										final DefaultHttpServerConnection conn = new DefaultHttpServerConnection();
+										conn.bind(socket, new BasicHttpParams());
+										final HttpEntityEnclosingRequest req = (HttpEntityEnclosingRequest)conn.receiveRequestHeader();
+										conn.receiveRequestEntity(req);
+
+										final Header[] headers = req.getHeaders("X-Hub-Signature");
+										if(headers.length != 1) {
+											Log.e("Signature headers: %d", headers.length);
+											return;
+										}
+
+										String signature = headers[0].getValue();
+										if(!signature.startsWith("sha1=")) {
+											Log.e("Bad signature format: %s", signature);
+											return;
+										}
+										signature = signature.substring("sha1=".length());
+
+										final String payload;
+										{
+											final StringBuffer buffer = new StringBuffer();
+											final Scanner s = new Scanner(req.getEntity().getContent());
+											while(s.hasNextLine()) {
+												buffer.append(s.nextLine());
+											}
+											payload = buffer.toString();
+										}
+										try {
+											final Mac mac = Mac.getInstance("HmacSHA1");
+											mac.init(new SecretKeySpec(secret.getBytes(), "HmacSHA1"));
+											if(!signature.equals(Hex.encodeHexString(mac.doFinal(payload.getBytes())))) {
+												Log.e("Bad signature: %s", signature);
+												return;
+											}
+										} catch(NoSuchAlgorithmException e) {
+											Log.e(e);
+											return;
+										} catch(InvalidKeyException e) {
+											Log.e(e);
+											return;
+										}
+
+										// Don't actually need the payload for anything
+										// Just pull from github and try to sync
+										// final JSONObject json = new JSONObject(payload);
+										if(Git.pull()) {
+											NoiseBot.syncAll();
+										}
+									} catch(IOException e) {
+										Log.e(e);
+									} catch(HttpException e) {
+										Log.e(e);
+									}
+								}
+							}).start();
+						}
+					} catch(IOException e) {}
+				}
+			}
+		}).start();
 	}
 }

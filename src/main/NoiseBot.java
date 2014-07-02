@@ -458,6 +458,10 @@ public class NoiseBot {
 				exit();
 			}
 		}
+
+		if(config.containsKey("github-webhook-secret")) {
+			Git.startGithubListener((String)config.get("github-webhook-secret"));
+		}
 	}
 
 	public static File getDataFile(String filename) {
