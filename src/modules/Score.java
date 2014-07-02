@@ -117,6 +117,7 @@ public class Score extends NoiseModule implements Serializable {
 	}
 
 	@Command("\\.(?:scores|scoreboard)")
+	@PM("\\.(?:scores|scoreboard)")
 	public void scores(Message message) {
 		final List<String> nicks = Arrays.asList(this.bot.getNicks());
 		ScoreEntry[] scores = this.userScores.values().toArray(new ScoreEntry[0]);
@@ -139,7 +140,11 @@ public class Score extends NoiseModule implements Serializable {
 			}
 		});
 
-		this.bot.sendMessage(implode(scoreboard, ", "));
+		if(message.isPM()) {
+			this.bot.sendMessage(message.getSender(), implode(scoreboard, ", "));
+		} else {
+			this.bot.sendMessage(implode(scoreboard, ", "));
+		}
 	}
 
 	@Override
