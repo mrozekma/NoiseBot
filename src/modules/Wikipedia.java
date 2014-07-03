@@ -5,18 +5,12 @@ import static org.jibble.pircbot.Colors.*;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Document;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
 
 import debugging.Log;
 
@@ -126,47 +120,33 @@ public class Wikipedia extends NoiseModule {
 	
 	@Command("\\.featured")
 	public void featured(Message message) {
-		try {
-			final DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-			org.w3c.dom.Document doc = db.parse(new InputSource(new URL("http://jeays.net/wikipedia/featured.xml").openStream()));
-			final NodeList entryList = doc.getElementsByTagName("item");
+		// From http://en.wikipedia.org/w/api.php?action=query&prop=revisions&action=featuredfeed&feed=featured; not going to bother parsing unless it changes
+		final Calendar now = new GregorianCalendar();
+		final String url = String.format("http://en.wikipedia.org/wiki/Special:FeedItem/featured/%04d%02d%02d000000/en", now.get(Calendar.YEAR), now.get(Calendar.MONTH) + 1, now.get(Calendar.DAY_OF_MONTH));
 
-			if(entryList.getLength() != 1) {
-				this.bot.sendMessage(COLOR_ERROR + "Found " + entryList.getLength() + " items");
-				return;
-			}
-			
-			final Node itemNode = entryList.item(0);
-			final NodeList itemChildren = itemNode.getChildNodes();
-			for(int i = 0; i < itemChildren.getLength(); i++) {
-				final Node titleNode = itemChildren.item(i);
-				if(titleNode.getNodeName().equals("title")) {
-					final String title = titleNode.getTextContent();
-					final String[] titles = title.split(": ", 2);
-					if(titles.length != 2) {
-						this.bot.sendMessage(COLOR_ERROR + "Can't split title");
-						return;
-					}
-					
-					wikipedia(message, titles[1]);
+		final Document doc;
+		try {
+			Log.v("Loading from %s", url);
+			doc = Jsoup.connect(url).get();
+		} catch(IOException e) {
+			this.bot.sendMessage(COLOR_ERROR + "Unable to connect to Wikipedia: " + e.getMessage());
+			return;
+		}
+
+		final Element e = doc.select("b:matchesOwn(Full.article)").first();
+		if(e != null) {
+			final Element a = e.parent();
+			if(a != null && a.tagName().equals("a")) {
+				final String articleURL = a.attr("href");
+				if(articleURL.startsWith("/wiki/")) {
+					final String term = articleURL.substring("/wiki/".length());
+					this.wikipedia(message, urlDecode(term).replace("_", " "));
 					return;
 				}
 			}
-			
-			this.bot.sendMessage(COLOR_ERROR + "No title found");
-		} catch(ParserConfigurationException e) {
-			this.bot.sendMessage(COLOR_ERROR + "Unable to parse Wikipedia data");
-			Log.e(e);
-		} catch(MalformedURLException e) {
-			this.bot.sendMessage(COLOR_ERROR + "Unable to contact Wikipedia");
-			Log.e(e);
-		} catch(SAXException e) {
-			this.bot.sendMessage(COLOR_ERROR + "Unable to contact Wikipedia");
-			Log.e(e);
-		} catch(IOException e) {
-			this.bot.sendMessage(COLOR_ERROR + "Unable to contact Wikipedia");
-			Log.e(e);
 		}
+
+		this.bot.sendMessage(COLOR_ERROR + "No title found");
 	}
 
 	@Override public String getFriendlyName() {return "Wikipedia";}
