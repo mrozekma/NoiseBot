@@ -325,32 +325,8 @@ public class NoiseBot {
 		return true;
 	}
 
-	public void sync() {
-		final String from = this.revision.getHash(), to = "HEAD";
-		final Git.Revision[] revs = Git.diff(from, to);
-		final Git.Revision oldrev = this.revision;
-
-		boolean coreChanged = false;
-		try {
-			final String src = new File("src").getAbsolutePath();
-			final String modules = new File("src", "modules").getAbsolutePath();
-			for(File f : Git.getFiles(from, to)) {
-				final String path = f.getAbsolutePath();
-				if(path.startsWith(src) && !path.startsWith(modules)) {
-					coreChanged = true;
-					break;
-				}
-			}
-		} catch(IOException e) {}
-
+	public void sync(String from, String to, Git.Revision oldrev, Git.Revision[] revs, boolean coreChanged) {
 		final String[] moduleNames = Git.affectedModules(this, from, to);
-		this.revision = Git.head();
-		final String[] coloredNames = map(moduleNames, new MapFunction<String, String>() {
-			@Override public String map(String name) {
-				return Help.COLOR_MODULE +  name + NORMAL;
-			}
-		}, new String[0]);
-
 		for(String moduleName : moduleNames) {
 			try {
 				this.unloadModule(moduleName);
@@ -370,6 +346,11 @@ public class NoiseBot {
 		for(Git.Revision rev : reverse(revs))
 			this.sendNotice("    " + rev);
 		if(moduleNames.length != 0) {
+			final String[] coloredNames = map(moduleNames, new MapFunction<String, String>() {
+				@Override public String map(String name) {
+					return Help.COLOR_MODULE +  name + NORMAL;
+				}
+			}, new String[0]);
 			this.sendNotice("Reloaded modules: " + implode(coloredNames, ", "));
 		}
 		if(coreChanged) {
@@ -379,8 +360,26 @@ public class NoiseBot {
 	}
 
 	public static void syncAll() {
+		final String from = revision.getHash(), to = "HEAD";
+		final Git.Revision[] revs = Git.diff(from, to);
+		final Git.Revision oldrev = revision;
+
+		boolean coreChanged = false;
+		try {
+			final String src = new File("src").getAbsolutePath();
+			final String modules = new File("src", "modules").getAbsolutePath();
+			for(File f : Git.getFiles(from, to)) {
+				final String path = f.getAbsolutePath();
+				if(path.startsWith(src) && !path.startsWith(modules)) {
+					coreChanged = true;
+					break;
+				}
+			}
+		} catch(IOException e) {}
+
+		revision = Git.head();
 		for(NoiseBot bot : NoiseBot.bots.values()) {
-			bot.sync();
+			bot.sync(from, to, oldrev, revs, coreChanged);
 		}
 	}
 
