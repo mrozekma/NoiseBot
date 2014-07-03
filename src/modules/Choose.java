@@ -37,7 +37,7 @@ public class Choose extends NoiseModule {
 		try {
 			opts = this.parser.parseLine(optsLine);
 		} catch(IOException e) {
-			this.bot.sendMessage(COLOR_ERROR + "Exception attempting to parse vote options");
+			this.bot.sendMessage(COLOR_ERROR + "Exception attempting to parse choose options");
 			Log.e(e);
 			return;
 		}
