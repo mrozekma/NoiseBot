@@ -73,7 +73,6 @@ public class Utilities {
 				break;
 			}
 			prev = cur;
-			System.out.printf("%d %d\n", prev, cur);
 		}
 		line = line.substring(0, prev);
 		if(!line.endsWith("...")) {

@@ -230,8 +230,14 @@ public class Git {
 										// Just pull from github and try to sync
 										// final JSONObject json = new JSONObject(payload);
 										if(Git.pull()) {
+											final int rtn = Runtime.getRuntime().exec("make").waitFor();
+											if(rtn != 0) {
+												Log.e("Unable to build new changes");
+											}
 											NoiseBot.syncAll();
 										}
+									} catch(InterruptedException e) {
+										Log.e(e);
 									} catch(IOException e) {
 										Log.e(e);
 									} catch(HttpException e) {
