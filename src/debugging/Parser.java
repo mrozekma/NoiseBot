@@ -145,7 +145,7 @@ public class Parser {
 		}
 		client.getBot().sendNotice(msg);
 		sleep(2);
-		client.getBot().quit();
+		client.getBot().quit(0);
 	}
 
 	private static void parseAuth(Client client, String[] args) {Debugger.me.out(client, "Already authorized by " + client.getNick());}

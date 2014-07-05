@@ -10,10 +10,13 @@ CLASSPATH := bin:src:lib/*
 all: $(OBJECTS)
 
 run: $(OBJECTS)
-	java -cp $(CLASSPATH) -ea -Xms64m -Xmx512m main.NoiseBot
+	rtn=2; while [[ $$rtn -eq 2 ]]; do \
+		java -cp $(CLASSPATH) -ea -Xms64m -Xmx512m main.NoiseBot $(conn); \
+		rtn=$$?; \
+	done
 
-test: $(OBJECTS)
-	java -cp $(CLASSPATH) -ea -Xms64m -Xmx512m main.NoiseBot test
+test: conn=test
+test: run
 
 clean:
 	rm -rf bin

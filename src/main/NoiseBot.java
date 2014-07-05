@@ -59,7 +59,8 @@ public class NoiseBot {
 		this.quiet = quiet;
 	}
 
-	public void quit() {
+	// Note: 'exitCode' is only applicable if this is the last connection
+	public void quit(int exitCode) {
 		if(this.server.getChannels().length > 1) {
 			Log.i("Parting " + this.channel);
 			this.server.partChannel(this.channel);
@@ -78,7 +79,7 @@ public class NoiseBot {
 		}
 		if(NoiseBot.bots.isEmpty()) {
 			Log.i("Quitting");
-			exit();
+			System.exit(exitCode);
 		}
 	}
 
@@ -344,33 +345,33 @@ public class NoiseBot {
 	}
 
 	public void sync(String from, String to, Git.Revision oldrev, Git.Revision[] revs, boolean coreChanged) {
-		final String[] moduleNames = Git.affectedModules(this, from, to);
-		for(String moduleName : moduleNames) {
-			try {
-				this.reloadModule(moduleName);
-			} catch(ModuleLoadException e) {
-				throw new Git.SyncException("Unable to load module " + moduleName);
-			} catch(ModuleUnloadException e) {
-				throw new Git.SyncException("Unable to unload module " + moduleName);
-			}
-		}
-
-		this.sendNotice("Synced " + pluralize(revs.length, "revision", "revisions") + ":");
+		this.sendNotice("Synced " + pluralize(revs.length, "revision", "revisions") + ": " + Git.diffLink(oldrev, this.revision));
 		for(Git.Revision rev : reverse(revs)) {
 			this.sendNotice("    " + rev);
 		}
-		if(moduleNames.length != 0) {
-			final String[] coloredNames = map(moduleNames, new MapFunction<String, String>() {
-				@Override public String map(String name) {
-					return Help.COLOR_MODULE +  name + NORMAL;
-				}
-			}, new String[0]);
-			this.sendNotice("Reloaded modules: " + implode(coloredNames, ", "));
-		}
+
 		if(coreChanged) {
-			this.sendNotice(YELLOW + "Core files changed; NoiseBot may need to be restarted" + NORMAL);
+			this.sendNotice(YELLOW + "Core files changed; NoiseBot will restart" + NORMAL);
+		} else {
+			final String[] moduleNames = Git.affectedModules(this, from, to);
+			for(String moduleName : moduleNames) {
+				try {
+					this.reloadModule(moduleName);
+				} catch(ModuleLoadException e) {
+					throw new Git.SyncException("Unable to load module " + moduleName);
+				} catch(ModuleUnloadException e) {
+					throw new Git.SyncException("Unable to unload module " + moduleName);
+				}
+			}
+			if(moduleNames.length != 0) {
+				final String[] coloredNames = map(moduleNames, new MapFunction<String, String>() {
+					@Override public String map(String name) {
+						return Help.COLOR_MODULE +  name + NORMAL;
+					}
+				}, new String[0]);
+				this.sendNotice("Reloaded modules: " + implode(coloredNames, ", "));
+			}
 		}
-		this.sendNotice("Changes: " + Git.diffLink(oldrev, this.revision));
 	}
 
 	public static void syncAll() {
@@ -394,6 +395,13 @@ public class NoiseBot {
 		revision = Git.head();
 		for(NoiseBot bot : NoiseBot.bots.values()) {
 			bot.sync(from, to, oldrev, revs, coreChanged);
+		}
+
+		if(coreChanged) {
+			while(!NoiseBot.bots.isEmpty()) {
+				final NoiseBot bot = NoiseBot.bots.values().iterator().next();
+				bot.quit(2);
+			}
 		}
 	}
 

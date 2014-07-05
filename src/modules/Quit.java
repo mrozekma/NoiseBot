@@ -21,7 +21,7 @@ public class Quit extends NoiseModule {
 	public void quit(Message message) {
 		this.triggerIfOwner(message, new Runnable() {
 			@Override public void run() {
-				Quit.this.bot.quit();
+				Quit.this.bot.quit(0);
 			}
 		}, true);
 	}
@@ -31,7 +31,20 @@ public class Quit extends NoiseModule {
 		this.triggerIfOwner(message, new Runnable() {
 			@Override public void run() {
 				while(!NoiseBot.bots.isEmpty()) {
-					NoiseBot.bots.values().iterator().next().quit();
+					NoiseBot.bots.values().iterator().next().quit(0);
+				}
+			}
+		}, true);
+	}
+
+	@Command("\\.restart")
+	public void restart(Message message) {
+		this.triggerIfOwner(message, new Runnable() {
+			@Override public void run() {
+				while(!NoiseBot.bots.isEmpty()) {
+					final NoiseBot bot = NoiseBot.bots.values().iterator().next();
+					bot.sendNotice("Restarting...");
+					bot.quit(2);
 				}
 			}
 		}, true);
