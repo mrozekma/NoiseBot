@@ -11,6 +11,8 @@
 			port: 6667,
 			nick: 'noisebot',
 			// password: '',
+			// modules: ['Help'],   // Lock the module list to just these modules
+                                    // Otherwise modules can be dynamically controlled with .load/.unload
 			channels: ['#freenode']
 		}
 	},

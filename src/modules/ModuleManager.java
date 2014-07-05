@@ -55,7 +55,7 @@ public class ModuleManager extends NoiseModule {
 			}
 			
 			try {
-				this.bot.unloadModule(moduleName);
+				this.bot.unloadModule(moduleName, false);
 				try {
 					this.bot.saveModules();
 				} catch(ModuleSaveException e) {
@@ -71,8 +71,16 @@ public class ModuleManager extends NoiseModule {
 
 	@Command("\\.reload (" + MODULE_REGEX + ")")
 	public void reloadModules(Message message, String moduleNames) {
-		this.unloadModules(message, moduleNames);
-		this.loadModules(message, moduleNames);
+		for(String moduleName : moduleNames.split(" ")) {
+			try {
+				this.bot.reloadModule(moduleName);
+				this.bot.sendNotice("Module " + Help.COLOR_MODULE + moduleName + NORMAL + " reloaded");
+			} catch(ModuleUnloadException e) {
+				this.bot.sendNotice(COLOR_ERROR + e.getMessage());
+			} catch(ModuleLoadException e) {
+				this.bot.sendNotice(COLOR_ERROR + e.getMessage());
+			}
+		}
 	}
 	
 	@Command("\\.rev")

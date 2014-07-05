@@ -2,7 +2,6 @@ package main;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.UnsupportedEncodingException;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -98,23 +97,30 @@ public class NoiseBot {
 			Log.e(e);
 		}
 
+		final String[] moduleNames;
 		final File moduleFile = new File(this.getStoreDirectory(), "modules");
-		if(moduleFile.exists()) {
+		if(this.server.getConnection().fixedModules != null) {
+			moduleNames = this.server.getConnection().fixedModules;
+		} else if(moduleFile.exists()) {
 			try {
-				final String[] moduleNames = Serializer.deserialize(moduleFile, String[].class);
-				Log.i("Loading %d modules from store", moduleNames.length);
-
-				for(String moduleName : moduleNames) {
-					if(moduleName.equals("ModuleManager")) {continue;}
-					try {
-						this.loadModule(moduleName);
-					} catch(ModuleLoadException e) {
-						Log.e("Failed loading module %s", moduleName);
-						Log.e(e);
-					}
-				}
+				moduleNames = Serializer.deserialize(moduleFile, String[].class);
 			} catch(Exception e) {
 				Log.e("Failed to load modules");
+				Log.e(e);
+				return;
+			}
+		} else {
+			moduleNames = new String[0];
+		}
+
+		Log.i("Loading %d modules from store", moduleNames.length);
+
+		for(String moduleName : moduleNames) {
+			if(moduleName.equals("ModuleManager")) {continue;}
+			try {
+				this.loadModule(moduleName);
+			} catch(ModuleLoadException e) {
+				Log.e("Failed loading module %s", moduleName);
 				Log.e(e);
 			}
 		}
@@ -168,6 +174,8 @@ public class NoiseBot {
 		Log.i("Loading module: %s", moduleName);
 		if(this.modules.containsKey(moduleName)) {
 			throw new ModuleLoadException("Module " + moduleName + " already loaded");
+		} else if(!moduleName.equals("ModuleManager") && this.server.getConnection().fixedModules != null && !Arrays.asList(this.server.getConnection().fixedModules).contains(moduleName)) {
+			throw new ModuleLoadException("This bot does not allow dynamic module loading");
 		}
 
 		try {
@@ -218,8 +226,13 @@ public class NoiseBot {
 		}
 	}
 
-	public void unloadModule(String moduleName) throws ModuleUnloadException {
+	public void unloadModule(String moduleName, boolean reloading) throws ModuleUnloadException {
 		Log.i("Unloading module: %s", moduleName);
+
+		if(!reloading && this.server.getConnection().fixedModules != null) {
+			throw new ModuleUnloadException("This bot does not allow dynamic module unloading");
+		}
+
 		final Class c;
 		try {
 			c = getModuleLoader().loadClass("modules." + moduleName);
@@ -227,24 +240,29 @@ public class NoiseBot {
 			throw new ModuleUnloadException("Unable to unload module " + moduleName + ": Module does not exist");
 		}
 
-		if(this.modules.containsKey(moduleName)) {
-			final NoiseModule module = this.modules.get(moduleName);
-			module.save();
-			module.unload();
-			this.modules.remove(moduleName);
-			moduleFileDeps.remove(moduleName);
-		} else {
+		if(!this.modules.containsKey(moduleName)) {
 			throw new ModuleUnloadException("Unable to unload module " + moduleName + ": Module not loaded");
 		}
 
+		final NoiseModule module = this.modules.get(moduleName);
+		module.save();
+		module.unload();
+		this.modules.remove(moduleName);
+		moduleFileDeps.remove(moduleName);
+
 		// Immediately reload the module manager
-		if(moduleName.equals("ModuleManager")) {
+		if(!reloading && moduleName.equals("ModuleManager")) {
 			try {
 				loadModule(moduleName);
 			} catch(ModuleLoadException e) {
 				throw new ModuleUnloadException(e);
 			}
 		}
+	}
+
+	public void reloadModule(String moduleName) throws ModuleLoadException, ModuleUnloadException {
+		this.unloadModule(moduleName, true);
+		this.loadModule(moduleName);
 	}
 
 	public String getBotNick() {
@@ -329,22 +347,18 @@ public class NoiseBot {
 		final String[] moduleNames = Git.affectedModules(this, from, to);
 		for(String moduleName : moduleNames) {
 			try {
-				this.unloadModule(moduleName);
-			} catch(ModuleUnloadException e) {}
-
-			// ModuleManager is automatically reloaded in unloadModule()
-			if(!moduleName.equals("ModuleManager")) {
-				try {
-					this.loadModule(moduleName);
-				} catch(ModuleLoadException e) {
-					throw new Git.SyncException("Unable to load module " + moduleName);
-				}
+				this.reloadModule(moduleName);
+			} catch(ModuleLoadException e) {
+				throw new Git.SyncException("Unable to load module " + moduleName);
+			} catch(ModuleUnloadException e) {
+				throw new Git.SyncException("Unable to unload module " + moduleName);
 			}
 		}
 
 		this.sendNotice("Synced " + pluralize(revs.length, "revision", "revisions") + ":");
-		for(Git.Revision rev : reverse(revs))
+		for(Git.Revision rev : reverse(revs)) {
 			this.sendNotice("    " + rev);
+		}
 		if(moduleNames.length != 0) {
 			final String[] coloredNames = map(moduleNames, new MapFunction<String, String>() {
 				@Override public String map(String name) {
@@ -444,7 +458,8 @@ public class NoiseBot {
 			final String nick = (String)data.get("nick");
 			final String pass = data.containsKey("password") ? (String)data.get("password") : null;
 			final boolean quiet = data.containsKey("quiet") ? (Boolean)data.get("quiet") : false;
-			final Server server = new Server(new Connection(host, port, nick, pass));
+			final String[] modules = data.containsKey("modules") ? ((List<String>)data.get("modules")).toArray(new String[0]) : null;
+			final Server server = new Server(new Connection(host, port, nick, pass, modules));
 
 			final List<String> channels = (List<String>)data.get("channels");
 			for(String channel : channels) {
