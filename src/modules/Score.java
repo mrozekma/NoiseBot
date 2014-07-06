@@ -27,6 +27,7 @@ import static panacea.Panacea.*;
  * @author Will Fuqua February 09, 2013.
  */
 public class Score extends NoiseModule implements Serializable {
+	private static final int MAXIMUM_MESSAGE_LENGTH = 400; // Approximately (512 bytes including IRC data)
 	private static final String COLOR_POSITIVE = GREEN;
 	private static final String COLOR_NEGATIVE = RED;
 
@@ -140,10 +141,28 @@ public class Score extends NoiseModule implements Serializable {
 			}
 		});
 
-		if(message.isPM()) {
-			this.bot.sendMessage(message.getSender(), implode(scoreboard, ", "));
+		StringBuffer send = new StringBuffer();
+		for(int i = 0; i < scoreboard.length; i++) {
+			if(send.length() + scoreboard[i].length() + 2 > MAXIMUM_MESSAGE_LENGTH) {
+				this.send(message, send.toString());
+				send.setLength(0);
+			}
+			if(send.length() > 0) {
+				send.append(", ");
+			}
+			send.append(scoreboard[i]);
+		}
+		if(send.length() > 0) {
+			this.send(message, send.toString());
+		}
+	}
+
+	//TODO Pull this into a Message method
+	private void send(Message originalMessage, String newMessage) {
+		if(originalMessage.isPM()) {
+			this.bot.sendMessage(originalMessage.getSender(), newMessage);
 		} else {
-			this.bot.sendMessage(implode(scoreboard, ", "));
+			this.bot.sendMessage(newMessage);
 		}
 	}
 
