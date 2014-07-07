@@ -381,11 +381,12 @@ public class NoiseBot {
 
 		boolean coreChanged = false;
 		try {
+			final String lib = new File("lib").getAbsolutePath();
 			final String src = new File("src").getAbsolutePath();
 			final String modules = new File("src", "modules").getAbsolutePath();
 			for(File f : Git.getFiles(from, to)) {
 				final String path = f.getAbsolutePath();
-				if(path.startsWith(src) && !path.startsWith(modules)) {
+				if(path.startsWith(lib) || (path.startsWith(src) && !path.startsWith(modules))) {
 					coreChanged = true;
 					break;
 				}
