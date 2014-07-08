@@ -6,9 +6,14 @@ import java.io.IOException;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+
+import panacea.MapFunction;
 
 import main.Message;
 import main.NoiseModule;
+import static panacea.Panacea.*;
 
 /**
  * Untappd module
@@ -23,8 +28,14 @@ public class Untappd extends NoiseModule {
 	public void drank(Message message, String user) {
 		try {
 			Document page = Jsoup.connect("http://untappd.com/user/" + user).timeout(1000).get();
-			String checkin = page.select(".checkin").first().select(".text").first().text();
-			this.bot.sendMessage(checkin);
+			Elements checkinLinks = page.select(".checkin").first().select(".text").select("a[href]");
+			String[] info = map(checkinLinks.toArray(new Element[0]), new MapFunction<Element, String>() {
+				@Override public String map(Element e) {
+					return BOLD + e.text() + NORMAL;
+				}
+			});
+
+			this.bot.sendMessage(info[1] + " by " + info[2] + " at " + info[3]);
 		} catch (IOException e) {
 			this.bot.sendMessage(COLOR_ERROR + "Unable to retrieve page");
 		}
