@@ -30,7 +30,14 @@ public class Dance extends NoiseModule {
 		this.bot.sendMessage(String.format(" %s|>  %sDISCO! %s<|", COLOR_FIRST_GUY, COLOR_SECOND_LINE, COLOR_SECOND_GUY));
 		this.bot.sendMessage(String.format("%s< \\         %s/ >", COLOR_FIRST_GUY, COLOR_SECOND_GUY));
 	}
-	
+
+	@Command(".*\\b[Ff][Ll][Aa][Rr][Hh][Gg][Uu][Nn][Nn][Ss][Tt][Oo][Ww].*")
+	public void flarhgunnstow(Message message) {
+		this.bot.sendAction("flarhgunnstows :D]-<");
+		this.bot.sendAction("flarhgunnstows :D|-<");
+		this.bot.sendAction("flarhgunnstows :D[-<");
+	}
+
 	@Override public String getFriendlyName() {return "Dance";}
 	@Override public String getDescription() {return "Dances when the mood is right";}
 	@Override public String[] getExamples() {
