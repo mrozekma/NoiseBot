@@ -29,13 +29,18 @@ public class Untappd extends NoiseModule {
 		try {
 			Document page = Jsoup.connect("http://untappd.com/user/" + user).timeout(10000).get();
 			Elements checkinLinks = page.select(".checkin").first().select(".text").select("a[href]");
+			checkinLinks.remove(0);
 			String[] info = map(checkinLinks.toArray(new Element[0]), new MapFunction<Element, String>() {
 				@Override public String map(Element e) {
 					return BOLD + e.text() + NORMAL;
 				}
 			});
 
-			this.bot.sendMessage(info[1] + " by " + info[2] + " at " + info[3]);
+			String output = info[0] + " by " + info[1];
+			if (info.length > 2)
+				output += " at " + info[2];
+
+			this.bot.sendMessage(output);
 		} catch (IOException e) {
 			this.bot.sendMessage(COLOR_ERROR + "Unable to retrieve page");
 		}
