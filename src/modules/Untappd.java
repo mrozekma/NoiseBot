@@ -27,7 +27,7 @@ public class Untappd extends NoiseModule {
 	@Command("\\.drank (.*)")
 	public void drank(Message message, String user) {
 		try {
-			Document page = Jsoup.connect("http://untappd.com/user/" + user).timeout(1000).get();
+			Document page = Jsoup.connect("http://untappd.com/user/" + user).timeout(10000).get();
 			Elements checkinLinks = page.select(".checkin").first().select(".text").select("a[href]");
 			String[] info = map(checkinLinks.toArray(new Element[0]), new MapFunction<Element, String>() {
 				@Override public String map(Element e) {
