@@ -22,14 +22,15 @@ import static panacea.Panacea.*;
  */
 public class ModuleManager extends NoiseModule {
 	private static final String MODULE_REGEX = "[a-zA-Z0-9_ -]+";
-	
+
 	private static final String COLOR_ERROR = RED + REVERSE;
 	private static final String COLOR_HASH = BLUE;
 	private static final String COLOR_AUTHOR = BLUE;
 	private static final String COLOR_DESCRIPTION = RED;
-	
-	@Command("\\.load (" + MODULE_REGEX + ")")
-	public void loadModules(Message message, String moduleNames) {
+
+	@Command("\\.load(\\??) (" + MODULE_REGEX + ")")
+	public void loadModules(Message message, String qm, String moduleNames) {
+		final boolean showErrors = qm.isEmpty();
 		for(String moduleName : moduleNames.split(" ")) {
 			try {
 				this.bot.loadModule(moduleName);
@@ -38,22 +39,26 @@ public class ModuleManager extends NoiseModule {
 				} catch(ModuleSaveException e) {
 					Log.e(e);
 				}
-				
+
 				this.bot.sendNotice("Module " + Help.COLOR_MODULE + moduleName + NORMAL + " loaded");
 			} catch(ModuleLoadException e) {
-				this.bot.sendNotice(COLOR_ERROR + e.getMessage());
+				Log.e(e);
+				if(showErrors) {
+					this.bot.sendNotice(COLOR_ERROR + e.getMessage());
+				}
 			}
 		}
 	}
 
-	@Command("\\.unload (" + MODULE_REGEX + ")")
-	public void unloadModules(Message message, String moduleNames) {
+	@Command("\\.unload(\\??) (" + MODULE_REGEX + ")")
+	public void unloadModules(Message message, String qm, String moduleNames) {
+		final boolean showErrors = qm.isEmpty();
 		for(String moduleName : moduleNames.split(" ")) {
 			if(moduleName.equals("ModuleManager")) {
 				this.bot.sendNotice(COLOR_ERROR + ".unload cannot unload the ModuleManager");
 				continue;
 			}
-			
+
 			try {
 				this.bot.unloadModule(moduleName, false);
 				try {
@@ -64,25 +69,35 @@ public class ModuleManager extends NoiseModule {
 
 				this.bot.sendNotice("Module " + Help.COLOR_MODULE + moduleName + NORMAL + " unloaded");
 			} catch(ModuleUnloadException e) {
-				this.bot.sendNotice(COLOR_ERROR + e.getMessage());
+				Log.e(e);
+				if(showErrors) {
+					this.bot.sendNotice(COLOR_ERROR + e.getMessage());
+				}
 			}
 		}
 	}
 
-	@Command("\\.reload (" + MODULE_REGEX + ")")
-	public void reloadModules(Message message, String moduleNames) {
+	@Command("\\.reload(\\??) (" + MODULE_REGEX + ")")
+	public void reloadModules(Message message, String qm, String moduleNames) {
+		final boolean showErrors = qm.isEmpty();
 		for(String moduleName : moduleNames.split(" ")) {
 			try {
 				this.bot.reloadModule(moduleName);
 				this.bot.sendNotice("Module " + Help.COLOR_MODULE + moduleName + NORMAL + " reloaded");
 			} catch(ModuleUnloadException e) {
-				this.bot.sendNotice(COLOR_ERROR + e.getMessage());
+				Log.e(e);
+				if(showErrors) {
+					this.bot.sendNotice(COLOR_ERROR + e.getMessage());
+				}
 			} catch(ModuleLoadException e) {
-				this.bot.sendNotice(COLOR_ERROR + e.getMessage());
+				Log.e(e);
+				if(showErrors) {
+					this.bot.sendNotice(COLOR_ERROR + e.getMessage());
+				}
 			}
 		}
 	}
-	
+
 	@Command("\\.rev")
 	public void rev(Message message) {
 		final Git.Revision rev = this.bot.revision;
