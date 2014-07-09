@@ -108,7 +108,7 @@ public class Server extends PircBot {
 		Log.in("<" + sender + " (" + login + " @ " + hostname + ") -> " + channel + ": " + message);
 		this.moduleDispatch(channel, new ModuleCall() {
 			@Override public void call(NoiseBot bot, NoiseModule module) {
-				module.processMessage(new Message(message.trim(), sender, false));
+				module.processMessage(new Message(bot, message.trim(), sender, false));
             }
 
 			@Override public void onException(NoiseBot bot, Exception e) {
@@ -151,7 +151,7 @@ public class Server extends PircBot {
 
 		this.moduleDispatch(channel, new ModuleCall() {
 			@Override public void call(NoiseBot bot, NoiseModule module) {
-				module.processMessage(new Message(realMessage.trim(), sender, true));
+				module.processMessage(new Message(bot, realMessage.trim(), sender, true));
             }
 
 			@Override public void onException(NoiseBot bot, Exception e) {

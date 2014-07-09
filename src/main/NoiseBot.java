@@ -440,7 +440,8 @@ public class NoiseBot {
 	public void reply(String username, String message) {this.sendMessage((username == null ? "" : username + ": ") + message);}
 	public void kickVictim(String victim, String reason) {this.server.kick(this.channel, victim, reason);}
 
-	public void sendMessageParts(final String separator, final String... parts) {
+	public void sendMessageParts(final String separator, final String... parts) {this.sendTargetedMessageParts(this.channel, separator, parts);}
+	public void sendTargetedMessageParts(final String target, final String separator, final String... parts) {
 		final String whois = this.server.getWhoisString();
 		if(whois == null) {
 			this.whois(this.getBotNick(), new WhoisHandler() {
@@ -469,16 +470,16 @@ public class NoiseBot {
 			if(message.length() + part.length() <= maxLen) {
 				message.append(part);
 			} else if(message.length() == 0) {
-				this.sendMessage(RED + "Message part too long to send");
+				this.sendMessage(target, RED + "Message part too long to send");
 				// Skip it
 			} else {
-				this.sendMessage(message.toString());
+				this.sendMessage(target, message.toString());
 				message.setLength(0);
 				i--; // Redo this piece
 			}
 		}
 		if(message.length() > 0) {
-			this.sendMessage(message.toString());
+			this.sendMessage(target, message.toString());
 		}
 	}
 

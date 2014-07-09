@@ -22,19 +22,11 @@ public class Help extends NoiseModule {
 	public static final String COLOR_COMMAND = BLUE;
 	public static final String COLOR_ARGUMENT = GREEN;
 
-	private void message(Message message, String text) {
-		if(message.isPM()) {
-			this.bot.sendMessage(message.getSender(), text);
-		} else {
-			this.bot.sendMessage(text);
-		}
-	}
-
 	@Command("\\.help")
 	@PM("\\.help")
 	public void general(Message message) {
-		message(message, "Use ." + COLOR_COMMAND + "help" + NORMAL + " " + COLOR_MODULE + "MODULE" + NORMAL + " to get examples for a specific module:");
-		message(message, "List of modules: " + implode(sorted(map(filter(this.bot.getModules().values().toArray(new NoiseModule[0]), new Condition<NoiseModule>() {
+		message.respond("Use ." + COLOR_COMMAND + "help" + NORMAL + " " + COLOR_MODULE + "MODULE" + NORMAL + " to get examples for a specific module:");
+		message.respond("List of modules: " + implode(sorted(map(filter(this.bot.getModules().values().toArray(new NoiseModule[0]), new Condition<NoiseModule>() {
 			@Override public boolean satisfies(NoiseModule module) {return module.showInHelp();}
 		}), new MapFunction<NoiseModule, String>() {
 			@Override public String map(NoiseModule module) {return COLOR_MODULE + module.getFriendlyName() + NORMAL;}
@@ -47,23 +39,23 @@ public class Help extends NoiseModule {
 		for(NoiseModule module : this.bot.getModules().values()) {
 			if(!module.showInHelp()) {continue;}
 			if(moduleName.equalsIgnoreCase(module.getFriendlyName())) {
-				message(message, COLOR_MODULE + module.getFriendlyName() + NORMAL + " module -- " + module.getDescription());
-				message(message, "Examples:");
+				message.respond(COLOR_MODULE + module.getFriendlyName() + NORMAL + " module -- " + module.getDescription());
+				message.respond("Examples:");
 				String[] examples = module.getExamples();
 				if(examples == null || examples.length == 0) {
-					message(message, "No examples available");
+					message.respond("No examples available");
 				} else {
 					for(String example : examples) {
 						example = example.replaceAll("^\\.([^ ]+) ", "." + COLOR_COMMAND + "$1" + NORMAL + " ");
 						example = example.replaceAll("_([^_]*)_", COLOR_ARGUMENT + "$1" + NORMAL);
-						message(message, example);
+						message.respond(example);
 					}
 				}
 				return;
 			}
 		}
 
-		message(message, "Unknown module: " + moduleName);
+		message.respond("Unknown module: " + moduleName);
 	}
 
 	@Override public String getFriendlyName() {return "Help";}

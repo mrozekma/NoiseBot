@@ -129,7 +129,7 @@ public class Score extends NoiseModule implements Serializable {
 		});
 
 		if(scores.length == 0) {
-			this.bot.sendMessage("No scores available");
+			message.respond("No scores available");
 			return;
 		}
 
@@ -140,16 +140,7 @@ public class Score extends NoiseModule implements Serializable {
 			}
 		});
 
-		this.bot.sendMessageParts(", ", scoreboard);
-	}
-
-	//TODO Pull this into a Message method
-	private void send(Message originalMessage, String newMessage) {
-		if(originalMessage.isPM()) {
-			this.bot.sendMessage(originalMessage.getSender(), newMessage);
-		} else {
-			this.bot.sendMessage(newMessage);
-		}
+		message.respondParts(", ", scoreboard);
 	}
 
 	@Override
