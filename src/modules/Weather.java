@@ -68,12 +68,12 @@ public class Weather extends NoiseModule implements Serializable
 
 		@Override public boolean equals(Object o) {
 			return (o instanceof Location) && ((Location)o).woeid == this.woeid;
-        }
+		}
 
 		// Controls the order conditions will be displayed in
 		@Override public int compareTo(Location o) {
 			return Integer.compare(this.woeid, o.woeid);
-        }
+		}
 
 		@Override public String toString() {
 			return String.format("%s, %s", this.city, this.state);
@@ -143,7 +143,7 @@ public class Weather extends NoiseModule implements Serializable
 	@Override public void init(NoiseBot bot, Map<String, String> config) throws ModuleLoadException {
 	    super.init(bot, config);
 	    this.appid = config.containsKey("appid") ? config.get("appid") : null;
-    }
+	}
 
 	private static Document getXML(String url) throws Exception {
 		return Jsoup.parse(new URL(url), TIMEOUT * 1000);
