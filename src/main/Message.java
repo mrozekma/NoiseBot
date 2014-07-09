@@ -7,7 +7,7 @@ package main;
  *         Created Jun 14, 2009.
  */
 public class Message {
-	final NoiseBot bot;
+	private transient NoiseBot bot = null; // a deserialized Message will have a null 'bot'
 	private String message;
 	private String sender;
 	private boolean pm;
@@ -24,6 +24,9 @@ public class Message {
 	public boolean isPM() {return this.pm;}
 
 	public void respond(String message) {
+		if(this.bot == null) {
+			throw new RuntimeException("Unable to respond to deserialized messages");
+		}
 		if(this.pm) {
 			this.bot.sendMessage(this.sender, message);
 		} else {
@@ -32,6 +35,9 @@ public class Message {
 	}
 
 	public void respondParts(String separator, String... parts) {
+		if(this.bot == null) {
+			throw new RuntimeException("Unable to respond to deserialized messages");
+		}
 		if(this.pm) {
 			this.bot.sendTargetedMessageParts(this.sender, separator, parts);
 		} else {
