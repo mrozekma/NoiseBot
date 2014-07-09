@@ -2,16 +2,22 @@ package modules;
 
 import static org.jibble.pircbot.Colors.*;
 
-import javax.xml.parsers.*;
-import org.w3c.dom.*;
-import org.xml.sax.*;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.nodes.Node;
+
+import debugging.Log;
 
 import java.util.*;
+import java.io.Serializable;
 import java.net.URL;
+import java.net.URLEncoder;
 
 import main.Message;
+import main.ModuleLoadException;
+import main.NoiseBot;
 import main.NoiseModule;
-import main.WhoisHandler;
 
 import static panacea.Panacea.*;
 
@@ -22,115 +28,269 @@ import static panacea.Panacea.*;
  * @author Michael Auchter
  *         Created Sep 23, 2011.
  */
-public class Weather extends NoiseModule
+public class Weather extends NoiseModule implements Serializable
 {
+	private static class Location implements Comparable<Location>, Serializable {
+		public final int woeid;
+		public final String city;
+		public final String state;
+
+		public Location(int woeid, String city, String state) {
+			this.woeid = woeid;
+			this.city = city;
+			this.state = state;
+		}
+
+		public static Location parse(Document doc) {
+			try {
+				final int woeid = Integer.parseInt(doc.select("place > woeid").first().text());
+				final String city = doc.select("place > [type=Town]").first().text();
+				final String state;
+				{
+					Element e = doc.select("place > [type=State]").first();
+					if(e != null) {
+						if(e.hasAttr("code") && e.attr("code").startsWith("US-")) {
+							state = e.attr("code").substring(3);
+						} else {
+							state = e.text();
+						}
+					} else {
+						e = doc.select("place > country[code]").first();
+						state = e.attr("code");
+					}
+				}
+				return new Location(woeid, city, state);
+			} catch(Exception e) {
+				Log.e(e);
+				return null;
+			}
+		}
+
+		@Override public boolean equals(Object o) {
+			return (o instanceof Location) && ((Location)o).woeid == this.woeid;
+        }
+
+		// Controls the order conditions will be displayed in
+		@Override public int compareTo(Location o) {
+			return Integer.compare(this.woeid, o.woeid);
+        }
+
+		@Override public String toString() {
+			return String.format("%s, %s", this.city, this.state);
+		}
+	}
+
+	private static class Condition {
+		public final Location loc;
+		public final int temp;
+		public final String text;
+
+		public Condition(Location loc, int temp, String text) {
+			this.loc = loc;
+			this.temp = temp;
+			this.text = text;
+		}
+
+		public String getString(boolean shortForm) {
+			return shortForm ? this.getShortString() : this.getLongString();
+		}
+
+		public String getShortString() {
+			String txt = this.text;
+			for(Map.Entry<String, String> entry : shortNames.entrySet()) {
+				txt = txt.replace(entry.getKey(), entry.getValue());
+			}
+
+			return COLOR_LOC + this.loc.city + " " +
+			        COLOR_TEMP + this.temp + " " +
+			        COLOR_TEXT + txt.toLowerCase() + COLOR_NORMAL;
+		}
+
+		public String getLongString() {
+			return COLOR_INFO + "[" +
+			        COLOR_LOC + this.loc +
+			        COLOR_INFO + ": " +
+			        COLOR_TEXT + this.text +
+			        COLOR_INFO + ", " +
+			        COLOR_TEMP + this.temp + "F" +
+			        COLOR_INFO + "]";
+		}
+	};
+
 	private static final String WEATHER_URL = "http://weather.yahooapis.com/forecastrss?w=";
+	private static final String PLACE_TO_WOEID_URL = "http://where.yahooapis.com/v1/places.q('%s')?appid=%s";
+	private static final String WOEID_TO_PLACE_URL = "http://where.yahooapis.com/v1/place/%d?appid=%s";
+	private static final int TIMEOUT = 5; // seconds
+
 	private static final String COLOR_INFO = PURPLE;
+	private static final String COLOR_SUCCESS = GREEN;
 	private static final String COLOR_LOC = CYAN;
 	private static final String COLOR_TEXT = YELLOW;
 	private static final String COLOR_TEMP = MAGENTA;
 	private static final String COLOR_ERROR = RED + REVERSE;
 	private static final String COLOR_NORMAL = NORMAL;
 
-	private static final String[][] cities = {
-		{ "12778384", "Terre Haute", "IN"},
-		{ "2357536",  "Austin", "TX"},
-		{ "2374418",  "Canoga Park", "CA"},
-		{ "2401279",  "Fairbanks", "AK"},
-		{ "2402488",  "Farmington Hills", "MI"},
-		{ "2470874",  "Petaluma", "CA"},
-		{ "2490383",  "Seattle", "WA"},
-		{ "12794706", "Tucson", "AZ"},
-		{ "2517274",  "West Lafayette", "IN"},
-		{ "2380358",  "Cincinnati", "OH"},
-		{ "1225448",  "Bangkok", "TH"},
-	};
+	private static final Map<String, String> shortNames = new HashMap<String, String>() {{
+		put("Partly Cloudy", "cloudy-");
+		put("Mostly Cloudy", "cloudy+");
+		put("Thunderstorms", "storms");
+	}};
 
-	private static final String[][] icons = {
-		/* You may need to install "Symbolata" to see the first two symbols */
-		{"Partly Cloudy", "\u00e2\u009b\u0085"}, /* SUN BEHIND CLOUD */
-		{"Thunderstorms", "\u00e2\u009b\u0088"}, /* THUNDER CLOUD AND RAIN */
-		/* The rest are in DejaVu Sans */
-		{"Cloudy", "\u00e2\u0098\u0081"}, /* CLOUD */
-		{"Rain", /*"\u00e2\u0098\u0094"*/ "\u00e2\u009b\u0086"}, /* UMBRELLA WITH RAIN DROPS */
-		{"Snow", "\u00e2\u0098\u0083"}, /* SNOWMAN */
-		{"Sunny", "\u00e2\u0098\u0080"}, /* BLACK SUN WITH RAYS */
-		{"Hail", "\u00e2\u0098\u0084"}, /* COMET */
-	};
+	// nick -> user's location. Perfect for NSA surveillance teams
+	private transient String appid;
+	private final Map<String, Location> locations = new HashMap<String, Location>();
 
-	private static final String[][] names = {
-		{"Partly Cloudy", "cloudy-"},
-		{"Mostly Cloudy", "cloudy+"},
-		{"Thunderstorms", "storms"},
-	};
+	@Override public void init(NoiseBot bot, Map<String, String> config) throws ModuleLoadException {
+	    super.init(bot, config);
+	    this.appid = config.containsKey("appid") ? config.get("appid") : null;
+    }
 
 	private static Document getXML(String url) throws Exception {
-		final DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-		final InputSource src = new InputSource(new URL(url).openStream());
-		return db.parse(src);
+		return Jsoup.parse(new URL(url), TIMEOUT * 1000);
 	}
 
-	public List<Map<String,String>> getWeather()
-	{
-		ArrayList list = new ArrayList();
+	private Condition getWeather(Location loc) {
 		try {
-			for (int i = 0; i < cities.length; i++) {
-				final String uri = WEATHER_URL + cities[i][0];
-				final Node cond = getXML(uri).getElementsByTagName("yweather:condition").item(0);
-				final NamedNodeMap attrs = cond.getAttributes();
-
-				String icon = attrs.getNamedItem("text").getNodeValue();
-				for (int j = 0; j < icons.length; j++)
-					icon = icon.replace(icons[j][0], icons[j][1]);
-				String txt = attrs.getNamedItem("text").getNodeValue();
-				for (int j = 0; j < names.length; j++)
-					txt = txt.replace(names[j][0], names[j][1]);
-
-				HashMap map = new HashMap();
-				map.put("city",  cities[i][1]);
-				map.put("state", cities[i][2]);
-				map.put("temp",  "" + attrs.getNamedItem("temp").getNodeValue());
-				map.put("text",  attrs.getNamedItem("text").getNodeValue());
-				map.put("txt",   txt.toLowerCase());
-				map.put("icon",  icon);
-				list.add(map);
-			}
+			final String uri = WEATHER_URL + loc.woeid;
+			final Node cond = getXML(uri).select("yweather|condition").first();
+			return new Condition(loc, Integer.parseInt(cond.attr("temp")), cond.attr("text"));
 		} catch (Exception e) {
-			this.bot.sendMessage(COLOR_ERROR + "Problem parsing Weather data");
+			Log.e(e);
+			return null;
 		}
-		return list;
 	}
 
+	private Location locationLookup(int woeid) {
+		if(this.appid == null) {
+			return null;
+		}
 
-	@Command("\\.weather")
-	public void weather(Message message)
-	{
-		List<String> list = new ArrayList();
-		for (Map<String,String> wx : getWeather())
-			list.add(
-				COLOR_INFO + "[" +
-				COLOR_LOC  + wx.get("city") + ", " + wx.get("state") +
-				COLOR_INFO + ": " +
-				COLOR_TEXT + wx.get("text") +
-				COLOR_INFO + ", " +
-				COLOR_TEMP + wx.get("temp") + "F" +
-				COLOR_INFO + "]");
-		this.bot.sendMessageParts(" ", list.toArray(new String[0]));
+		try {
+			return Location.parse(getXML(String.format(WOEID_TO_PLACE_URL, woeid, this.appid)));
+		} catch(Exception e) {
+			Log.e(e);
+			return null;
+		}
 	}
 
-	@Command("\\.wx")
-	public void wx(Message message)
-	{
-		List<String> list = new ArrayList();
-		for (Map<String,String> wx : getWeather())
-			list.add(
-				COLOR_LOC  + wx.get("city") + " " +
-				COLOR_TEMP + wx.get("temp") + " " +
-				COLOR_TEXT + wx.get("txt")  + COLOR_NORMAL);
-		this.bot.sendMessageParts("  |  ", list.toArray(new String[0]));
+	private Location locationLookup(String desc) {
+		if(this.appid == null) {
+			return null;
+		}
+
+		try {
+			return Location.parse(getXML(String.format(PLACE_TO_WOEID_URL, URLEncoder.encode(desc), this.appid)));
+		} catch(Exception e) {
+			Log.e(e);
+			return null;
+		}
+	}
+
+	private Map<Location, Condition> getWeather(boolean all) {
+		final List<String> nicks = Arrays.asList(this.bot.getNicks());
+		final Set<Location> locations = new TreeSet<Location>();
+
+		if(all) {
+			locations.addAll(this.locations.values());
+		} else {
+			for(Map.Entry<String, Location> entry : this.locations.entrySet()) {
+				if(nicks.contains(entry.getKey())) {
+					locations.add(entry.getValue());
+				}
+			}
+		}
+
+		final Map<Location, Condition> rtn = new LinkedHashMap<Location, Condition>();
+		for(Location location : locations) {
+			rtn.put(location, this.getWeather(location));
+		}
+		return rtn;
+	}
+
+	@Command("\\.weatheradd ([^:]+)")
+	public void weatherAdd(Message message, String loc) {
+		this.weatherAdd(message, message.getSender(), loc);
+	}
+
+	@Command("\\.weatheradd ([^ :]+): (.+)")
+	public void weatherAdd(Message message, String nick, String locDesc) {
+		Location loc = null;
+		try {
+			// I'm just hoping WOEIDs are never 5 digits, since they'll be indistinguishable from zipcodes
+			if(locDesc.length() != 5) {
+				final int woeid = Integer.parseInt(locDesc);
+				loc = this.locationLookup(woeid);
+			}
+		} catch(NumberFormatException e) {}
+
+		if(loc == null) {
+			loc = this.locationLookup(locDesc);
+		}
+
+		if(loc == null) {
+			this.bot.sendMessage(COLOR_ERROR + "Unable to determine location");
+			return;
+		}
+
+		this.locations.put(nick, loc);
+		this.save();
+		this.bot.sendMessage(COLOR_SUCCESS + String.format("Added location %d (%s) for %s", loc.woeid, loc, nick));
+	}
+
+	@Command("\\.weatherrm ([^ :]+)")
+	public void weatherRemove(Message message, String nick) {
+		if(this.locations.containsKey(nick)) {
+			final Location loc = this.locations.remove(nick);
+			this.save();
+			this.bot.sendMessage(COLOR_SUCCESS + String.format("Removed %s (%s) from weather listings", nick, loc));
+		} else {
+			this.bot.sendMessage(COLOR_ERROR + "No location known for " + nick);
+		}
+	}
+
+	@Command("\\.weatherls")
+	public void weatherList(Message message) {
+		final List<String> send = new Vector<String>(this.locations.size());
+		for(Map.Entry<String, Location> entry : this.locations.entrySet()) {
+			send.add(COLOR_INFO + String.format("%s - %s", entry.getKey(), entry.getValue()));
+		}
+		this.bot.sendMessageParts("; ", send.toArray(new String[0]));
+	}
+
+	@Command("\\.(weather|wx)(?: ([.*]))?")
+	public void weather(Message message, String type, String filter) {
+		final boolean shortForm = type.equals("wx");
+		if(".".equals(filter)) { // Show only the sender's weather
+			if(!this.locations.containsKey(message.getSender())) {
+				this.bot.sendMessage(COLOR_ERROR + "Your location is unknown");
+			}
+			this.bot.sendMessage(this.getWeather(this.locations.get(message.getSender())).getString(shortForm));
+		} else {
+			final boolean includeOfflineUsers = "*".equals(filter);
+			List<String> send = new Vector<String>();
+			for(Map.Entry<Location, Condition> wx : this.getWeather(includeOfflineUsers).entrySet()) {
+				if(wx.getValue() == null) {
+					this.bot.sendMessage(COLOR_ERROR + "Problem parsing Weather data");
+					return;
+				}
+				send.add(wx.getValue().getString(shortForm));
+			}
+			this.bot.sendMessageParts(shortForm ? "  |  " : " ", send.toArray(new String[0]));
+		}
 	}
 
 	@Override public String getFriendlyName() { return "Weather"; }
 	@Override public String getDescription() { return "Outputs the current weather conditions in cities occupied by #rhnoise"; }
-	@Override public String[] getExamples() { return new String[] { ".weather" }; }
+	@Override public String[] getExamples() {
+		return new String[] {
+			".weather -- Show weather for users currently in the room",
+			".weather _*_ -- Show weather for all recorded users",
+			".weather _._ -- Show weather for the sender",
+			".wx -- Show weather information in a condensed form",
+			".weatheradd _locaiton_ -- Record the user's location",
+			".weatheradd _nick_: _location_ -- Record _nick_'s location",
+			".weatherrm _nick_ -- Remove _nick_'s recorded location",
+			".weatherls -- List recorded locations"
+		};
+	}
 }

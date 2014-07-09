@@ -60,8 +60,8 @@ public class Spook extends NoiseModule {
 		}
 	}
 
-	@Command("\\.addspook (.*)")
-	public void addspook(Message message, String spook) {
+	@Command("\\.spookadd (.*)")
+	public void spookadd(Message message, String spook) {
 		spook = spook.trim();
 		if (!spook.matches("^[a-zA-Z0-9][a-zA-Z0-9 _.-]+")) {
 			this.bot.sendAction(slapUser(message.getSender()));
@@ -88,7 +88,8 @@ public class Spook extends NoiseModule {
 	@Override public String[] getExamples() {
 		return new String[] {
 				".spook",
-				".spook 15"
+				".spook 15",
+				".spookadd _phrase_ -- Add new spook entry"
 		};
 	}
 }
