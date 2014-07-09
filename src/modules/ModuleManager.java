@@ -82,8 +82,13 @@ public class ModuleManager extends NoiseModule {
 		final boolean showErrors = qm.isEmpty();
 		for(String moduleName : moduleNames.split(" ")) {
 			try {
-				this.bot.reloadModule(moduleName);
-				this.bot.sendNotice("Module " + Help.COLOR_MODULE + moduleName + NORMAL + " reloaded");
+				if(this.bot.getModules().containsKey(moduleName)) {
+					this.bot.reloadModule(moduleName);
+					this.bot.sendNotice("Module " + Help.COLOR_MODULE + moduleName + NORMAL + " reloaded");
+				} else {
+					this.bot.loadModule(moduleName);
+					this.bot.sendNotice("Module " + Help.COLOR_MODULE + moduleName + NORMAL + " loaded");
+				}
 			} catch(ModuleUnloadException e) {
 				Log.e(e);
 				if(showErrors) {
