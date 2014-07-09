@@ -7,13 +7,11 @@ import org.w3c.dom.*;
 import org.xml.sax.*;
 
 import java.util.*;
-import java.io.DataInputStream;
-import java.io.IOException;
 import java.net.URL;
-import java.net.URLConnection;
 
 import main.Message;
 import main.NoiseModule;
+import main.WhoisHandler;
 
 import static panacea.Panacea.*;
 
@@ -117,7 +115,7 @@ public class Weather extends NoiseModule
 				COLOR_INFO + ", " +
 				COLOR_TEMP + wx.get("temp") + "F" +
 				COLOR_INFO + "]");
-		this.bot.sendMessage(implode(list.toArray(new String[0]), " "));
+		this.bot.sendMessageParts(" ", list.toArray(new String[0]));
 	}
 
 	@Command("\\.wx")
@@ -129,7 +127,7 @@ public class Weather extends NoiseModule
 				COLOR_LOC  + wx.get("city") + " " +
 				COLOR_TEMP + wx.get("temp") + " " +
 				COLOR_TEXT + wx.get("txt")  + COLOR_NORMAL);
-		this.bot.sendMessage(implode(list.toArray(new String[0]), "  |  "));
+		this.bot.sendMessageParts("  |  ", list.toArray(new String[0]));
 	}
 
 	@Override public String getFriendlyName() { return "Weather"; }

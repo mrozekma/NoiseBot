@@ -440,6 +440,48 @@ public class NoiseBot {
 	public void reply(String username, String message) {this.sendMessage((username == null ? "" : username + ": ") + message);}
 	public void kickVictim(String victim, String reason) {this.server.kick(this.channel, victim, reason);}
 
+	public void sendMessageParts(final String separator, final String... parts) {
+		final String whois = this.server.getWhoisString();
+		if(whois == null) {
+			this.whois(this.getBotNick(), new WhoisHandler() {
+				@Override public void onResponse() {
+					NoiseBot.this.server.setWhoisString(String.format("%s!%s@%s", this.nick, this.username, this.hostname));
+					NoiseBot.this.sendMessageParts(separator, parts);
+                }
+
+				@Override public void onTimeout() {
+					NoiseBot.this.server.setWhoisString("");
+					NoiseBot.this.sendMessageParts(separator, parts);
+                }
+			});
+			return;
+		}
+
+		final int maxLen = this.server.getMaxLineLength()
+		                  - (whois.isEmpty() ? 100 : 1 + whois.length())
+		                  - " PRIVMSG ".length()
+		                  - this.channel.length()
+		                  -  " :\r\n".length();
+
+		final StringBuilder message = new StringBuilder();
+		for(int i = 0; i < parts.length; i++) {
+			final String part = (message.length() > 0 ? separator : "") + parts[i];
+			if(message.length() + part.length() <= maxLen) {
+				message.append(part);
+			} else if(message.length() == 0) {
+				this.sendMessage(RED + "Message part too long to send");
+				// Skip it
+			} else {
+				this.sendMessage(message.toString());
+				message.setLength(0);
+				i--; // Redo this piece
+			}
+		}
+		if(message.length() > 0) {
+			this.sendMessage(message.toString());
+		}
+	}
+
 	void onChannelJoin() {
 		this.loadModules();
 	}

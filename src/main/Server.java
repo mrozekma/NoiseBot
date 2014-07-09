@@ -32,6 +32,7 @@ public class Server extends PircBot {
 	private final Connection connection;
 	// channel -> bot for that channel
 	private final Map<String, NoiseBot> bots = new HashMap<String, NoiseBot>();
+	private String selfWhoisString = null;
 
 	Server(Connection connection) {
 		this.connection = connection;
@@ -44,6 +45,14 @@ public class Server extends PircBot {
 
 		this.setName(this.connection.nick);
 		this.setLogin(this.connection.nick);
+	}
+
+	public String getWhoisString() {
+		return this.selfWhoisString;
+	}
+
+	public void setWhoisString(String whoisString) {
+		this.selfWhoisString = whoisString;
 	}
 
 	void addBot(String channel, NoiseBot bot) {
