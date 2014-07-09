@@ -17,11 +17,9 @@ import main.NoiseModule;
 
 public class Die extends NoiseModule {
 	@Command("\\.die(?:diedie)?") public void die(Message message) {
-		try {
-			this.bot.clearPendingSends();
+		if(this.bot.clearPendingSends()) {
 			this.bot.sendMessage(RED + "Aaaarrrggghhhh..");
-		} catch(Exception e) {
-			Log.e(e);
+		} else {
 			this.bot.sendMessage(RED + "Unable to modify outqueue");
 		}
 	}

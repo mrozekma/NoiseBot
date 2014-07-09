@@ -51,16 +51,43 @@ public class NoiseBot {
 	private final Server server;
 	private final String channel;
 	private final boolean quiet;
+	private final Vector outQueue; // This is controlled by the "server"'s parent PircBot instance
 	private Map<String, NoiseModule> modules = new HashMap<String, NoiseModule>();
 
 	public NoiseBot(Server server, String channel, boolean quiet) {
 		this.server = server;
 		this.channel = channel;
 		this.quiet = quiet;
+
+		Vector outQueue = null;
+		try {
+			// I laugh at abstractions
+			final Field outQueueField = this.server.getClass().getSuperclass().getDeclaredField("_outQueue");
+			outQueueField.setAccessible(true);
+			final org.jibble.pircbot.Queue _outQueue = (org.jibble.pircbot.Queue)outQueueField.get(this.server);
+
+			// I laugh at them further
+			// Also, implementing a queue using a vector is terrible
+			final Field queueField = _outQueue.getClass().getDeclaredField("_queue");
+			queueField.setAccessible(true);
+			outQueue = (Vector)queueField.get(_outQueue);
+		} catch(NoSuchFieldException e) {
+			Log.e(e);
+		} catch(IllegalAccessException e) {
+			Log.e(e);
+		}
+		this.outQueue = outQueue;
 	}
 
 	// Note: 'exitCode' is only applicable if this is the last connection
 	public void quit(int exitCode) {
+		// Wait (for a little while) for outgoing messages to be sent
+		if(this.outQueue != null) {
+			for(int tries = 0; tries < 5 && !this.outQueue.isEmpty(); tries++) {
+				sleep(1);
+			}
+		}
+
 		if(this.server.getChannels().length > 1) {
 			Log.i("Parting " + this.channel);
 			this.server.partChannel(this.channel);
@@ -287,20 +314,13 @@ public class NoiseBot {
 		return false;
 	}
 
-	public void clearPendingSends() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
-		// I laugh at abstractions
-		final Field outQueueField = this.server.getClass().getSuperclass().getDeclaredField("_outQueue");
-		outQueueField.setAccessible(true);
-		final org.jibble.pircbot.Queue outQueue = (org.jibble.pircbot.Queue)outQueueField.get(this.server);
+	public boolean clearPendingSends() {
+		if(this.outQueue == null) {
+			return false;
+		}
 
-		// I laugh at them further
-		// Also, implementing a queue using a vector is terrible
-		final Field queueField = outQueue.getClass().getDeclaredField("_queue");
-		queueField.setAccessible(true);
-		final Vector queue = (Vector)queueField.get(outQueue);
-
-		synchronized(queue) {
-			final Iterator iter = queue.iterator();
+		synchronized(this.outQueue) {
+			final Iterator iter = this.outQueue.iterator();
 			while(iter.hasNext()) {
 				final Object obj = iter.next();
 				if(obj.toString().startsWith("PRIVMSG " + this.channel + " ")) {
@@ -308,6 +328,7 @@ public class NoiseBot {
 				}
 			}
 		}
+		return true;
 	}
 
 	File getStoreDirectory() {
