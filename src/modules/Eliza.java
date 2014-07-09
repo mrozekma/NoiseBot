@@ -27,9 +27,8 @@ public class Eliza extends NoiseModule {
 		this.eliza.readScript(true, SCRIPT_FILE.getAbsolutePath());
 	}
 
-	@Command("([^:]+): (.*)")
-	public void eliza(Message message, String nick, String userMessage) {
-		if(!nick.equals(this.bot.getBotNick())) return;
+	@Command("${bot.nick}: (.*)")
+	public void eliza(Message message, String userMessage) {
 		this.bot.reply(message, this.eliza.processInput(userMessage));
 	}
 

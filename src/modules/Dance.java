@@ -16,22 +16,22 @@ public class Dance extends NoiseModule {
 	private static final String COLOR_SECOND_GUY = BLUE;
 	private static final String COLOR_FIRST_LINE = RED;
 	private static final String COLOR_SECOND_LINE = GREEN;
-	
-	@Command(".*\\b[Dd][Aa][Nn][Cc](?:[Ee]|[Ii][Nn][Gg]).*")
+
+	@Command(value = ".*\\bdanc(?:e|ing).*", caseSensitive = false)
 	public void dance(Message message) {
 		this.bot.sendAction("dances :D-<");
 		this.bot.sendAction("dances :D|-<");
 		this.bot.sendAction("dances :D/-<");
 	}
-	
-	@Command(".*\\b[Dd][Ii][Ss][Cc][Oo].*")
+
+	@Command(value = ".*\\bdisco.*", caseSensitive = false)
 	public void disco(Message message) {
 		this.bot.sendMessage(String.format("%s\\o   %sLET'S   %so/", COLOR_FIRST_GUY, COLOR_FIRST_LINE, COLOR_SECOND_GUY));
 		this.bot.sendMessage(String.format(" %s|>  %sDISCO! %s<|", COLOR_FIRST_GUY, COLOR_SECOND_LINE, COLOR_SECOND_GUY));
 		this.bot.sendMessage(String.format("%s< \\         %s/ >", COLOR_FIRST_GUY, COLOR_SECOND_GUY));
 	}
 
-	@Command(".*\\b[Ff][Ll][Aa][Rr][Hh][Gg][Uu][Nn][Nn][Ss][Tt][Oo][Ww].*")
+	@Command(value = ".*\\bflarhgunnstow.*", caseSensitive = false)
 	public void flarhgunnstow(Message message) {
 		this.bot.sendAction("flarhgunnstows :D]-<");
 		this.bot.sendAction("flarhgunnstows :D|-<");

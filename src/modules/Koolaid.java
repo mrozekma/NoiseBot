@@ -11,11 +11,11 @@ import main.NoiseModule;
  *         Created Dec 23ish, 2011.
  */
 public class Koolaid extends NoiseModule {
-   @Command(".*[oO][hH](?:,|\\.)* [nN][oO].*")
+   @Command(value = ".*oh(?:,|\\.)* no.*", caseSensitive = false)
 	public void ohyeah(Message message) {
 		this.bot.sendMessage(RED + "OH YEAH!");
 	}
-	
+
 	@Override public String getFriendlyName() {return "Kool-aid";}
 	@Override public String getDescription() {return "Contributes meaningfully to the conversation when needed.";}
 	@Override public String[] getExamples() {

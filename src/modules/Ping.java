@@ -13,15 +13,13 @@ import static panacea.Panacea.*;
  *         Created Jun 13, 2009.
  */
 public class Ping extends NoiseModule {
-	@Command("(.*)!")
-	public void direct(Message message, String nick) {
-		if(!nick.equals(this.bot.getBotNick())) return;
+	@Command(value = "${bot.nick}!")
+	public void direct(Message message) {
 		this.bot.sendMessage(message.getSender() + "!");
 	}
 
-	@Command("(?:[hH]i|[hH]ello|[hH]ey) (.*)")
-	public void indirect(Message message, String nick) {
-		if(!nick.equals(this.bot.getBotNick())) return;
+	@Command(value = "(?:hi|hello|hey) ${bot.nick}", caseSensitive = false)
+	public void indirect(Message message) {
 		this.bot.sendMessage(getRandom(new String[] {"Hi", "Hello", "Hey"}) + " " + message.getSender());
 	}
 

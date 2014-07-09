@@ -14,11 +14,13 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.text.StrSubstitutor;
 import org.jibble.pircbot.User;
 
 import static org.jibble.pircbot.Colors.*;
@@ -38,34 +40,41 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 	@Retention(RetentionPolicy.RUNTIME)
 	@Target(ElementType.METHOD)
 	protected static @interface Command {
-		String value();
+		String value(); // Regex pattern (must be named 'value' for Java reasons)
+		boolean caseSensitive() default true; // Pattern is case-sensitive
 	}
 
 	@Retention(RetentionPolicy.RUNTIME)
 	@Target(ElementType.METHOD)
 	protected static @interface PM {
 		String value();
+		boolean caseSensitive() default true;
 	}
 
 	protected transient NoiseBot bot;
 	protected transient Map<Pattern, Method> patterns = new LinkedHashMap<Pattern, Method>();
 	protected transient Map<Pattern, Method> pmPatterns = new LinkedHashMap<Pattern, Method>();
 
-	public void init(NoiseBot bot, Map<String, String> config) throws ModuleLoadException {
+	public void init(final NoiseBot bot, final Map<String, String> config) throws ModuleLoadException {
 		this.bot = bot;
 		Log.v(this + " - Init");
+
+		final Map<String, String> variables = new HashMap<String, String>() {{
+			put("bot.nick", bot.getBotNick());
+		}};
+		final StrSubstitutor sub = new StrSubstitutor(variables);
 
 		for(Method method : this.getClass().getDeclaredMethods()) {
 			final Command command = method.getAnnotation(Command.class);
 			if(command != null) {
-				final Pattern pattern = Pattern.compile(command.value());
+				final Pattern pattern = Pattern.compile(sub.replace(command.value()), command.caseSensitive() ? 0 : Pattern.CASE_INSENSITIVE);
 				Log.i(this + " - Added pattern %s for method %s", command.value(), method);
 				this.patterns.put(pattern, method);
 			}
 
 			final PM pm = method.getAnnotation(PM.class);
 			if(pm != null) {
-				final Pattern pattern = Pattern.compile(pm.value());
+				final Pattern pattern = Pattern.compile(sub.replace(pm.value()), pm.caseSensitive() ? 0 : Pattern.CASE_INSENSITIVE);
 				Log.i(this + " - Added PM pattern %s for method %s", pm.value(), method);
 				this.pmPatterns.put(pattern, method);
 			}
