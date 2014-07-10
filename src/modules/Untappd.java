@@ -3,6 +3,11 @@ package modules;
 import static org.jibble.pircbot.Colors.*;
 
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.concurrent.TimeUnit;
+import java.util.Date;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -23,12 +28,39 @@ import static panacea.Panacea.*;
 
 public class Untappd extends NoiseModule {
 	private static final String COLOR_ERROR = RED + REVERSE;
+	private static final DateFormat dateFormat = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss ZZZZZ");
+
+	private static void __fuzzyTimeAgo(StringBuilder in, long milliseconds, TimeUnit unit, String unitStr)
+	{
+		if (!in.toString().equals(""))
+			return;
+
+		final long duration = unit.convert(milliseconds, TimeUnit.MILLISECONDS);
+		if (duration > 1)
+			unitStr += "s";
+
+		if (duration > 0)
+			in.append("(").append(duration).append(" ").append(unitStr).append(" ago)");
+	}
+
+	private static String fuzzyTimeAgo(long ms)
+	{
+		StringBuilder s = new StringBuilder();
+
+		__fuzzyTimeAgo(s, ms, TimeUnit.DAYS,    "day");
+		__fuzzyTimeAgo(s, ms, TimeUnit.HOURS,   "hour");
+		__fuzzyTimeAgo(s, ms, TimeUnit.MINUTES, "minute");
+		__fuzzyTimeAgo(s, ms, TimeUnit.SECONDS, "second");
+
+		return s.toString();
+	}
 
 	@Command("\\.drank (.*)")
 	public void drank(Message message, String user) {
 		try {
 			Document page = Jsoup.connect("http://untappd.com/user/" + user).timeout(10000).get();
-			Elements checkinLinks = page.select(".checkin").first().select(".text").select("a[href]");
+			Element checkin = page.select(".checkin").first();
+			Elements checkinLinks = checkin.select(".text").select("a[href]");
 			checkinLinks.remove(0);
 			String[] info = map(checkinLinks.toArray(new Element[0]), new MapFunction<Element, String>() {
 				@Override public String map(Element e) {
@@ -40,7 +72,13 @@ public class Untappd extends NoiseModule {
 			if (info.length > 2)
 				output += " at " + info[2];
 
-			this.bot.sendMessage(output);
+			String drankTime = "";
+			try {
+				final long ago = new Date().getTime() - dateFormat.parse(checkin.select(".time").first().text()).getTime();
+				drankTime = fuzzyTimeAgo(ago);
+			} catch (ParseException pe) { /* Eh, whatever */ }
+
+			this.bot.sendMessage(output + " " + drankTime);
 		} catch (IOException e) {
 			this.bot.sendMessage(COLOR_ERROR + "Unable to retrieve page");
 		}
