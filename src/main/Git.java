@@ -229,14 +229,8 @@ public class Git {
 										// Don't actually need the payload for anything
 										// Just pull from github and try to sync
 										// final JSONObject json = new JSONObject(payload);
-										if(Git.pull()) {
-											final int rtn = Runtime.getRuntime().exec("make").waitFor();
-											if(rtn != 0) {
-												Log.e("Unable to build new changes");
-											}
-											NoiseBot.syncAll();
-										}
-									} catch(InterruptedException e) {
+										Git.attemptUpdate();
+									} catch(SyncException e) {
 										Log.e(e);
 									} catch(IOException e) {
 										Log.e(e);
@@ -250,5 +244,28 @@ public class Git {
 				}
 			}
 		}).start();
+	}
+
+	public static synchronized void attemptUpdate() throws SyncException {
+		final Revision oldRev = Git.head();
+		if(Git.pull()) {
+			final Revision newRev = Git.head();
+			if(oldRev.equals(newRev)) {
+				throw new SyncException("No changes");
+			}
+			try {
+				final int rtn = Runtime.getRuntime().exec("make").waitFor();
+				if(rtn != 0) {
+					throw new IOException("Unable to build new changes");
+				}
+			} catch(IOException e) {
+				Log.e(e);
+				throw new SyncException(e);
+			} catch(InterruptedException e) {
+				Log.e(e);
+				throw new SyncException(e);
+			}
+			NoiseBot.syncAll();
+		}
 	}
 }

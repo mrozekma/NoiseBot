@@ -110,6 +110,17 @@ public class ModuleManager extends NoiseModule {
 		this.bot.reply(message, Git.revisionLink(rev));
 	}
 
+	@Command("\\.sync")
+	public void sync(Message message) {
+		try {
+			Git.attemptUpdate();
+			// attemptUpdate() will call NoiseBot.syncAll(), which handles outputting sync info to all channels
+		} catch(Git.SyncException e) {
+			// Only output the error in the channel that requested the sync
+			this.bot.sendMessage(COLOR_ERROR + e.getMessage());
+		}
+	}
+
 	@Override public String getDescription() {return "Manages modules";}
 	@Override public String getFriendlyName() {return "Module Manager";}
 	@Override public String[] getExamples() {
