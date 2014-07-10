@@ -436,8 +436,6 @@ public class NoiseBot {
 	public void sendMessage(String message) {Log.out("M> " + message); this.server.sendMessage(this.channel, message);}
 	public void sendAction(String action) {Log.out("A> " + action); this.server.sendAction(this.channel, action);}
 	public void sendNotice(String notice) {Log.out("N> " + notice); this.server.sendNotice(this.channel, notice);}
-	public void reply(Message sender, String message) {this.reply(sender.getSender(), message);}
-	public void reply(String username, String message) {this.sendMessage((username == null ? "" : username + ": ") + message);}
 	public void kickVictim(String victim, String reason) {this.server.kick(this.channel, victim, reason);}
 
 	public void sendMessageParts(final String separator, final String... parts) {this.sendTargetedMessageParts(this.channel, separator, parts);}
@@ -482,6 +480,11 @@ public class NoiseBot {
 			this.sendMessage(target, message.toString());
 		}
 	}
+
+	public void respond(Message sender, String message) {this.sendMessage(sender.isPM() ? sender.getSender() : this.channel, message);}
+	public void respondParts(Message sender, String separator, String... parts) {this.sendTargetedMessageParts(sender.isPM() ? sender.getSender() : this.channel, separator, parts);}
+	public void reply(Message sender, String message) {this.reply(sender.getSender(), message);}
+	public void reply(String username, String message) {this.sendMessage((username == null ? "" : username + ": ") + message);}
 
 	void onChannelJoin() {
 		this.loadModules();

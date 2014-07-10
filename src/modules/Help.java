@@ -25,8 +25,8 @@ public class Help extends NoiseModule {
 	@Command("\\.help")
 	@PM("\\.help")
 	public void general(Message message) {
-		message.respond("Use ." + COLOR_COMMAND + "help" + NORMAL + " " + COLOR_MODULE + "MODULE" + NORMAL + " to get examples for a specific module:");
-		message.respond("List of modules: " + implode(sorted(map(filter(this.bot.getModules().values().toArray(new NoiseModule[0]), new Condition<NoiseModule>() {
+		this.bot.respond(message, "Use ." + COLOR_COMMAND + "help" + NORMAL + " " + COLOR_MODULE + "MODULE" + NORMAL + " to get examples for a specific module:");
+		this.bot.respond(message, "List of modules: " + implode(sorted(map(filter(this.bot.getModules().values().toArray(new NoiseModule[0]), new Condition<NoiseModule>() {
 			@Override public boolean satisfies(NoiseModule module) {return module.showInHelp();}
 		}), new MapFunction<NoiseModule, String>() {
 			@Override public String map(NoiseModule module) {return COLOR_MODULE + module.getFriendlyName() + NORMAL;}
@@ -39,23 +39,23 @@ public class Help extends NoiseModule {
 		for(NoiseModule module : this.bot.getModules().values()) {
 			if(!module.showInHelp()) {continue;}
 			if(moduleName.equalsIgnoreCase(module.getFriendlyName())) {
-				message.respond(COLOR_MODULE + module.getFriendlyName() + NORMAL + " module -- " + module.getDescription());
-				message.respond("Examples:");
+				this.bot.respond(message, COLOR_MODULE + module.getFriendlyName() + NORMAL + " module -- " + module.getDescription());
+				this.bot.respond(message, "Examples:");
 				String[] examples = module.getExamples();
 				if(examples == null || examples.length == 0) {
-					message.respond("No examples available");
+					this.bot.respond(message, "No examples available");
 				} else {
 					for(String example : examples) {
 						example = example.replaceAll("^\\.([^ ]+) ", "." + COLOR_COMMAND + "$1" + NORMAL + " ");
 						example = example.replaceAll("_([^_]*)_", COLOR_ARGUMENT + "$1" + NORMAL);
-						message.respond(example);
+						this.bot.respond(message, example);
 					}
 				}
 				return;
 			}
 		}
 
-		message.respond("Unknown module: " + moduleName);
+		this.bot.respond(message, "Unknown module: " + moduleName);
 	}
 
 	@Override public String getFriendlyName() {return "Help";}
