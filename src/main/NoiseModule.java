@@ -157,9 +157,6 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 			return Serializer.deserialize(new File(bot.getStoreDirectory(), moduleType.getSimpleName()), moduleType);
 		} catch(FileNotFoundException e) {
 			Log.v("No store file for %s", moduleType.getSimpleName());
-		} catch(Exception e) { // Should just be IOException
-			Log.w("Unable to deserialize %s", moduleType.getSimpleName());
-			Log.w(e);
 		}
 
 		return null;

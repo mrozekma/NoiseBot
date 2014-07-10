@@ -42,6 +42,7 @@ public class NoiseBot {
 	private static final String CONFIG_FILENAME = "config";
 	private static final String DATA_DIRECTORY = "data";
 	public static final String STORE_DIRECTORY = "store";
+	private static final String COLOR_ERROR = RED + REVERSE;
 
 	public static final Map<String, NoiseBot> bots = new HashMap<String, NoiseBot>();
 	public static final Map<String, Set<File>> moduleFileDeps = new HashMap<String, Set<File>>();
@@ -150,6 +151,7 @@ public class NoiseBot {
 			} catch(ModuleLoadException e) {
 				Log.e("Failed loading module %s", moduleName);
 				Log.e(e);
+				this.sendMessage(COLOR_ERROR + String.format("Failed loading module %s: %s", moduleName, e));
 			}
 		}
 
@@ -468,7 +470,7 @@ public class NoiseBot {
 			if(message.length() + part.length() <= maxLen) {
 				message.append(part);
 			} else if(message.length() == 0) {
-				this.sendMessage(target, RED + "Message part too long to send");
+				this.sendMessage(target, COLOR_ERROR + "Message part too long to send");
 				// Skip it
 			} else {
 				this.sendMessage(target, message.toString());
