@@ -4,3 +4,4 @@ bin/
 *.swp
 *.class
 tags
+config
