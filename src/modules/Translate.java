@@ -119,7 +119,7 @@ public class Translate extends NoiseModule {
 			final StringBuffer buffer = new StringBuffer();
 
 			if(fromCode == null) {
-				final JSONObject json = getJSON(String.format("https://www.googleapis.com/language/translate/v2/detect?key=%s&format=text&target=%s&q=%s", urlEncode(this.key), urlEncode(toCode), urlEncode(phrase)));
+				final JSONObject json = getJSON(String.format("https://www.googleapis.com/language/translate/v2/detect?key=%s&format=text&target=%s&q=%s", urlEncode(this.key), urlEncode(toCode), urlEncode(phrase)), true);
 				if(json.has("data")) {
 					final JSONObject data = json.getJSONObject("data");
 					final JSONArray detections = data.getJSONArray("detections");

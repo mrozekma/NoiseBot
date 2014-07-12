@@ -1,7 +1,9 @@
 package main;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLDecoder;
@@ -40,8 +42,30 @@ public class Utilities {
 		return getJSON(new URL(url).openConnection());
 	}
 
+	public static JSONObject getJSON(String url, boolean allowErrors) throws IOException, JSONException {
+		return getJSON(new URL(url).openConnection(), allowErrors);
+	}
+
 	public static JSONObject getJSON(URLConnection c) throws IOException, JSONException {
-		final Scanner s = new Scanner(c.getInputStream());
+		return getJSON(c, false);
+	}
+
+	public static JSONObject getJSON(URLConnection c, boolean allowErrors) throws IOException, JSONException {
+		// http://stackoverflow.com/a/9129991/309308
+		InputStream is = null;
+		try {
+			is = c.getInputStream();
+		} catch(IOException e) {
+			if(c instanceof HttpURLConnection) {
+				HttpURLConnection httpConn = (HttpURLConnection)c;
+				if(httpConn.getResponseCode() == 200) {
+					throw e;
+				}
+				is = httpConn.getErrorStream();
+			}
+		}
+
+		final Scanner s = new Scanner(is);
 		final StringBuffer buffer = new StringBuffer();
 		while(s.hasNextLine()) {
 			buffer.append(s.nextLine());
