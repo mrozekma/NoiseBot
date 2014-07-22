@@ -287,7 +287,7 @@ public class Weather extends NoiseModule implements Serializable
 			".weather _*_ -- Show weather for all recorded users",
 			".weather _._ -- Show weather for the sender",
 			".wx -- Show weather information in a condensed form",
-			".weatheradd _locaiton_ -- Record the user's location",
+			".weatheradd _location_ -- Record the user's location",
 			".weatheradd _nick_: _location_ -- Record _nick_'s location",
 			".weatherrm _nick_ -- Remove _nick_'s recorded location",
 			".weatherls -- List recorded locations"
