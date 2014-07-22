@@ -2,6 +2,8 @@ package modules;
 
 import static org.jibble.pircbot.Colors.*;
 
+import java.util.Arrays;
+
 import panacea.Condition;
 import panacea.MapFunction;
 
@@ -26,11 +28,17 @@ public class Help extends NoiseModule {
 	@PM("\\.help")
 	public void general(Message message) {
 		this.bot.respond(message, "Use ." + COLOR_COMMAND + "help" + NORMAL + " " + COLOR_MODULE + "MODULE" + NORMAL + " to get examples for a specific module:");
-		this.bot.respond(message, "List of modules: " + implode(sorted(map(filter(this.bot.getModules().values().toArray(new NoiseModule[0]), new Condition<NoiseModule>() {
+		final String[] parts = map(filter(this.bot.getModules().values().toArray(new NoiseModule[0]), new Condition<NoiseModule>() {
 			@Override public boolean satisfies(NoiseModule module) {return module.showInHelp();}
 		}), new MapFunction<NoiseModule, String>() {
 			@Override public String map(NoiseModule module) {return COLOR_MODULE + module.getFriendlyName() + NORMAL;}
-		})), ", "));
+		});
+		Arrays.sort(parts);
+
+		// This is hacktastic
+		parts[0] = "List of modules: " + parts[0];
+
+		this.bot.respondParts(message, ", ", parts);
 	}
 
 	@Command("\\.help (.+)")
