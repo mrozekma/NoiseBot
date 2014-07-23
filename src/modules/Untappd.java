@@ -30,27 +30,38 @@ public class Untappd extends NoiseModule {
 	private static final String COLOR_ERROR = RED + REVERSE;
 	private static final DateFormat dateFormat = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss ZZZZZ");
 
-	private static void __fuzzyTimeAgo(StringBuilder in, long milliseconds, TimeUnit unit, String unitStr)
-	{
-		if (!in.toString().equals(""))
-			return;
-
-		final long duration = unit.convert(milliseconds, TimeUnit.MILLISECONDS);
-		if (duration > 1)
-			unitStr += "s";
-
-		if (duration > 0)
-			in.append("(").append(duration).append(" ").append(unitStr).append(" ago)");
-	}
-
 	private static String fuzzyTimeAgo(long ms)
 	{
-		StringBuilder s = new StringBuilder();
+		StringBuilder s = new StringBuilder("");
 
-		__fuzzyTimeAgo(s, ms, TimeUnit.DAYS,    "day");
-		__fuzzyTimeAgo(s, ms, TimeUnit.HOURS,   "hour");
-		__fuzzyTimeAgo(s, ms, TimeUnit.MINUTES, "minute");
-		__fuzzyTimeAgo(s, ms, TimeUnit.SECONDS, "second");
+		class FuzzyTime {
+			FuzzyTime(StringBuilder in, long milliseconds)
+			{
+				this.in = in;
+				this.milliseconds = milliseconds;
+			}
+
+			StringBuilder in;
+			final long milliseconds;
+
+			public void xlate(TimeUnit unit, String unitStr) {
+				if (!in.toString().equals(""))
+					return;
+
+				final long duration = unit.convert(milliseconds, TimeUnit.MILLISECONDS);
+				if (duration > 1)
+					unitStr += "s";
+
+				if (duration > 0)
+					in.append("(").append(duration).append(" ").append(unitStr).append(" ago)");
+			}
+		};
+
+		FuzzyTime f = new FuzzyTime(s, ms);
+		f.xlate(TimeUnit.DAYS,    "day");
+		f.xlate(TimeUnit.HOURS,   "hour");
+		f.xlate(TimeUnit.MINUTES, "minute");
+		f.xlate(TimeUnit.SECONDS, "second");
 
 		return s.toString();
 	}
