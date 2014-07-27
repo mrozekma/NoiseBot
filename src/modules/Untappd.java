@@ -30,8 +30,17 @@ public class Untappd extends NoiseModule {
 	private static final String COLOR_ERROR = RED + REVERSE;
 	private static final DateFormat dateFormat = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss ZZZZZ");
 
-	private static String fuzzyTimeAgo(long ms)
+	// Parse an RFC822-esque date/time and return a string indicating, fuzzily, how long ago that was
+	private static String fuzzyTimeAgo(String rfc822date)
 	{
+		final DateFormat dateFormat = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss ZZZZZ");
+		long ms = 0;
+		try {
+			ms = new Date().getTime() - dateFormat.parse(rfc822date).getTime();
+		} catch (ParseException pe) {
+			return "";
+		}
+
 		StringBuilder s = new StringBuilder("");
 
 		class FuzzyTime {
@@ -83,13 +92,7 @@ public class Untappd extends NoiseModule {
 			if (info.length > 2)
 				output += " at " + info[2];
 
-			String drankTime = "";
-			try {
-				final long ago = new Date().getTime() - dateFormat.parse(checkin.select(".time").first().text()).getTime();
-				drankTime = fuzzyTimeAgo(ago);
-			} catch (ParseException pe) { /* Eh, whatever */ }
-
-			this.bot.sendMessage(output + " " + drankTime);
+			this.bot.sendMessage(output + " " + fuzzyTimeAgo(checkin.select(".time").first().text()));
 		} catch (IOException e) {
 			this.bot.sendMessage(COLOR_ERROR + "Unable to retrieve page");
 		}
