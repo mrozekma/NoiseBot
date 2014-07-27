@@ -10,6 +10,7 @@ import org.jsoup.nodes.Element;
 import main.Message;
 import main.NoiseModule;
 import static panacea.Panacea.*;
+import static modules.Untappd.fuzzyTimeAgo;
 
 /**
  * LastFM module
@@ -18,6 +19,7 @@ import static panacea.Panacea.*;
 
 public class LastFM extends NoiseModule {
 	private static final String COLOR_ERROR = RED + REVERSE;
+
 	@Command("\\.playing (.*)")
 	public void playing(Message message, String user) {
 		try {
@@ -28,8 +30,9 @@ public class LastFM extends NoiseModule {
 			String[] parts = song.select("title").first().text().split(" – ");
 			final String track = BOLD + parts[1] + NORMAL;
 			final String artist = BOLD + parts[0] + NORMAL;
+			final String date = song.select("pubDate").first().text();
 
-			this.bot.sendMessage(track + " by " + artist);
+			this.bot.sendMessage(track + " by " + artist + " " + fuzzyTimeAgo(date));
 		} catch (IOException e) {
 			this.bot.sendMessage(COLOR_ERROR + "Unable to retrieve page");
 		}

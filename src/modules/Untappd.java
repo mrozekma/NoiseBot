@@ -31,7 +31,7 @@ public class Untappd extends NoiseModule {
 	private static final DateFormat dateFormat = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss ZZZZZ");
 
 	// Parse an RFC822-esque date/time and return a string indicating, fuzzily, how long ago that was
-	private static String fuzzyTimeAgo(String rfc822date)
+	public static String fuzzyTimeAgo(String rfc822date)
 	{
 		final DateFormat dateFormat = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss ZZZZZ");
 		long ms = 0;
