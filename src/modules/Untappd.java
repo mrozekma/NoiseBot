@@ -41,6 +41,11 @@ public class Untappd extends NoiseModule {
 			return "";
 		}
 
+		if (ms < 0)
+			return "(sometime in the future...)";
+		if (ms < 1000)
+			return "(now)";
+
 		StringBuilder s = new StringBuilder("");
 
 		class FuzzyTime {
