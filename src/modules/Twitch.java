@@ -69,10 +69,7 @@ public class Twitch extends NoiseModule {
 			info.append(')');
 
 			this.bot.sendMessage(COLOR_INFO + info.toString());
-		} catch(ParseException e) {
-			this.bot.sendMessage(COLOR_ERROR + "Problem parsing Twitch response");
-			Log.e(e);
-		} catch(JSONException e) {
+		} catch(JSONException | ParseException e) {
 			this.bot.sendMessage(COLOR_ERROR + "Problem parsing Twitch response");
 			Log.e(e);
 		} catch(FileNotFoundException e) {

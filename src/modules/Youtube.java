@@ -109,13 +109,7 @@ public class Youtube extends NoiseModule {
 		} catch(FileNotFoundException e) {
 			this.bot.sendMessage(COLOR_ERROR + "Unable to find Youtube video with ID " + videoID);
 			Log.e(e);
-		} catch(MalformedURLException e) {
-			this.bot.sendMessage(COLOR_ERROR + "Unable to contact Youtube");
-			Log.e(e);
-		} catch(SAXException e) {
-			this.bot.sendMessage(COLOR_ERROR + "Unable to contact Youtube");
-			Log.e(e);
-		} catch(IOException e) {
+		} catch(IOException | SAXException e) {
 			this.bot.sendMessage(COLOR_ERROR + "Unable to contact Youtube");
 			Log.e(e);
 		}

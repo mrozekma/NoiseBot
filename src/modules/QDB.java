@@ -128,11 +128,8 @@ public class QDB extends NoiseModule {
 		final int maxID;
 		try {
 			maxID = getMaxID();
-		} catch(IOException e) {
+		} catch(ParseException | IOException e) {
 			Log.w(e);
-			return;
-		} catch(ParseException e) {
-			Log.e(e);
 			return;
 		}
 

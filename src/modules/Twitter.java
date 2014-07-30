@@ -161,9 +161,7 @@ public class Twitter extends NoiseModule {
 					this.sinceID = tweet.getLong("id");
 				}
 			}
-		} catch(IOException e) { // Meh
-			Log.e(e);
-		} catch(JSONException e) {
+		} catch(JSONException | IOException e) { // Meh
 			Log.e(e);
 		}
 	}

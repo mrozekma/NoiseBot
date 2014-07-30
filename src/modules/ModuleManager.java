@@ -89,12 +89,7 @@ public class ModuleManager extends NoiseModule {
 					this.bot.loadModule(moduleName);
 					this.bot.sendNotice("Module " + Help.COLOR_MODULE + moduleName + NORMAL + " loaded");
 				}
-			} catch(ModuleUnloadException e) {
-				Log.e(e);
-				if(showErrors) {
-					this.bot.sendNotice(COLOR_ERROR + e.getMessage());
-				}
-			} catch(ModuleLoadException e) {
+			} catch(ModuleLoadException | ModuleUnloadException e) {
 				Log.e(e);
 				if(showErrors) {
 					this.bot.sendNotice(COLOR_ERROR + e.getMessage());
