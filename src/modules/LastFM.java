@@ -27,7 +27,7 @@ public class LastFM extends NoiseModule {
 			Element song = page.select("item").first();
 
 			// Surely no one is using this particular sequence in their track names...
-			String[] parts = song.select("title").first().text().split(" – ");
+			String[] parts = song.select("title").first().text().split(" \u2013 ");
 			final String track = BOLD + parts[1] + NORMAL;
 			final String artist = BOLD + parts[0] + NORMAL;
 			final String date = song.select("pubDate").first().text();
