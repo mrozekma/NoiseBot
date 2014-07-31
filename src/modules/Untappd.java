@@ -8,13 +8,12 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.concurrent.TimeUnit;
 import java.util.Date;
+import java.util.stream.Collectors;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-
-import panacea.MapFunction;
 
 import main.Message;
 import main.NoiseModule;
@@ -85,17 +84,10 @@ public class Untappd extends NoiseModule {
 		try {
 			Document page = Jsoup.connect("http://untappd.com/user/" + user).timeout(10000).get();
 			Element checkin = page.select(".checkin").first();
-			Elements checkinLinks = checkin.select(".text").select("a[href]");
-			checkinLinks.remove(0);
-			String[] info = map(checkinLinks.toArray(new Element[0]), new MapFunction<Element, String>() {
-				@Override public String map(Element e) {
-					return BOLD + e.text() + NORMAL;
-				}
-			});
-
-			String output = info[0] + " by " + info[1];
-			if (info.length > 2)
-				output += " at " + info[2];
+			String output = checkin.select(".text").select("a[href]").stream()
+				.skip(1)
+				.map(e -> BOLD + e.text() + NORMAL)
+				.collect(Collectors.joining(" - ")); // Just join by " - " for now since Java lacks zipWith on Streams :/
 
 			this.bot.sendMessage(output + " " + fuzzyTimeAgo(checkin.select(".time").first().text()));
 		} catch (IOException e) {
