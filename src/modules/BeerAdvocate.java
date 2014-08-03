@@ -58,8 +58,8 @@ public class BeerAdvocate extends NoiseModule {
   public void search(Message message, String toSearch)
   {
     toSearch = toSearch.replaceAll(" ", "\\+");
-    Document searchResults = snarf("http://beeradvocate.com/search?q=\""+toSearch+"\"&qt=beer");
-    String rel = searchResults.body().getElementsByTag("li").get(2).getElementsByTag("a").get(0).attr("href");
+    Document searchResults = snarf("http://beeradvocate.com/search?q="+toSearch+"&qt=beer");
+    String rel = searchResults.select("[href^=/beer/profile/]").first().attr("href");
     String url = "http://beeradvocate.com" + rel;
     this.beer(null, url);
     this.bot.sendMessage(url);
