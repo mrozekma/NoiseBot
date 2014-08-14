@@ -35,6 +35,13 @@ public class Rate extends NoiseModule {
 		this.counter.put(nick, (this.counter.containsKey(nick) ? this.counter.get(nick) : 0) + 1);
 	}
 
+	private void displayRate(final String who, final int numMessages)
+	{
+		final long secondsElapsed = (System.currentTimeMillis() - this.start) / 1000;
+		final double messagesPerMinute = ((double)numMessages / (double)secondsElapsed) * 60;
+		this.bot.sendMessage(who + " sent " + numMessages + " messages in " + formatSeconds(secondsElapsed) + " = " + round(messagesPerMinute, 2) + " messages per minute");
+	}
+
 	@Command("\\.rate")
 	public void general(Message message) {
 		final int numMessages = reduce(this.counter.values().toArray(new Integer[0]), new ReduceFunction<Integer, Integer>() {
@@ -42,9 +49,8 @@ public class Rate extends NoiseModule {
 				return source + accum;
 			}
 		}, 0);
-		final long secondsElapsed = (System.currentTimeMillis() - this.start) / 1000;
-		final double messagesPerMinute = ((double)numMessages / (double)secondsElapsed) * 60;
-		this.bot.reply(message, numMessages + " messages in " + formatSeconds(secondsElapsed) + " = " + round(messagesPerMinute, 2) + " messages per minute");
+
+		displayRate("All users", numMessages);
 	}
 
 	@Command("\\.rate (.+)")
@@ -55,9 +61,7 @@ public class Rate extends NoiseModule {
 		}
 
 		final int numMessages = this.counter.containsKey(nick) ? this.counter.get(nick) : 0;
-		final long secondsElapsed = (System.currentTimeMillis() - this.start) / 1000;
-		final double messagesPerMinute = ((double)numMessages / (double)secondsElapsed) * 60;
-		this.bot.reply(message, numMessages + " messages in " + formatSeconds(secondsElapsed) + " = " + round(messagesPerMinute, 2) + " messages per minute");
+		displayRate(nick, numMessages);
 	}
 
 	@Override public String getFriendlyName() {return "Rate";}
