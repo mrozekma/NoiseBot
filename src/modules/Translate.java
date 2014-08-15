@@ -279,7 +279,7 @@ public class Translate extends NoiseModule {
 		engrish(10, phrase);
 	}
 
-	@Command("\\.engrish ([0-9]+) (\"(.*)\"")
+	@Command("\\.engrish ([0-9]+) \"(.*)\"")
 	public void toEngrish(Message message, int times, String phrase) {
 		int boundedTimes = range(times, 1, 20);
 		engrish(times, phrase);
