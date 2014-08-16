@@ -12,6 +12,7 @@ import org.jibble.pircbot.IrcException;
 import org.jibble.pircbot.NickAlreadyInUseException;
 import org.jibble.pircbot.PircBot;
 import org.jibble.pircbot.User;
+import org.jibble.pircbot.Colors;
 
 import debugging.Log;
 
@@ -108,7 +109,7 @@ public class Server extends PircBot {
 		Log.in("<" + sender + " (" + login + " @ " + hostname + ") -> " + channel + ": " + message);
 		this.moduleDispatch(channel, new ModuleCall() {
 			@Override public void call(NoiseBot bot, NoiseModule module) {
-				module.processMessage(new Message(message.trim(), sender, false));
+				module.processMessage(new Message(Colors.removeFormattingAndColors(message.trim()), sender, false));
             }
 
 			@Override public void onException(NoiseBot bot, Exception e) {
@@ -151,7 +152,7 @@ public class Server extends PircBot {
 
 		this.moduleDispatch(channel, new ModuleCall() {
 			@Override public void call(NoiseBot bot, NoiseModule module) {
-				module.processMessage(new Message(realMessage.trim(), sender, true));
+				module.processMessage(new Message(Colors.removeFormattingAndColors(realMessage.trim()), sender, true));
             }
 
 			@Override public void onException(NoiseBot bot, Exception e) {
