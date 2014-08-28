@@ -84,7 +84,7 @@ public class Untappd extends NoiseModule {
 		try {
 			Document page = Jsoup.connect("http://untappd.com/user/" + user).timeout(10000).get();
 			Element checkin = page.select(".checkin").first();
-			String output = checkin.select(".text").select("a[href]").stream()
+			String output = checkin.select(".text").select("p").select("a[href]").stream()
 				.skip(1)
 				.map(e -> BOLD + e.text() + NORMAL)
 				.collect(Collectors.joining(" - ")); // Just join by " - " for now since Java lacks zipWith on Streams :/
