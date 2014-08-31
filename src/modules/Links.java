@@ -18,7 +18,7 @@ import static panacea.Panacea.*;
  *         Created Oct 10, 2009.
  */
 public class Links extends NoiseModule implements Serializable {
-	private static class CachedMessage implements Serializable {
+	private static class CachedMessage implements Serializable, Comparable<CachedMessage> {
 		private Date date;
 		private Message message;
 		
@@ -27,8 +27,11 @@ public class Links extends NoiseModule implements Serializable {
 			this.date = new Date();
 			this.message = message;
 		}
-		
+
+		public boolean fromUser(final String user) { return user.equals(this.message.getSender()); }
+
 		@Override public String toString() {return this.date + " " + this.message;}
+		@Override public int compareTo(CachedMessage c) { return this.date.compareTo(c.date); }
 	}
 
 	private static final String DUP_COLOR = RED;
@@ -49,7 +52,7 @@ public class Links extends NoiseModule implements Serializable {
 			this.save();
 		}
 	}
-	
+
 	@Command("\\.(?:lasturls|links) ([0-9]+)")
 	public void lastURLs(Message message, int num) {
 		num = range(num, 1, lastN.length);
@@ -57,6 +60,14 @@ public class Links extends NoiseModule implements Serializable {
 			if(lastN[i] == null) continue;
 			this.bot.reply(message, RECAP_COLOR + this.links.get(lastN[i]));
 		}
+	}
+
+	@Command("\\.(?:lasturls|links) (\\w+)")
+	public void lastURLs(Message message, String user) {
+		final int num = 5;
+		links.values().stream()
+			.filter(c -> c.fromUser(user)) .sorted().limit(num)
+			.forEach(c -> this.bot.reply(message, RECAP_COLOR + c.toString()));
 	}
 
 	@Command("\\.(?:lasturls|links)")
@@ -72,6 +83,7 @@ public class Links extends NoiseModule implements Serializable {
 				"http://www.google.com/ -- Announces that the link has been said in the past",
 				".lasturls -- Shows the last " + this.lastN.length + " URLs sent to the channel",
 				".lasturls _n_ -- Shows the last _n_ URLs sent to the channel",
+				".lasturls _user_ -- Shows the last URLs sent to the channel by _user_",
 				".links -- Same as .lasturls"
 		};
 	}
