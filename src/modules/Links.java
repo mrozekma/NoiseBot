@@ -31,7 +31,7 @@ public class Links extends NoiseModule implements Serializable {
 		public boolean fromUser(final String user) { return user.equals(this.message.getSender()); }
 
 		@Override public String toString() {return this.date + " " + this.message;}
-		@Override public int compareTo(CachedMessage c) { return this.date.compareTo(c.date); }
+		@Override public int compareTo(CachedMessage c) { return c.date.compareTo(this.date); }
 	}
 
 	private static final String DUP_COLOR = RED;
@@ -66,7 +66,7 @@ public class Links extends NoiseModule implements Serializable {
 	public void lastURLs(Message message, String user) {
 		final int num = 5;
 		links.values().stream()
-			.filter(c -> c.fromUser(user)) .sorted().limit(num)
+			.filter(c -> c.fromUser(user)).sorted().limit(num)
 			.forEach(c -> this.bot.reply(message, RECAP_COLOR + c.toString()));
 	}
 
