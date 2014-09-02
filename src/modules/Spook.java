@@ -10,7 +10,7 @@ import java.util.Set;
 import java.util.Vector;
 
 import main.Message;
-import main.ModuleLoadException;
+import main.ModuleInitException;
 import main.NoiseBot;
 import main.NoiseModule;
 
@@ -32,8 +32,8 @@ public class Spook extends NoiseModule {
 
 	private Vector<String> lines;
 
-	@Override public void init(NoiseBot bot, Map<String, String> config) throws ModuleLoadException {
-		super.init(bot, config);
+	@Override public void init(NoiseBot bot) throws ModuleInitException {
+		super.init(bot);
 		try {
 			this.lines = new Vector<String>();
 			final Scanner s = new Scanner(SPOOK_FILE);

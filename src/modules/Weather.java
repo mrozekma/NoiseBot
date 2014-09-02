@@ -15,7 +15,7 @@ import java.net.URL;
 import java.net.URLEncoder;
 
 import main.Message;
-import main.ModuleLoadException;
+import main.ModuleInitException;
 import main.NoiseBot;
 import main.NoiseModule;
 
@@ -136,14 +136,11 @@ public class Weather extends NoiseModule implements Serializable
 		put("Thunderstorms", "storms");
 	}};
 
-	// nick -> user's location. Perfect for NSA surveillance teams
-	private transient String appid;
-	private final Map<String, Location> locations = new HashMap<String, Location>();
+	@Configurable("appid")
+	private transient String appid = null;
 
-	@Override public void init(NoiseBot bot, Map<String, String> config) throws ModuleLoadException {
-	    super.init(bot, config);
-	    this.appid = config.containsKey("appid") ? config.get("appid") : null;
-	}
+	// nick -> user's location. Perfect for NSA surveillance teams
+	private final Map<String, Location> locations = new HashMap<String, Location>();
 
 	private static Document getXML(String url) throws Exception {
 		return Jsoup.parse(new URL(url), TIMEOUT * 1000);

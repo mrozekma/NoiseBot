@@ -10,7 +10,7 @@ import java.util.Vector;
 
 import debugging.Log;
 import main.Message;
-import main.ModuleLoadException;
+import main.ModuleInitException;
 import main.NoiseBot;
 import main.NoiseModule;
 
@@ -30,8 +30,8 @@ public class Fortune extends NoiseModule {
 
 	private String[] fortunes;
 
-	@Override public void init(NoiseBot bot, Map<String, String> config) throws ModuleLoadException {
-		super.init(bot, config);
+	@Override public void init(NoiseBot bot) throws ModuleInitException {
+		super.init(bot);
 		try {
 			final Vector<String> fortunesVec = new Vector<String>();
 			final BufferedReader r = new BufferedReader(new FileReader(FORTUNE_FILE));

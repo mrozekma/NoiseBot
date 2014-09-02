@@ -5,7 +5,7 @@ import static org.jibble.pircbot.Colors.*;
 import java.util.Map;
 
 import main.Message;
-import main.ModuleLoadException;
+import main.ModuleInitException;
 import main.NoiseBot;
 import main.NoiseModule;
 
@@ -25,8 +25,8 @@ public class Christmas extends NoiseModule {
 
 	private boolean odd = false;
 
-	@Override public void init(NoiseBot bot, Map<String, String> config) throws ModuleLoadException {
-		super.init(bot, config);
+	@Override public void init(NoiseBot bot) throws ModuleInitException {
+		super.init(bot);
 		this.talked(null);
 	}
 

@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.Set;
 
 import main.Message;
-import main.ModuleLoadException;
+import main.ModuleInitException;
 import main.NoiseBot;
 import main.NoiseModule;
 

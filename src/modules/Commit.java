@@ -12,7 +12,7 @@ import java.util.Vector;
 import debugging.Log;
 
 import main.Message;
-import main.ModuleLoadException;
+import main.ModuleInitException;
 import main.NoiseBot;
 import main.NoiseModule;
 
@@ -35,8 +35,8 @@ public class Commit extends NoiseModule {
 
 	private String[] messages;
 
-	@Override public void init(NoiseBot bot, Map<String, String> config) throws ModuleLoadException {
-		super.init(bot, config);
+	@Override public void init(NoiseBot bot) throws ModuleInitException {
+		super.init(bot);
 		this.messages = new String[0];
 		try {
 			final Vector<String> messages = new Vector<String>();

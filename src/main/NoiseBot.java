@@ -122,7 +122,7 @@ public class NoiseBot {
 		// Always load the module manager
 		try {
 			this.loadModule("ModuleManager");
-		} catch(ModuleLoadException e) {
+		} catch(ModuleInitException e) {
 			Log.e(e);
 		}
 
@@ -148,10 +148,10 @@ public class NoiseBot {
 			if(moduleName.equals("ModuleManager")) {continue;}
 			try {
 				this.loadModule(moduleName);
-			} catch(ModuleLoadException e) {
+			} catch(ModuleInitException e) {
 				Log.e("Failed loading module %s", moduleName);
 				Log.e(e);
-				this.sendMessage(COLOR_ERROR + String.format("Failed loading module %s: %s", moduleName, e));
+				this.sendMessage(COLOR_ERROR + String.format("Failed loading module %s: %s", moduleName, e.getMessage()));
 			}
 		}
 
@@ -200,17 +200,16 @@ public class NoiseBot {
 		}
 	}
 
-	public void loadModule(String moduleName) throws ModuleLoadException {
+	public void loadModule(String moduleName) throws ModuleInitException {
 		Log.i("Loading module: %s", moduleName);
 		if(this.modules.containsKey(moduleName)) {
-			throw new ModuleLoadException("Module " + moduleName + " already loaded");
+			throw new ModuleInitException("Module " + moduleName + " already loaded");
 		} else if(!moduleName.equals("ModuleManager") && this.server.getConnection().fixedModules != null && !Arrays.asList(this.server.getConnection().fixedModules).contains(moduleName)) {
-			throw new ModuleLoadException("This bot does not allow dynamic module loading");
+			throw new ModuleInitException("This bot does not allow dynamic module loading");
 		}
 
+		NoiseModule module;
 		try {
-			NoiseModule module;
-
 			// Reloading the class will refresh its file dependencies
 			synchronized(moduleFileDeps) {
 				moduleFileDeps.remove(moduleName);
@@ -227,33 +226,23 @@ public class NoiseBot {
 			}
 
 			if(module.getFriendlyName() == null) {
-				throw new ModuleLoadException("Module " + moduleName + " does not have a friendly name");
+				throw new ModuleInitException("Module " + moduleName + " does not have a friendly name");
 			}
 
-			final Map<String, String> moduleConfig = new HashMap<String, String>();
-			if(NoiseBot.config.containsKey("modules")) {
-				final StringMap data = (StringMap)NoiseBot.config.get("modules");
-				if(data.containsKey(moduleName)) {
-					final StringMap moduleData = (StringMap)data.get(moduleName);
-					for(Object _entry : moduleData.entrySet()) {
-						final Map.Entry<String, String> entry = (Map.Entry<String, String>)_entry;
-						moduleConfig.put(entry.getKey(), entry.getValue());
-					}
-				}
-			}
-
-			module.init(this, moduleConfig);
+			module.init(this);
 			this.modules.put(moduleName, module);
 		} catch(ClassCastException e) {
 			Log.e(e);
-			throw new ModuleLoadException("Defined module " + moduleName + " does not extend NoiseModule");
+			throw new ModuleInitException("Defined module " + moduleName + " does not extend NoiseModule");
 		} catch(ClassNotFoundException e) {
 			Log.e(e);
-			throw new ModuleLoadException("Unable to instantiate module " + moduleName + ": Module does not exist");
+			throw new ModuleInitException("Unable to instantiate module " + moduleName + ": Module does not exist");
 		} catch(Exception e) {
 			Log.e(e);
-			throw new ModuleLoadException("Unable to instantiate module " + moduleName + ": " + e.getMessage());
+			throw new ModuleInitException("Unable to instantiate module " + moduleName + ": " + e.getMessage());
 		}
+
+		this.setModuleConfig(module);
 	}
 
 	public void unloadModule(String moduleName, boolean reloading) throws ModuleUnloadException {
@@ -284,15 +273,55 @@ public class NoiseBot {
 		if(!reloading && moduleName.equals("ModuleManager")) {
 			try {
 				loadModule(moduleName);
-			} catch(ModuleLoadException e) {
+			} catch(ModuleInitException e) {
 				throw new ModuleUnloadException(e);
 			}
 		}
 	}
 
-	public void reloadModule(String moduleName) throws ModuleLoadException, ModuleUnloadException {
+	public void reloadModule(String moduleName) throws ModuleInitException, ModuleUnloadException {
 		this.unloadModule(moduleName, true);
 		this.loadModule(moduleName);
+	}
+
+	private void setModuleConfig(NoiseModule module) throws ModuleInitException {
+		final String moduleName = module.getClass().getSimpleName();
+		final Map<String, Object> moduleConfig = new HashMap<String, Object>();
+		if(NoiseBot.config.containsKey("modules")) {
+			final StringMap data = (StringMap)NoiseBot.config.get("modules");
+			if(data.containsKey(moduleName)) {
+				final StringMap moduleData = (StringMap)data.get(moduleName);
+				for(Object _entry : moduleData.entrySet()) {
+					final Map.Entry<String, Object> entry = (Map.Entry<String, Object>)_entry;
+					moduleConfig.put(entry.getKey(), entry.getValue());
+				}
+			}
+		}
+
+		module.setConfig(moduleConfig);
+	}
+
+	private static void loadConfig() {
+		try {
+			NoiseBot.config = Serializer.deserialize(CONFIG_FILENAME, StringMap.class);
+		} catch(FileNotFoundException e) {
+			NoiseBot.config = new StringMap();
+		}
+	}
+
+	public static void rehash() {
+		//TODO Possibly act on other changed config values, like connection details
+		NoiseBot.loadConfig();
+
+		for(NoiseBot bot : NoiseBot.bots.values()) {
+			for(NoiseModule module : bot.modules.values()) {
+				try {
+					bot.setModuleConfig(module);
+				} catch(ModuleInitException e) {
+					bot.sendMessage(COLOR_ERROR + e.getMessage());
+				}
+			}
+		}
 	}
 
 	public String getBotNick() {
@@ -380,7 +409,7 @@ public class NoiseBot {
 			for(String moduleName : moduleNames) {
 				try {
 					this.reloadModule(moduleName);
-				} catch(ModuleLoadException e) {
+				} catch(ModuleInitException e) {
 					throw new Git.SyncException("Unable to load module " + moduleName);
 				} catch(ModuleUnloadException e) {
 					throw new Git.SyncException("Unable to unload module " + moduleName);
@@ -494,11 +523,7 @@ public class NoiseBot {
 
 	public static void main(String[] args) {
 		Log.i("NoiseBot has started");
-		try {
-			NoiseBot.config = Serializer.deserialize(CONFIG_FILENAME, StringMap.class);
-		} catch(FileNotFoundException e) {
-			NoiseBot.config = new StringMap();
-		}
+		NoiseBot.loadConfig();
 		final String[] connectionNames = args.length == 0 ? new String[] {DEFAULT_CONNECTION} : args;
 
 		//TODO Actually check that the whole config is sane, instead of checking like 25% of it

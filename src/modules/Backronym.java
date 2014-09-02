@@ -8,16 +8,12 @@ import java.util.Scanner;
 import java.util.Vector;
 
 import debugging.Log;
-
 import au.com.bytecode.opencsv.CSVParser;
-
 import main.Message;
-import main.ModuleLoadException;
+import main.ModuleInitException;
 import main.NoiseBot;
 import main.NoiseModule;
-
 import static org.jibble.pircbot.Colors.*;
-
 import static panacea.Panacea.*;
 
 /**
@@ -32,13 +28,19 @@ public class Backronym extends NoiseModule {
 
 	private final CSVParser parser = new CSVParser(' ');
 
+	@Configurable("dictionary-file")
+	private File dictionaryFile = null;
+
 	private HashMap<Character, String[]> words;
 	private String[] dict;
 
-	@Override public void init(NoiseBot bot, Map<String, String> config) throws ModuleLoadException {
-		super.init(bot, config);
-		if(!config.containsKey("dictionary-file")) {
-			throw new ModuleLoadException("No dictionary file specified in configuration");
+	@Override public void setConfig(Map<String, Object> config) throws ModuleInitException {
+		super.setConfig(config);
+		this.words = null;
+		this.dict = null;
+
+		if(this.dictionaryFile == null) {
+			return;
 		}
 
 		final HashMap<Character, Vector<String>> words = new HashMap<Character, Vector<String>>(26);
@@ -48,7 +50,7 @@ public class Backronym extends NoiseModule {
 		}
 
 		try {
-			final Scanner s = new Scanner(new File(config.get("dictionary-file")));
+			final Scanner s = new Scanner(this.dictionaryFile);
 			while(s.hasNextLine()) {
 				final String line = s.nextLine();
 				final String word = line.substring(2);
@@ -60,7 +62,7 @@ public class Backronym extends NoiseModule {
 			}
 		} catch(FileNotFoundException e) {
 			Log.e(e);
-			throw new ModuleLoadException("No dictionary found");
+			throw new ModuleInitException("No dictionary found");
 		}
 
 		this.words = new HashMap<Character, String[]>(words.size());
@@ -72,6 +74,10 @@ public class Backronym extends NoiseModule {
 
 	@Command("\\.b(?:ackronym)? ([A-Za-z]+)")
 	public void backronym(Message message, String letters) {
+		if(this.words == null) {
+			this.bot.sendMessage(COLOR_ERROR + "No dictionary file loaded");
+			return;
+		}
 		if(letters.length() > 16) {
 			this.bot.reply(message, COLOR_ERROR + "Maximum length: 16");
 			return;
@@ -87,6 +93,10 @@ public class Backronym extends NoiseModule {
 
 	@Command("\\.b(?:ackronym)? (.*[^A-Za-z].*)")
 	public void backronymRegex(Message message, String line) {
+		if(this.dict == null) {
+			this.bot.sendMessage(COLOR_ERROR + "No dictionary file loaded");
+			return;
+		}
 		try {
 			final String[] choices = this.parser.parseLine(line);
 			if(choices.length > 16) {
@@ -100,7 +110,7 @@ public class Backronym extends NoiseModule {
 				else if (choices[i].length() < 2 || choices[i].charAt(1) != ':')
 					choices[i] = ".:" + choices[i];
 
-				String matches[] = getMatches(dict, choices[i]);
+				String matches[] = getMatches(this.dict, choices[i]);
 				if (matches.length > 0)
 					choices[i] = getRandom(matches);
 				choices[i] = choices[i].substring(2);

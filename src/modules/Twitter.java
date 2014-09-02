@@ -21,7 +21,7 @@ import org.json.JSONObject;
 import debugging.Log;
 
 import main.Message;
-import main.ModuleLoadException;
+import main.ModuleInitException;
 import main.NoiseBot;
 import main.NoiseModule;
 
@@ -37,25 +37,30 @@ public class Twitter extends NoiseModule {
 	private static final String TWITTER_URL_PATTERN = "https?://(?:mobile\\.)?twitter.com/.*/status(?:es)?/([0-9]+)";
 	private static final int PERIOD = 30; // seconds
 
-	private String key, secret;
-	private String token;
+	@Configurable("key")
+	private String key = null;
+
+	@Configurable("secret")
+	private String secret = null;
+
+	private String token = null;
 	private long sinceID = 0;
-	private final Timer timer = new Timer();
+	private Timer timer = null;
 
 	private static final String COLOR_ERROR = RED;
 	private static final String COLOR_INFO = PURPLE;
 
-	@Override public void init(NoiseBot bot, Map<String, String> config) throws ModuleLoadException {
-		super.init(bot, config);
-		if(!config.containsKey("key")) {
-			throw new ModuleLoadException("No Twitter key specified in configuration");
+	@Override public void setConfig(final Map<String, Object> config) throws ModuleInitException {
+		if(this.timer != null) {
+			this.timer.cancel();
+			this.timer = null;
 		}
-		this.key = config.get("key");
-		if(!config.containsKey("secret")) {
-			throw new ModuleLoadException("No Twitter secret specified in configuration");
-		}
-		this.secret = config.get("secret");
 
+		if(this.key == null || this.secret == null) {
+			return;
+		}
+
+		this.timer = new Timer();
 		this.token = this.authenticate();
 		if(this.token != null) {
 			this.timer.scheduleAtFixedRate(new TimerTask() {

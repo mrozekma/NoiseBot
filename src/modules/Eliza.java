@@ -6,7 +6,7 @@ import java.util.Map;
 import eliza.ElizaMain;
 
 import main.Message;
-import main.ModuleLoadException;
+import main.ModuleInitException;
 import main.NoiseBot;
 import main.NoiseModule;
 
@@ -21,8 +21,8 @@ public class Eliza extends NoiseModule {
 
 	private ElizaMain eliza;
 
-	@Override public void init(NoiseBot bot, Map<String, String> config) throws ModuleLoadException {
-		super.init(bot, config);
+	@Override public void init(NoiseBot bot) throws ModuleInitException {
+		super.init(bot);
 		this.eliza = new ElizaMain();
 		this.eliza.readScript(true, SCRIPT_FILE.getAbsolutePath());
 	}

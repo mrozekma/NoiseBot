@@ -6,7 +6,7 @@ import java.util.Map;
 import panacea.ReduceFunction;
 
 import main.Message;
-import main.ModuleLoadException;
+import main.ModuleInitException;
 import main.NoiseBot;
 import main.NoiseModule;
 import static main.Utilities.formatSeconds;
@@ -23,9 +23,9 @@ public class Rate extends NoiseModule {
 	private long start;
 	private Map<String, Integer> counter = new HashMap<String, Integer>();
 
-	@Override public void init(NoiseBot bot, Map<String, String> config) throws ModuleLoadException {
-		super.init(bot, config);
-		this.start	= System.currentTimeMillis();
+	@Override public void init(NoiseBot bot) throws ModuleInitException {
+		super.init(bot);
+		this.start = System.currentTimeMillis();
 	}
 
 	@Override public void processMessage(Message message) {

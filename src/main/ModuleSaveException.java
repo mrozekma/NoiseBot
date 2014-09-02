@@ -1,7 +1,7 @@
 package main;
 
 /**
- * ModuleLoadException
+ * ModuleSaveException
  *
  * @author Michael Mrozek
  *         Created Jul 18, 2009.

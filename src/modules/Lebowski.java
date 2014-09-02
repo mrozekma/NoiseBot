@@ -16,7 +16,7 @@ import java.util.Vector;
 import debugging.Log;
 
 import main.Message;
-import main.ModuleLoadException;
+import main.ModuleInitException;
 import main.NoiseBot;
 import main.NoiseModule;
 
@@ -144,8 +144,8 @@ public class Lebowski extends NoiseModule {
 	private List<Match> undisplayedMatches = null;
 	private String lastMatchedUserMessage = null;
 
-	@Override public void init(NoiseBot bot, Map<String, String> config) throws ModuleLoadException {
-		super.init(bot, config);
+	@Override public void init(NoiseBot bot) throws ModuleInitException {
+		super.init(bot);
 		this.limiter = new RateLimiter();
 		this.lines = new String[0];
 		try {

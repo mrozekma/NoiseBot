@@ -13,12 +13,10 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import debugging.Log;
-
 import main.Message;
-import main.ModuleLoadException;
+import main.ModuleInitException;
 import main.NoiseBot;
 import main.NoiseModule;
-
 import static panacea.Panacea.*;
 
 /**
@@ -33,15 +31,8 @@ public class Imgur extends NoiseModule {
 	private static final String COLOR_INFO = PURPLE;
 	private static final String COLOR_ERROR = RED + REVERSE;
 
-	private String clientID;
-
-	@Override public void init(NoiseBot bot, Map<String, String> config) throws ModuleLoadException {
-		super.init(bot, config);
-		if(!config.containsKey("client-id")) {
-			throw new ModuleLoadException("No Imgur client ID specified in configuration");
-		}
-		this.clientID = config.get("client-id");
-	}
+	@Configurable("client-id")
+	private String clientID = null;
 
 	@Command(".*" + URL_PATTERN + ".*")
 	public void imgur(Message message, String imgID) {

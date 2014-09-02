@@ -16,9 +16,12 @@ import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.text.StrSubstitutor;
 import org.jibble.pircbot.User;
@@ -51,11 +54,19 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 		boolean caseSensitive() default true;
 	}
 
+	// Field is loaded from the config file
+	@Retention(RetentionPolicy.RUNTIME)
+	@Target(ElementType.FIELD)
+	protected static @interface Configurable {
+		String value(); // Config key
+		boolean required() default true; // If the field is null, this module won't fire
+	}
+
 	protected transient NoiseBot bot;
 	protected transient Map<Pattern, Method> patterns = new LinkedHashMap<Pattern, Method>();
 	protected transient Map<Pattern, Method> pmPatterns = new LinkedHashMap<Pattern, Method>();
 
-	public void init(final NoiseBot bot, final Map<String, String> config) throws ModuleLoadException {
+	public void init(final NoiseBot bot) throws ModuleInitException {
 		this.bot = bot;
 		Log.v(this + " - Init");
 
@@ -81,19 +92,93 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 		}
 	}
 
+	public void setConfig(final Map<String, Object> config) throws ModuleInitException {
+		final List<String> errors = new LinkedList<String>();
+		for(Field field : this.getClass().getDeclaredFields()) {
+			final Configurable configurable = field.getAnnotation(Configurable.class);
+			if(configurable != null) {
+				// Set to null (if possible), in case of error
+				// Primitive types are left unchanged
+				field.setAccessible(true);
+				try {
+					field.set(this, null);
+				} catch(IllegalArgumentException|IllegalAccessException e) {}
+
+				if(config.containsKey(configurable.value())) {
+					final Object val = config.get(configurable.value());
+					Log.i("Setting field from configuration entry `%s'", configurable.value());
+					try {
+						if(field.getType() == boolean.class && val.getClass() == Boolean.class) {
+							field.setBoolean(this, (boolean)val);
+						} else if(field.getType() == char.class && val.getClass() == Character.class) {
+							field.setChar(this, (char)val);
+						} else if(field.getType() == int.class && val.getClass() == Integer.class) {
+							field.setInt(this, (int)val);
+						} else if(field.getType() == int.class && val.getClass() == Double.class) {
+							field.setInt(this, (int)(double)val);
+						} else if(field.getType() == double.class && (val.getClass() == Integer.class || val.getClass() == Double.class)) {
+							field.setDouble(this, (double)val);
+						} else if(field.getType() == String.class && val.getClass() == String.class) {
+							field.set(this, val);
+						} else if(field.getType() == File.class && val.getClass() == String.class) {
+							final File file = new File((String)val);
+							if(file.exists()) {
+								field.set(this, file);
+							} else {
+								errors.add(String.format("Config entry `%s' points to non-existent file", configurable.value()));
+							}
+						} else {
+							errors.add(String.format("Config entry `%s' should be of type %s", configurable.value(), field.getType()));
+						}
+					} catch(IllegalAccessException e) {
+						Log.e("Unable to set module field");
+						Log.e(e);
+					}
+				} else if(configurable.required()) {
+					errors.add(String.format("Missing config entry `%s'", configurable.value()));
+				} else {
+					Log.v("Skipping missing config entry `%s'", configurable.value());
+				}
+			}
+		}
+
+		if(!errors.isEmpty()) {
+			throw new ModuleInitException("Invalid " + this.getClass().getSimpleName() + " configuration: " + errors.stream().collect(Collectors.joining(", ")));
+		}
+	}
+
 	public void unload() {
 		Log.v(this + " - Unload");
 	}
 
-	public void onJoin(String sender, String login, String hostname) {this.joined(sender);}
-	public void onPart(String sender, String login, String hostname) {this.left(sender);}
+	private boolean isEnabled() {
+		for(Field field : this.getClass().getDeclaredFields()) {
+			final Configurable configurable = field.getAnnotation(Configurable.class);
+			if(configurable != null) {
+				field.setAccessible(true);
+				try {
+					if(field.get(this) == null) {
+						return false;
+					}
+				} catch(IllegalAccessException e) {
+					Log.e(e);
+				}
+			}
+		}
+		return true;
+	}
+
+	public void onJoin(String sender, String login, String hostname) {if(this.isEnabled()) {this.joined(sender);}}
+	public void onPart(String sender, String login, String hostname) {if(this.isEnabled()) {this.left(sender);}}
 	public void onUserList(User[] users) {
+		if(!this.isEnabled()) {return;}
 		for(User user : users) {
 			this.joined(user.getNick());
 		}
 	}
-	public void onKick(String kickerNick,String kickerLogin, String kickerHostname, String recipientNick,String reason) {this.left(recipientNick);}
+	public void onKick(String kickerNick,String kickerLogin, String kickerHostname, String recipientNick, String reason) {if(this.isEnabled()) {this.left(recipientNick);}}
 	public void onNickChange(String oldNick, String login, String hostname, String newNick) {
+		if(!this.isEnabled()) {return;}
 		this.left(oldNick);
 		this.joined(newNick);
 	}
@@ -112,6 +197,10 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 	public Pattern[] getPatterns() {return this.patterns.keySet().toArray(new Pattern[0]);}
 
 	public void processMessage(Message message) {
+		if(!this.isEnabled()) {
+			Log.i(this + " - Skipping, module disabled");
+			return;
+		}
 		Log.v(this + " - Processing message: %s", message);
 		for(Pattern pattern : (message.isPM() ? this.pmPatterns : this.patterns).keySet()) {
 			Log.v("Trying pattern: %s", pattern);

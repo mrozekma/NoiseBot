@@ -7,9 +7,10 @@ import panacea.MapFunction;
 
 import main.Git;
 import main.Message;
-import main.ModuleLoadException;
+import main.ModuleInitException;
 import main.ModuleSaveException;
 import main.ModuleUnloadException;
+import main.NoiseBot;
 import main.NoiseModule;
 import main.Git.SyncException;
 import static panacea.Panacea.*;
@@ -41,7 +42,7 @@ public class ModuleManager extends NoiseModule {
 				}
 
 				this.bot.sendNotice("Module " + Help.COLOR_MODULE + moduleName + NORMAL + " loaded");
-			} catch(ModuleLoadException e) {
+			} catch(ModuleInitException e) {
 				Log.e(e);
 				if(showErrors) {
 					this.bot.sendNotice(COLOR_ERROR + e.getMessage());
@@ -89,7 +90,7 @@ public class ModuleManager extends NoiseModule {
 					this.bot.loadModule(moduleName);
 					this.bot.sendNotice("Module " + Help.COLOR_MODULE + moduleName + NORMAL + " loaded");
 				}
-			} catch(ModuleLoadException | ModuleUnloadException e) {
+			} catch(ModuleInitException | ModuleUnloadException e) {
 				Log.e(e);
 				if(showErrors) {
 					this.bot.sendNotice(COLOR_ERROR + e.getMessage());
@@ -116,6 +117,18 @@ public class ModuleManager extends NoiseModule {
 		}
 	}
 
+	@Command("\\.rehash")
+	public void rehash(Message message) {
+		this.triggerIfOwner(message, new Runnable() {
+			@Override public void run() {
+				for(NoiseBot bot : NoiseBot.bots.values()) {
+					bot.sendMessage("Reloading configuration");
+				}
+				NoiseBot.rehash();
+			}
+		}, true);
+	}
+
 	@Override public String getDescription() {return "Manages modules";}
 	@Override public String getFriendlyName() {return "Module Manager";}
 	@Override public String[] getExamples() {
@@ -123,8 +136,7 @@ public class ModuleManager extends NoiseModule {
 				".load _module_ -- Loads the specified module",
 				".unload _module_ -- Unloads the specified module",
 				".reload _module_ -- Unloads and then loads the specified module",
-				".sync _branch_ -- Fast-forward to the specified branch, and reload any modified modules",
-				".co _branch_ -- Same as .sync",
+				".sync -- Manually pull updates from upstream",
 				".rev -- Show the current revision"
 		};
 	}

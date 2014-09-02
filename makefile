@@ -24,3 +24,7 @@ clean:
 $(OBJECTS): $(SOURCES)
 	mkdir -p bin;      \
 	javac -cp $(CLASSPATH) -d bin $+
+
+.PHONY: check-syntax
+check-syntax:
+	javac -cp $(CLASSPATH) -Xlint:-serial ${CHK_SOURCES}

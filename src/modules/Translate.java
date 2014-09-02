@@ -11,7 +11,7 @@ import java.util.Scanner;
 import java.util.Optional;
 
 import main.Message;
-import main.ModuleLoadException;
+import main.ModuleInitException;
 import main.NoiseBot;
 import main.NoiseModule;
 import static main.Utilities.getJSON;
@@ -99,15 +99,8 @@ public class Translate extends NoiseModule {
 		}
 	}};
 
-	private String key;
-
-	@Override public void init(NoiseBot bot, Map<String, String> config) throws ModuleLoadException {
-		super.init(bot, config);
-		if(!config.containsKey("key")) {
-			throw new ModuleLoadException("No Google Translate key specified in configuration");
-		}
-		this.key = config.get("key");
-	}
+	@Configurable("key")
+	private String key = null;
 
 	class Phrase {
 		private String code;
