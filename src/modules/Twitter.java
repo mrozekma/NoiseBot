@@ -53,6 +53,8 @@ public class Twitter extends NoiseModule {
 	private static final String COLOR_INFO = PURPLE;
 
 	@Override public void setConfig(final Map<String, Object> config) throws ModuleInitException {
+		super.setConfig(config);
+
 		if(this.timer != null) {
 			this.timer.cancel();
 			this.timer = null;
