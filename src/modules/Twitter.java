@@ -18,6 +18,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import org.jsoup.Jsoup;
+
 import debugging.Log;
 
 import main.Message;
@@ -172,6 +174,7 @@ public class Twitter extends NoiseModule {
 	}
 
 	private void emitTweet(String username, String text) {
+		text = Jsoup.parse(text).text();
 		this.bot.sendMessage(COLOR_INFO + UNDERLINE + "@" + username + NORMAL + COLOR_INFO + ": " + encoded(text.replace("\n", " ")));
 	}
 
