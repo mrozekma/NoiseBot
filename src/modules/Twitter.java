@@ -75,7 +75,9 @@ public class Twitter extends NoiseModule {
 
 	@Override public void unload() {
 		super.unload();
-		this.timer.cancel();
+		if(this.timer != null) {
+			this.timer.cancel();
+		}
 	}
 
 	private String authenticate() {
