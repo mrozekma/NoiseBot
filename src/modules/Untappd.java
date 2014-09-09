@@ -95,6 +95,26 @@ public class Untappd extends NoiseModule {
 		}
 	}
 
+	@Command("\\.drankstats (.*)")
+	public void drankstats(Message m, String user) {
+		try {
+			Document page = Jsoup.connect("http://untappd.com/user/" + user).timeout(10000).get();
+			Elements statDiv = page.select(".stats").first().select("span");
+			Elements titles = statDiv.select(".title");
+			Elements stats = statDiv.select(".stat");
+			String s = "";
+			for (int i = 0; i < titles.size(); i++) {
+				s += titles.get(i).text() + ": " + stats.get(i).text();
+				if ((i + 1) != titles.size())
+					s += ", ";
+			}
+
+			this.bot.sendMessage(s);
+		} catch (IOException e) {
+			this.bot.sendMessage(COLOR_ERROR + "Unable to retrieve page");
+		}
+	}
+
 	@Override public String getFriendlyName() { return "Untappd"; }
 	@Override public String getDescription() { return "Show what an untappd user last drank"; }
 	@Override public String[] getExamples() { return new String[] { ".drank <untappd user>" }; }
