@@ -9,6 +9,9 @@ import java.text.SimpleDateFormat;
 import java.util.concurrent.TimeUnit;
 import java.util.Date;
 import java.util.stream.Collectors;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -28,6 +31,18 @@ import static panacea.Panacea.*;
 public class Untappd extends NoiseModule {
 	private static final String COLOR_ERROR = RED + REVERSE;
 	private static final DateFormat dateFormat = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss ZZZZZ");
+	private static final Map<String, String> RATING_MAP = new HashMap<String, String>() {{
+		put("r05", "½");
+		put("r15", "*½");
+		put("r25", "**½");
+		put("r35", "***½");
+		put("r45", "****½");
+		put("r10", "*");
+		put("r20", "**");
+		put("r30", "***");
+		put("r40", "****");
+		put("r50", "*****");
+	}};
 
 	// Parse an RFC822-esque date/time and return a string indicating, fuzzily, how long ago that was
 	public static String fuzzyTimeAgo(String rfc822date)
@@ -89,7 +104,16 @@ public class Untappd extends NoiseModule {
 				.map(e -> BOLD + e.text() + NORMAL)
 				.collect(Collectors.joining(" - ")); // Just join by " - " for now since Java lacks zipWith on Streams :/
 
-			this.bot.sendMessage(output + " " + fuzzyTimeAgo(checkin.select(".time").first().text()));
+			final Set<String> classes = checkin.select("span[class^=rating]").first().classNames();
+			String rating = "";
+			for (String c : classes) {
+				if (RATING_MAP.containsKey(c)) {
+					rating = " - " + BOLD + RATING_MAP.get(c) + NORMAL;
+					break;
+				}
+			}
+
+			this.bot.sendMessage(output + rating + " " + fuzzyTimeAgo(checkin.select(".time").first().text()));
 		} catch (IOException e) {
 			this.bot.sendMessage(COLOR_ERROR + "Unable to retrieve page");
 		}
