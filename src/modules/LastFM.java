@@ -3,6 +3,7 @@ package modules;
 import static org.jibble.pircbot.Colors.*;
 
 import java.io.IOException;
+import java.util.stream.Collectors;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -38,7 +39,26 @@ public class LastFM extends NoiseModule {
 		}
 	}
 
+	@Command("\\.top10 (.*)")
+	public void top10(Message message, String user) {
+		try {
+			Document page = Jsoup.connect("http://ws.audioscrobbler.com/2.0/user/" + user + "/topartists.xml").timeout(10000).get();
+			String top = page.select("topartists").first().select("artist").stream()
+				.limit(10)
+				.map(a -> a.select("name").first().text() + " (" + a.select("playcount").first().text() + ")")
+				.collect(Collectors.joining(" - ")); // Just join by " - " for now since Java lacks zipWith on Streams :/
+
+			this.bot.sendMessage(top);
+		} catch (IOException e) {
+			this.bot.sendMessage(COLOR_ERROR + "Unable to retrieve page");
+		}
+	}
+
+
 	@Override public String getFriendlyName() { return "LastFM"; }
 	@Override public String getDescription() { return "Show what a last.fm user last played"; }
-	@Override public String[] getExamples() { return new String[] { ".playing <last.fm user>" }; }
+	@Override public String[] getExamples() { return new String[] {
+		".playing <last.fm user>",
+		".top10 <last.fm user> -- show user's top10 most played artists"
+	}; }
 }
