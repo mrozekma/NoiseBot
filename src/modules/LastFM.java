@@ -39,11 +39,10 @@ public class LastFM extends NoiseModule {
 		}
 	}
 
-	@Command("\\.top10 (.*)")
-	public void top10(Message message, String user) {
+	private void top(String user, String which) {
 		try {
-			Document page = Jsoup.connect("http://ws.audioscrobbler.com/2.0/user/" + user + "/topartists.xml").timeout(10000).get();
-			String top = page.select("topartists").first().select("artist").stream()
+			Document page = Jsoup.connect("http://ws.audioscrobbler.com/2.0/user/" + user + "/" + which + ".xml").timeout(10000).get();
+			String top = page.select(which).first().select("artist").stream()
 				.limit(10)
 				.map(a -> a.select("name").first().text() + " (" + a.select("playcount").first().text() + ")")
 				.collect(Collectors.joining(" - ")); // Just join by " - " for now since Java lacks zipWith on Streams :/
@@ -54,11 +53,17 @@ public class LastFM extends NoiseModule {
 		}
 	}
 
+	@Command("\\.top10 (.*)")
+	public void top10(Message message, String user) { top(user, "topartists"); }
+
+	@Command("\\.top10week (.*)")
+	public void top10week(Message message, String user) { top(user, "weeklyartistchart"); }
 
 	@Override public String getFriendlyName() { return "LastFM"; }
 	@Override public String getDescription() { return "Show what a last.fm user last played"; }
 	@Override public String[] getExamples() { return new String[] {
 		".playing <last.fm user>",
-		".top10 <last.fm user> -- show user's top10 most played artists"
+		".top10 <last.fm user> -- show user's top10 most played artists",
+		".top10week <last.fm user> -- show user's top10 most played artists for the week"
 	}; }
 }
