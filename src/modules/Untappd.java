@@ -104,14 +104,15 @@ public class Untappd extends NoiseModule {
 				.map(e -> BOLD + e.text() + NORMAL)
 				.collect(Collectors.joining(" - ")); // Just join by " - " for now since Java lacks zipWith on Streams :/
 
-			final Set<String> classes = checkin.select("span[class^=rating]").first().classNames();
 			String rating = "";
-			for (String c : classes) {
-				if (RATING_MAP.containsKey(c)) {
-					rating = " - " + BOLD + RATING_MAP.get(c) + NORMAL;
-					break;
+			final Element ratingElem = checkin.select("span[class^=rating]").first();
+			if (ratingElem != null)
+				for (String c : ratingElem.classNames()) {
+					if (RATING_MAP.containsKey(c)) {
+						rating = " - " + BOLD + RATING_MAP.get(c) + NORMAL;
+						break;
+					}
 				}
-			}
 
 			this.bot.sendMessage(output + rating + " " + fuzzyTimeAgo(checkin.select(".time").first().text()));
 		} catch (IOException e) {
