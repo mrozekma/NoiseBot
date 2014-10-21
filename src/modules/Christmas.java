@@ -2,6 +2,8 @@ package modules;
 
 import static org.jibble.pircbot.Colors.*;
 
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.Map;
 
 import main.Message;
@@ -27,6 +29,18 @@ public class Christmas extends NoiseModule {
 
 	@Override public void init(NoiseBot bot) throws ModuleInitException {
 		super.init(bot);
+		final Calendar now = new GregorianCalendar();
+		// 4th Thursday in November
+		final Calendar thanksgiving = new GregorianCalendar(now.get(Calendar.YEAR), Calendar.NOVEMBER, 1, 0, 0, 0);
+		thanksgiving.add(Calendar.DAY_OF_MONTH, (Calendar.THURSDAY - thanksgiving.get(Calendar.DAY_OF_WEEK) + 7) % 7);
+		thanksgiving.add(Calendar.WEEK_OF_YEAR, 3);
+
+		// Allowed after Thanksgiving, through the end of the year
+		thanksgiving.add(Calendar.DAY_OF_MONTH, 1);
+		if(now.before(thanksgiving)) {
+			throw new ModuleInitException("It's too early for this; wait until " + thanksgiving.getTime());
+		}
+
 		this.talked(null);
 	}
 
