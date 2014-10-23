@@ -20,8 +20,7 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.http.Header;
 import org.apache.http.HttpEntityEnclosingRequest;
 import org.apache.http.HttpException;
-import org.apache.http.impl.DefaultHttpServerConnection;
-import org.apache.http.params.BasicHttpParams;
+import org.apache.http.impl.DefaultBHttpServerConnection;
 
 import panacea.Panacea;
 
@@ -184,8 +183,8 @@ public class Git {
 								@Override public void run() {
 									try {
 										Log.i("Received new Github alert from %s", socket.getRemoteSocketAddress());
-										final DefaultHttpServerConnection conn = new DefaultHttpServerConnection();
-										conn.bind(socket, new BasicHttpParams());
+										final DefaultBHttpServerConnection conn = new DefaultBHttpServerConnection(4096);
+										conn.bind(socket);
 										final HttpEntityEnclosingRequest req = (HttpEntityEnclosingRequest)conn.receiveRequestHeader();
 										conn.receiveRequestEntity(req);
 
@@ -218,10 +217,7 @@ public class Git {
 												Log.e("Bad signature: %s", signature);
 												return;
 											}
-										} catch(NoSuchAlgorithmException e) {
-											Log.e(e);
-											return;
-										} catch(InvalidKeyException e) {
+										} catch(InvalidKeyException | NoSuchAlgorithmException e) {
 											Log.e(e);
 											return;
 										}
@@ -230,11 +226,7 @@ public class Git {
 										// Just pull from github and try to sync
 										// final JSONObject json = new JSONObject(payload);
 										Git.attemptUpdate();
-									} catch(SyncException e) {
-										Log.e(e);
-									} catch(IOException e) {
-										Log.e(e);
-									} catch(HttpException e) {
+									} catch(SyncException | IOException | HttpException e) {
 										Log.e(e);
 									}
 								}
@@ -258,10 +250,7 @@ public class Git {
 				if(rtn != 0) {
 					throw new IOException("Unable to build new changes");
 				}
-			} catch(IOException e) {
-				Log.e(e);
-				throw new SyncException(e);
-			} catch(InterruptedException e) {
+			} catch(IOException | InterruptedException e) {
 				Log.e(e);
 				throw new SyncException(e);
 			}
