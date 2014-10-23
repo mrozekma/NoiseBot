@@ -176,7 +176,7 @@ public class Weather extends NoiseModule implements Serializable
 		}
 
 		try {
-			return Location.parse(getXML(String.format(PLACE_TO_WOEID_URL, URLEncoder.encode(desc), this.appid)));
+			return Location.parse(getXML(String.format(PLACE_TO_WOEID_URL, URLEncoder.encode(desc, "UTF-8"), this.appid)));
 		} catch(Exception e) {
 			Log.e(e);
 			return null;
