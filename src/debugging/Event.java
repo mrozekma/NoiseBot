@@ -1,6 +1,6 @@
 package debugging;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 
 /**
  * Event
@@ -10,7 +10,7 @@ import java.util.Date;
  */
 public class Event {
 	private Level level;
-	private Date timestamp;
+	private LocalDateTime timestamp;
 	private String className;
 	private String methodName;
 	private int line;
@@ -23,20 +23,20 @@ public class Event {
 		this.line = line;
 		this.text = text;
 		
-		this.timestamp = new Date();
+		this.timestamp = LocalDateTime.now();
 	}
 	
 	public Event(Level level, String text) {this(level, null, null, 0, text);}
 	
 	public Level getLevel() {return this.level;}
-	public Date getTimestamp() {return this.timestamp;}
+	public LocalDateTime getTimestamp() {return this.timestamp;}
 	public String getClassName() {return this.className;}
 	public String getMethodName() {return this.methodName;}
 	public int getLine() {return this.line;}
 	public String getText() {return this.text;}
 	
 	@Override public String toString() {
-		final String ts = String.format("%02d:%02d:%02d", this.getTimestamp().getHours(), this.getTimestamp().getMinutes(), this.getTimestamp().getSeconds());
+		final String ts = String.format("%02d:%02d:%02d", this.getTimestamp().getHour(), this.getTimestamp().getMinute(), this.getTimestamp().getSecond());
 		return "[" + Character.toUpperCase(this.getLevel().toString().charAt(0)) + "] " + ts + " " + this.getClassName() + "(" + this.getMethodName() + ":" + this.getLine() + "): " + this.getText();
 	}
 }
