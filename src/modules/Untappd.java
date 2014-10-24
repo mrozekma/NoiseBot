@@ -32,11 +32,11 @@ public class Untappd extends NoiseModule {
 	private static final String COLOR_ERROR = RED + REVERSE;
 	private static final DateFormat dateFormat = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss ZZZZZ");
 	private static final Map<String, String> RATING_MAP = new HashMap<String, String>() {{
-		put("r05", "½");
-		put("r15", "*½");
-		put("r25", "**½");
-		put("r35", "***½");
-		put("r45", "****½");
+		put("r05", "\u00bd");
+		put("r15", "*\u00bd");
+		put("r25", "**\u00bd");
+		put("r35", "***\u00bd");
+		put("r45", "****\u00bd");
 		put("r10", "*");
 		put("r20", "**");
 		put("r30", "***");
