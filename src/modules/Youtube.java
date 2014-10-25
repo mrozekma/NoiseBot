@@ -14,6 +14,7 @@ import java.util.GregorianCalendar;
 import java.util.Locale;
 import java.util.Scanner;
 import java.time.Duration;
+import java.util.TimeZone;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -59,10 +60,10 @@ public class Youtube extends NoiseModule {
 			final JSONObject video = videos.getJSONObject(0);
 			final JSONObject snippet = video.getJSONObject("snippet");
 
-			String author = null, title = null;
-			Duration duration = null;
-			int viewCount = 0;
-			Calendar published = null;
+			String author, title;
+			Duration duration;
+			int viewCount;
+			Calendar published;
 
 			author = snippet.getString("channelTitle");
 			title = snippet.getString("title");
@@ -71,26 +72,51 @@ public class Youtube extends NoiseModule {
 			viewCount = (int) video.getJSONObject("statistics").getLong("viewCount");
 
 			published = new GregorianCalendar();
-			try {
-				published.setTime(dateFormat.parse(snippet.getString("publishedAt")));
-			} catch(ParseException e) {
-				Log.e(e);
-				published = null;
+			published.setTime(dateFormat.parse(snippet.getString("publishedAt")));
+
+			if(video.has("liveStreamingDetails")) {
+				String live = snippet.getString("liveBroadcastContent");
+				JSONObject liveDeets = video.getJSONObject("liveStreamingDetails");
+				if(live.equals("live")) {
+					Calendar startTime = new GregorianCalendar();
+					startTime.setTime(dateFormat.parse(liveDeets.getString("actualStartTime")));
+
+					long viewers = liveDeets.getLong("concurrentViewers");
+
+					final String pubdate = String.format("%d %s %d", startTime.get(Calendar.DAY_OF_MONTH), startTime.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.getDefault()), startTime.get(Calendar.YEAR));
+					final String pubtime = String.format("%d:%02d %s", startTime.get(Calendar.HOUR_OF_DAY), startTime.get(Calendar.MINUTE), startTime.getTimeZone().getDisplayName(false, TimeZone.SHORT));
+
+					this.bot.sendMessage(COLOR_INFO + encoded(title) +" (Live, posted by " + encoded(author) +", started on " + pubdate + " at " + pubtime + ", " + viewers +" viewers)");
+					return;
+				} else if(live.equals("upcoming")) {
+					Calendar startTime = new GregorianCalendar();
+					startTime.setTime(dateFormat.parse(liveDeets.getString("scheduledStartTime")));
+
+					final String pubdate = String.format("%d %s %d", startTime.get(Calendar.DAY_OF_MONTH), startTime.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.getDefault()), startTime.get(Calendar.YEAR));
+					final String pubtime = String.format("%d:%02d %s", startTime.get(Calendar.HOUR_OF_DAY), startTime.get(Calendar.MINUTE), startTime.getTimeZone().getDisplayName(false, TimeZone.SHORT));
+
+					this.bot.sendMessage(COLOR_INFO + encoded(title) + " (Upcoming, posted by " + encoded(author) + ", starting on " + pubdate + " at " + pubtime + ")");
+					return;
+				} else {
+					Calendar endTime = new GregorianCalendar();
+					endTime.setTime(dateFormat.parse(liveDeets.getString("actualEndTime")));
+
+					final String pubdate = String.format("%d %s %d", endTime.get(Calendar.DAY_OF_MONTH), endTime.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.getDefault()), endTime.get(Calendar.YEAR));
+
+					this.bot.sendMessage(COLOR_INFO + encoded(title) + " (Recorded, posted by " + encoded(author) + ", ended on " + pubdate + ", " + viewCount + " views)");
+					return;
+				}
 			}
 
-			if(author != null && title != null) {
-				final String pubdate = (published == null) ? null : String.format("%d %s %d", published.get(Calendar.DAY_OF_MONTH), published.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.getDefault()), published.get(Calendar.YEAR));
-				this.bot.sendMessage(COLOR_INFO +  encoded(title) + " (posted by " + encoded(author) + (pubdate == null ? "" : " on " + pubdate) + ", " + formatSeconds(duration.getSeconds()) + ", " + viewCount + " views)");
-			} else {
-				this.bot.sendMessage(COLOR_ERROR + "Problem parsing Youtube data");
-			}
+			final String pubdate = String.format("%d %s %d", published.get(Calendar.DAY_OF_MONTH), published.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.getDefault()), published.get(Calendar.YEAR));
+			this.bot.sendMessage(COLOR_INFO +  encoded(title) + " (posted by " + encoded(author) + " on " + pubdate + ", " + formatSeconds(duration.getSeconds()) + ", " + viewCount + " views)");
 		} catch(FileNotFoundException e) {
 			this.bot.sendMessage(COLOR_ERROR + "Unable to find Youtube video with ID " + videoID);
 			Log.e(e);
 		} catch(IOException e) {
 			this.bot.sendMessage(COLOR_ERROR + "Unable to contact Youtube");
 			Log.e(e);
-		} catch (JSONException e) {
+		} catch (ParseException | JSONException e) {
 			this.bot.sendMessage(COLOR_ERROR + "Problem parsing Youtube data");
 			Log.e(e);
 		}
