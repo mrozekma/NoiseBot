@@ -14,6 +14,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -22,7 +23,14 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.TreeSet;
 
+import javassist.ClassPool;
+import javassist.CtClass;
+import javassist.CtMethod;
+import javassist.NotFoundException;
+
+import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.text.StrSubstitutor;
 import org.jibble.pircbot.User;
 
@@ -75,7 +83,34 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 		}};
 		final StrSubstitutor sub = new StrSubstitutor(variables);
 
-		for(Method method : this.getClass().getDeclaredMethods()) {
+		final TreeSet<CtMethod> methods = new TreeSet<CtMethod>(new Comparator<CtMethod>() {
+			@Override public int compare(CtMethod first, CtMethod second) {
+				return Integer.compare(first.getMethodInfo().getLineNumber(0), second.getMethodInfo().getLineNumber(0));
+			}
+		});
+		try {
+			for(CtMethod ctmethod : ClassPool.getDefault().getCtClass(this.getClass().getName()).getDeclaredMethods()) {
+				if(ctmethod.hasAnnotation(Command.class) || ctmethod.hasAnnotation(PM.class)) {
+					methods.add(ctmethod);
+				}
+			}
+		} catch(NotFoundException e) {
+			throw new ModuleInitException(e);
+		}
+		for(CtMethod ctmethod : methods) {
+			// This is way more difficult than it should be
+			final Method method;
+			try {
+				final CtClass[] ctparams = ctmethod.getParameterTypes();
+				final Class[] params = new Class[ctparams.length];
+				for(int i = 0; i < ctparams.length; i++) {
+					params[i] = ClassUtils.getClass(ctparams[i].getName());
+				}
+				method = this.getClass().getMethod(ctmethod.getName(), params);
+			} catch (NotFoundException | ClassNotFoundException | NoSuchMethodException e) {
+				throw new ModuleInitException(e);
+			}
+
 			final Command command = method.getAnnotation(Command.class);
 			if(command != null) {
 				final Pattern pattern = Pattern.compile(sub.replace(command.value()), command.caseSensitive() ? 0 : Pattern.CASE_INSENSITIVE);

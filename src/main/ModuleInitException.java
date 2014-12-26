@@ -8,4 +8,6 @@ package main;
  */
 public class ModuleInitException extends Exception {
 	public ModuleInitException(String message) {super(message);}
+	public ModuleInitException(String message, Throwable cause) {super(message, cause);}
+	public ModuleInitException(Throwable cause) {super(cause);}
 }
