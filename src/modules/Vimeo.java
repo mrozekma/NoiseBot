@@ -24,7 +24,7 @@ public class Vimeo extends NoiseModule{
     private static final String COLOR_ERROR = RED;
     private static final String COLOR_INFO = PURPLE;
 
-    @Command("https?://(?:.+\\.)?vimeo.com/(?:.+/)?([a-zA-Z0-9]+)")
+    @Command(".*https?://(?:.+\\.)?vimeo.com/(?:.+/)?([a-zA-Z0-9]+).*")
     public void vimeo(Message message, String imgID) {
         try {
             final JSONObject data = this.getJSON(imgID);
