@@ -31,18 +31,31 @@ import static panacea.Panacea.*;
 public class Untappd extends NoiseModule {
 	private static final String COLOR_ERROR = RED + REVERSE;
 	private static final DateFormat dateFormat = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss ZZZZZ");
-	private static final Map<String, String> RATING_MAP = new HashMap<String, String>() {{
-		put("r05", "\u00bd");
-		put("r15", "*\u00bd");
-		put("r25", "**\u00bd");
-		put("r35", "***\u00bd");
-		put("r45", "****\u00bd");
-		put("r10", "*");
-		put("r20", "**");
-		put("r30", "***");
-		put("r40", "****");
-		put("r50", "*****");
-	}};
+
+	// The extent to which I don't care is impressive
+	private static HashMap<String, String> mkRatingMap()
+	{
+		HashMap<String, String> ratingMap = new HashMap<String, String>();
+
+		for (int i = 0; i <= 500; i += 25) {
+			StringBuilder s = new StringBuilder();
+
+			for (int j = 0; j < i / 100; j++)
+				s.append("*");
+
+			switch (i % 100) {
+				case 25: s.append("\u00bc"); break;
+				case 50: s.append("\u00bd"); break;
+				case 75: s.append("\u00be"); break;
+				default:                     break;
+			}
+
+			ratingMap.put(String.format("r%03d", i), s.toString());
+		}
+
+		return ratingMap;
+	}
+	private static final Map<String, String> RATING_MAP = mkRatingMap();
 
 	// Parse an RFC822-esque date/time and return a string indicating, fuzzily, how long ago that was
 	public static String fuzzyTimeAgo(String rfc822date)
