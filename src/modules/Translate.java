@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.Map;
 import java.util.Scanner;
@@ -255,7 +256,7 @@ public class Translate extends NoiseModule {
 	private void engrish(int times, String phrase)
 	{
 		Optional<Phrase> p = Optional.of(new Phrase("en", phrase));
-		Set<String> langs = LANGUAGE_KEYS.keySet();
+		Set<String> langs = new HashSet<String>(LANGUAGE_KEYS.keySet());
 		langs.remove("en");
 
 		for (int i = 0; i < times; i++) {
