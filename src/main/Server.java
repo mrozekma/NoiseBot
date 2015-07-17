@@ -39,7 +39,7 @@ public class Server extends PircBot {
 		this.connection = connection;
 
 		try {
-			this.setEncoding("ISO8859_1");
+			this.setEncoding("UTF-8");
 		} catch (UnsupportedEncodingException e) {
 			System.err.println("Unable to set encoding: " + e.getMessage());
 		}
