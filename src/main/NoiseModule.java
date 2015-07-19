@@ -302,16 +302,6 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 	@Override public int compareTo(NoiseModule other) {return this.getFriendlyName().compareTo(other.getFriendlyName());}
 	@Override public String toString() {return this.getFriendlyName();}
 
-	protected String encoded(final String s) {
-		try {
-			final byte bytes[] = s.getBytes("UTF8");
-			return new String(bytes, "ISO8859_1");
-		} catch (UnsupportedEncodingException e) {
-			this.bot.sendMessage(COLOR_ERROR + "He looks like a fuckin' loser.");
-			return s;
-		}
-	}
-
 	protected void triggerIfOwner(final Message message, final Runnable fn, final boolean errorOnFail) {
 		this.bot.whois(message.getSender(), new WhoisHandler() {
 			@Override public void onResponse() {
