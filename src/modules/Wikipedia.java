@@ -111,7 +111,7 @@ public class Wikipedia extends NoiseModule {
 			}
 			return;
 		}
-		text = truncateOnWord(encoded(text), MAXIMUM_MESSAGE_LENGTH - (includeLink ? (1 + url.length()) : 0));
+		text = truncateOnWord(text, MAXIMUM_MESSAGE_LENGTH - (includeLink ? (1 + url.length()) : 0));
 		if(includeLink) {
 			text += " " + url;
 		}
