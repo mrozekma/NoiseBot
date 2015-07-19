@@ -94,7 +94,7 @@ public class Utilities {
 	}
 
 	public static String truncateOnWord(String line, int maxLength) {
-		if(line.length() <= maxLength) {
+		if(utf8Size(line) <= maxLength) {
 			return line;
 		} else if(maxLength < 3) {
 			return "";
