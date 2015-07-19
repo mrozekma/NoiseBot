@@ -79,7 +79,7 @@ public class TVTropes extends NoiseModule {
 			return;
 		}
 
-		text = truncateOnWord(encoded(text), MAXIMUM_MESSAGE_LENGTH - (includeLink ? (1 + url.length()) : 0));
+		text = truncateOnWord(text, MAXIMUM_MESSAGE_LENGTH - (includeLink ? (1 + utf8Size(url)) : 0));
 		if(includeLink) {
 			text += " " + url;
 		}
