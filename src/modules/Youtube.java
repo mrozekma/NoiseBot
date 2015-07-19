@@ -86,7 +86,7 @@ public class Youtube extends NoiseModule {
 					final String pubdate = String.format("%d %s %d", startTime.get(Calendar.DAY_OF_MONTH), startTime.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.getDefault()), startTime.get(Calendar.YEAR));
 					final String pubtime = String.format("%d:%02d %s", startTime.get(Calendar.HOUR_OF_DAY), startTime.get(Calendar.MINUTE), startTime.getTimeZone().getDisplayName(false, TimeZone.SHORT));
 
-					this.bot.sendMessage(COLOR_INFO + encoded(title) +" (Live, posted by " + encoded(author) +", started on " + pubdate + " at " + pubtime + ", " + viewers +" viewers)");
+					this.bot.sendMessage(COLOR_INFO + title +" (Live, posted by " + author +", started on " + pubdate + " at " + pubtime + ", " + viewers +" viewers)");
 					return;
 				} else if(live.equals("upcoming")) {
 					Calendar startTime = new GregorianCalendar();
@@ -95,7 +95,7 @@ public class Youtube extends NoiseModule {
 					final String pubdate = String.format("%d %s %d", startTime.get(Calendar.DAY_OF_MONTH), startTime.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.getDefault()), startTime.get(Calendar.YEAR));
 					final String pubtime = String.format("%d:%02d %s", startTime.get(Calendar.HOUR_OF_DAY), startTime.get(Calendar.MINUTE), startTime.getTimeZone().getDisplayName(false, TimeZone.SHORT));
 
-					this.bot.sendMessage(COLOR_INFO + encoded(title) + " (Upcoming, posted by " + encoded(author) + ", starting on " + pubdate + " at " + pubtime + ")");
+					this.bot.sendMessage(COLOR_INFO + title + " (Upcoming, posted by " + author + ", starting on " + pubdate + " at " + pubtime + ")");
 					return;
 				} else {
 					Calendar endTime = new GregorianCalendar();
@@ -103,13 +103,13 @@ public class Youtube extends NoiseModule {
 
 					final String pubdate = String.format("%d %s %d", endTime.get(Calendar.DAY_OF_MONTH), endTime.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.getDefault()), endTime.get(Calendar.YEAR));
 
-					this.bot.sendMessage(COLOR_INFO + encoded(title) + " (Recorded, posted by " + encoded(author) + ", ended on " + pubdate + ", " + viewCount + " views)");
+					this.bot.sendMessage(COLOR_INFO + title + " (Recorded, posted by " + author + ", ended on " + pubdate + ", " + viewCount + " views)");
 					return;
 				}
 			}
 
 			final String pubdate = String.format("%d %s %d", published.get(Calendar.DAY_OF_MONTH), published.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.getDefault()), published.get(Calendar.YEAR));
-			this.bot.sendMessage(COLOR_INFO +  encoded(title) + " (posted by " + encoded(author) + " on " + pubdate + ", " + formatSeconds(duration.getSeconds()) + ", " + viewCount + " views)");
+			this.bot.sendMessage(COLOR_INFO +  title + " (posted by " + author + " on " + pubdate + ", " + formatSeconds(duration.getSeconds()) + ", " + viewCount + " views)");
 		} catch(FileNotFoundException e) {
 			this.bot.sendMessage(COLOR_ERROR + "Unable to find Youtube video with ID " + videoID);
 			Log.e(e);
