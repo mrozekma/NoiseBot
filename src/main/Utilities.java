@@ -83,6 +83,16 @@ public class Utilities {
 		}
 	}
 
+	// Return the size of the UTF-8 encoded string in bytes
+	public static int utf8Size(String s)
+	{
+		try {
+			return s.getBytes("UTF8").length;
+		} catch (UnsupportedEncodingException e) {
+			return s.length();
+		}
+	}
+
 	public static String truncateOnWord(String line, int maxLength) {
 		if(line.length() <= maxLength) {
 			return line;
