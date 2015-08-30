@@ -55,6 +55,7 @@ public class Help extends NoiseModule {
 				} else {
 					for(String example : examples) {
 						example = example.replaceAll("^\\.([^ ]+) ", "." + COLOR_COMMAND + "$1" + NORMAL + " ");
+						example = example.replaceAll(" \\|\\| \\.([^ ]+) ", " || ." + COLOR_COMMAND + "$1" + NORMAL + " ");
 						example = example.replaceAll("_([^_]*)_", COLOR_ARGUMENT + "$1" + NORMAL);
 						this.bot.respond(message, example);
 					}
