@@ -476,7 +476,7 @@ public class NoiseBot {
 			this.whois(this.getBotNick(), new WhoisHandler() {
 				@Override public void onResponse() {
 					NoiseBot.this.server.setWhoisString(String.format("%s!%s@%s", this.nick, this.username, this.hostname));
-					NoiseBot.this.sendMessageParts(separator, parts);
+					NoiseBot.this.sendTargetedMessageParts(target, separator, parts);
                 }
 
 				@Override public void onTimeout() {
