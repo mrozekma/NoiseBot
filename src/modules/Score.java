@@ -188,7 +188,7 @@ public class Score extends NoiseModule implements Serializable {
 	public void getScore(Message message, String whenStr, String nick) {
 		final When when = (whenStr == null || whenStr.isEmpty()) ? When.ever : When.valueOf(whenStr);
 		final Map<String, Integer> totals = this.getTotals(nick, when);
-		this.bot.sendMessage(this.formatScore(nick, totals.getOrDefault(nick, 0)));
+		this.bot.respondParts(message, this.formatScore(nick, totals.getOrDefault(nick, 0)));
 	}
 
 	@Command("\\.score(?: @(day|week|month|year|ever))?")
@@ -219,9 +219,9 @@ public class Score extends NoiseModule implements Serializable {
 			.toArray(String[]::new);
 
 		if(parts.length == 0) {
-			this.bot.sendMessage("No scores available");
+			this.bot.respond(message, "No scores available");
 		} else {
-			this.bot.sendMessageParts(", ", parts);
+			this.bot.respondParts(message, ", ", parts);
 		}
 	}
 
