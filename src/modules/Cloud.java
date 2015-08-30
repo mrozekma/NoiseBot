@@ -17,10 +17,10 @@ import static panacea.Panacea.*;
  */
 public class Cloud extends NoiseModule {
 	private static String[] swords = {
-		"==\u00ef\u00bb\u00bf|\u00ef\u00bb\u00bf--------",
-		"--\u00ef\u00bb\u00bf|\u00ef\u00bb\u00bf========-",
-		"==\u00ef\u00bb\u00bf|\u00ef\u00bb\u00bf_________/",
-		"(\u00ef\u00bb\u00bf)\u00ef\u00bb\u00bf===\u00ef\u00bb\u00bf{::::::::::::::::::::>"
+		"==\ufeff|\ufeff--------",
+		"--\ufeff|\ufeff========-",
+		"==\ufeff|\ufeff_________/",
+		"(\ufeff)\ufeff===\ufeff{::::::::::::::::::::>"
 	};
 
 	@Command("\\.(?:kill|stab) (.*)")
