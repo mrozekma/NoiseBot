@@ -6,12 +6,14 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
+import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import java.net.URI;
 
+import debugging.Log;
 import main.Message;
 import main.NoiseModule;
 import static main.Utilities.*;
@@ -32,11 +34,21 @@ public class Drinkify extends NoiseModule {
     Document page = null;
     try {
       page = Jsoup.connect(new URI("http", "drinkify.org", "/" + band, null).toASCIIString()).timeout(10000).get();
+    } catch (HttpStatusException e) {
+      Log.e(e);
+      if (e.getStatusCode() == 500) { // 500? Really, Drinkify?
+        this.bot.sendMessage(COLOR_ERROR + "Drinkify page does not exist");
+      } else {
+        this.bot.sendMessage(COLOR_ERROR + "Error retrieving drinkify page...");
+      }
+      return;
     } catch (IOException e) {
-      e.printStackTrace();
+      Log.e(e);
       this.bot.sendMessage(COLOR_ERROR + "Error retrieving drinkify page...");
+      return;
     } catch (URISyntaxException e) {
-      e.printStackTrace();
+      Log.e(e);
+      return;
     }
 
     Element recipe = page.select("#recipeContent").first();
