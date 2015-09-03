@@ -15,7 +15,7 @@ import java.util.Scanner;
 
 import static org.jibble.pircbot.Colors.PURPLE;
 import static org.jibble.pircbot.Colors.RED;
-import static panacea.Panacea.pluralize;
+import static main.Utilities.pluralize;
 
 /**
  * Created by yellingdog on 3/29/14.

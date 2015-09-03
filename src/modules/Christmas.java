@@ -10,8 +10,8 @@ import main.Message;
 import main.ModuleInitException;
 import main.NoiseBot;
 import main.NoiseModule;
-
-import static panacea.Panacea.*;
+import static main.Utilities.getRandom;
+import static main.Utilities.getRandomInt;
 
 public class Christmas extends NoiseModule {
 	private static String[] lyrics = {

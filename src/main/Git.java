@@ -25,8 +25,6 @@ import org.apache.http.impl.DefaultBHttpServerConnection;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import panacea.Panacea;
-
 import debugging.Log;
 
 public class Git {

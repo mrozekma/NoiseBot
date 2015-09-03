@@ -16,10 +16,11 @@ import main.ModuleInitException;
 import main.NoiseBot;
 import main.NoiseModule;
 import static main.Utilities.getJSON;
+import static main.Utilities.getRandom;
+import static main.Utilities.range;
 import static main.Utilities.urlEncode;
 
 import static org.jibble.pircbot.Colors.*;
-import static panacea.Panacea.*;
 
 import org.json.JSONArray;
 import org.json.JSONException;

@@ -1,7 +1,5 @@
 package main;
 
-import static panacea.Panacea.sleep;
-
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
@@ -15,6 +13,8 @@ import org.jibble.pircbot.User;
 import org.jibble.pircbot.Colors;
 
 import debugging.Log;
+
+import static main.Utilities.sleep;
 
 /**
  * Server

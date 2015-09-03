@@ -10,7 +10,6 @@ import org.jsoup.nodes.Element;
 
 import main.Message;
 import main.NoiseModule;
-import static panacea.Panacea.*;
 import static modules.Untappd.fuzzyTimeAgo;
 
 /**

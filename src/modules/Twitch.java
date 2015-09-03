@@ -2,7 +2,6 @@ package modules;
 
 import static main.Utilities.getJSON;
 import static org.jibble.pircbot.Colors.*;
-import static panacea.Panacea.*;
 
 import debugging.Log;
 
@@ -20,6 +19,7 @@ import java.util.Locale;
 import main.Message;
 import main.NoiseModule;
 import static main.Utilities.formatSeconds;
+import static main.Utilities.pluralize;
 
 import org.json.JSONException;
 import org.json.JSONObject;

@@ -1,11 +1,12 @@
 package modules;
 
+import java.util.Arrays;
+import java.util.stream.Collectors;
+
 import main.Message;
 import main.NoiseBot;
 import main.NoiseModule;
-
-import panacea.MapFunction;
-import static panacea.Panacea.*;
+import static main.Utilities.getRandom;
 
 /**
  * Title
@@ -24,11 +25,7 @@ public class Title extends NoiseModule {
 	
 	@Command("\\.title (.*)")
 	public void title(Message message, String target) {
-		this.bot.sendMessage(target + ": " + implode(map(lists, new MapFunction<String[], String>() {
-			@Override public String map(String[] list) {
-				return getRandom(list);
-			}
-		}), " "));
+		this.bot.sendMessage(String.format("%s: %s", target, Arrays.stream(lists).map(list -> getRandom(list)).collect(Collectors.joining(" "))));
 	}
 	
 	@Command("\\.title") public void titleSelf(Message message) {

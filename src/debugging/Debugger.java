@@ -8,9 +8,6 @@ import java.util.regex.Pattern;
 
 import main.NoiseBot;
 
-import panacea.CircularQueue;
-import static panacea.Panacea.*;
-
 /**
  * Debugger
  *

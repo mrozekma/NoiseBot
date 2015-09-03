@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.Vector;
+import java.util.stream.Collectors;
 
 import debugging.Log;
 
@@ -19,7 +20,6 @@ import au.com.bytecode.opencsv.CSVParser;
 import main.Message;
 import main.NoiseModule;
 
-import static panacea.Panacea.*;
 import static modules.Slap.slapUser;
 
 /**
@@ -90,15 +90,14 @@ public class Poll extends NoiseModule {
 		this.startTime = System.currentTimeMillis();
 		
 		String msg = String.format("%s has started a poll (vote with .%svote%s {%s%s%s} in the next %d seconds): %s",
-								   message.getSender(),
-								   Help.COLOR_COMMAND,
-								   NORMAL,
-								   Help.COLOR_ARGUMENT,
-								   implode(this.validVotes.toArray(new String[0]),
-									       NORMAL + "|" + Help.COLOR_ARGUMENT),
-								   NORMAL,
-								   WAIT_TIME,
-								   this.pollText);
+		                           message.getSender(),
+		                           Help.COLOR_COMMAND,
+		                           NORMAL,
+		                           Help.COLOR_ARGUMENT,
+		                           this.validVotes.stream().collect(Collectors.joining(NORMAL + "|" + Help.COLOR_ARGUMENT)),
+		                           NORMAL,
+		                           WAIT_TIME,
+		                           this.pollText);
 		this.bot.sendMessage(msg);
 	}
 	
@@ -170,10 +169,10 @@ public class Poll extends NoiseModule {
 		final Vector<String> texts = new Vector<String>(nicksPerVote.size());
 		for(String vote : this.validVotes) {
 			final LinkedList<String> nicks = nicksPerVote.get(vote);
-			texts.add(COLOR_VOTE + nicks.size() + " " + vote + NORMAL + (nicks.isEmpty() ? "" : " (" + implode(nicks.toArray(new String[0]), ", ") + ")"));
+			texts.add(COLOR_VOTE + nicks.size() + " " + vote + NORMAL + (nicks.isEmpty() ? "" : " (" + nicks.stream().collect(Collectors.joining(", ")) + ")"));
 		}
 		
-		return implode(texts.toArray(new String[0]), ", ");
+		return texts.stream().collect(Collectors.joining(", "));
 	}
 	
 	@Override public String getFriendlyName() {return "Poll";}

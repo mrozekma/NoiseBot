@@ -1,4 +1,4 @@
-package panacea;
+package debugging;
 
 import java.util.Iterator;
 

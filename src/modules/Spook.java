@@ -8,13 +8,16 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.Vector;
+import java.util.stream.Collectors;
 
 import main.Message;
 import main.ModuleInitException;
 import main.NoiseBot;
 import main.NoiseModule;
 
-import static panacea.Panacea.*;
+import static main.Utilities.getRandom;
+import static main.Utilities.range;
+import static main.Utilities.substring;
 import static modules.Slap.slapUser;
 import static org.jibble.pircbot.Colors.*;
 
@@ -54,7 +57,7 @@ public class Spook extends NoiseModule {
 				// Yuck..
 				choices.add(getRandom(this.lines.toArray(new String[0])));
 			}
-			this.bot.sendMessage(implode(choices.toArray(new String[0]), " "));
+			this.bot.sendMessage(choices.stream().collect(Collectors.joining(" ")));
 		} else {
 			this.bot.sendMessage("There are only " + this.lines.size() + " entries in the spook lines file");
 		}

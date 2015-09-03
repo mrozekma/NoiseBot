@@ -3,15 +3,12 @@ package modules;
 import java.util.HashMap;
 import java.util.Map;
 
-import panacea.ReduceFunction;
-
 import main.Message;
 import main.ModuleInitException;
 import main.NoiseBot;
 import main.NoiseModule;
 import static main.Utilities.formatSeconds;
-
-import static panacea.Panacea.*;
+import static main.Utilities.round;
 
 /**
  * Rate
@@ -44,12 +41,7 @@ public class Rate extends NoiseModule {
 
 	@Command("\\.rate")
 	public void general(Message message) {
-		final int numMessages = reduce(this.counter.values().toArray(new Integer[0]), new ReduceFunction<Integer, Integer>() {
-			@Override public Integer reduce(Integer source, Integer accum) {
-				return source + accum;
-			}
-		}, 0);
-
+		final int numMessages = this.counter.values().stream().mapToInt(i -> i).sum();
 		displayRate("All users", numMessages);
 	}
 

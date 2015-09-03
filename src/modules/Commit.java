@@ -15,10 +15,9 @@ import main.Message;
 import main.ModuleInitException;
 import main.NoiseBot;
 import main.NoiseModule;
+import static main.Utilities.getRandom;
 
 import org.jibble.pircbot.User;
-
-import static panacea.Panacea.*;
 
 /**
  * Commit

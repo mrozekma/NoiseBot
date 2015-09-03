@@ -9,7 +9,7 @@ import static org.jibble.pircbot.Colors.*;
 
 import main.Message;
 import main.NoiseModule;
-import static panacea.Panacea.*;
+import static main.Utilities.range;
 
 /**
  * Links

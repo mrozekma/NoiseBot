@@ -19,10 +19,6 @@ import main.Message;
 import main.NoiseBot;
 import main.NoiseModule;
 
-import static panacea.Panacea.*;
-import panacea.Condition;
-import panacea.ReduceFunction;
-
 /**
  * Bitcoin
  *
@@ -79,17 +75,7 @@ public class Bitcoin extends NoiseModule {
 				return;
 			}
 
-			final Price[] prices = filter(this.exchanges.values().toArray(new Price[0]), new Condition<Price>() {
-				@Override public boolean satisfies(Price price) {
-					return price.avg > 0;
-				}
-			});
-			final double avg = reduce(prices, new ReduceFunction<Price, Double>() {
-				@Override public Double reduce(Price price, Double accum) {
-					return accum + (price.avg / prices.length);
-				}
-			}, 0.0);
-
+			final double avg = this.exchanges.values().stream().filter(p -> p.avg > 0).mapToDouble(p -> p.avg).average().orElse(0.0);
 			this.bot.sendMessage(String.format("$%.2f", avg));
 		} catch(Exception e) {
 			Log.e(e);

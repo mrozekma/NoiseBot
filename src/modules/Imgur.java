@@ -17,7 +17,8 @@ import main.Message;
 import main.ModuleInitException;
 import main.NoiseBot;
 import main.NoiseModule;
-import static panacea.Panacea.*;
+import static main.Utilities.bytesToFriendly;
+import static main.Utilities.pluralize;
 
 /**
  * Imgur

@@ -9,8 +9,6 @@ import main.NoiseModule;
 
 import static org.jibble.pircbot.Colors.*;
 
-import static panacea.Panacea.*;
-
 /**
  * Discordianism
  *

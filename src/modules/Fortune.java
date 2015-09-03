@@ -13,10 +13,10 @@ import main.Message;
 import main.ModuleInitException;
 import main.NoiseBot;
 import main.NoiseModule;
+import static main.Utilities.getRandom;
+import static main.Utilities.getRandomMatch;
 
 import static org.jibble.pircbot.Colors.*;
-
-import static panacea.Panacea.*;
 
 /**
  * Fortune

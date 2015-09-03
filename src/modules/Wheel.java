@@ -4,18 +4,19 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.jibble.pircbot.User;
-
-import panacea.MapFunction;
-import panacea.ReduceFunction;
 
 import main.Message;
 import main.NoiseBot;
 import main.NoiseModule;
+import static main.Utilities.getRandom;
+import static main.Utilities.sleep;
 
-import static panacea.Panacea.*;
 import static modules.Slap.slapUser;
 
 /**
@@ -57,25 +58,12 @@ public class Wheel extends NoiseModule implements Serializable {
 			return;
 		}
 
-		final String[] nicks = victims.keySet().toArray(new String[0]);
-		Arrays.sort(nicks, new Comparator<String>() {
-			@Override public int compare(String s1, String s2) {
-				// Reversed to order max->min
-				return victims.get(s2).compareTo(victims.get(s1));
-			}
-		});
-		final int total = reduce(victims.values().toArray(new Integer[0]), new ReduceFunction<Integer, Integer>() {
-			@Override public Integer reduce(Integer source, Integer accum) {
-				return source + accum;
-			}
-		}, 0);
+		// Reversed to order max -> min
+		final Stream<String> nickStream = victims.keySet().stream().sorted((s1, s2) -> victims.get(s2).compareTo(victims.get(s1)));
+		final int total = victims.values().stream().mapToInt(i -> i).sum();
+		final String[] parts = nickStream.map(nick -> String.format("(%2.2f%%) %s", ((double)victims.get(nick)/(double)total*100.0), nick)).toArray(String[]::new);
 
-		this.bot.sendMessage(implode(map(nicks, new MapFunction<String, String>() {
-			@Override public String map(String nick) {
-				final int amt = victims.get(nick);
-				return String.format("(%2.2f%%) %s", ((double)amt/(double)total*100.0), nick);
-			}
-		}), ", "));
+		this.bot.sendMessageParts(", ", parts);
 	}
 
 	@Override public String getFriendlyName() {return "Wheel";}

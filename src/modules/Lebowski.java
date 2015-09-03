@@ -19,8 +19,9 @@ import main.Message;
 import main.ModuleInitException;
 import main.NoiseBot;
 import main.NoiseModule;
+import static main.Utilities.getRandomInt;
+import static main.Utilities.substring;
 
-import static panacea.Panacea.*;
 import static modules.Slap.slapUser;
 
 /**

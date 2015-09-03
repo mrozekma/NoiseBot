@@ -19,8 +19,6 @@ import main.ModuleInitException;
 import main.NoiseBot;
 import main.NoiseModule;
 
-import static panacea.Panacea.*;
-
 /**
  * Weather
  * Based off the SO module

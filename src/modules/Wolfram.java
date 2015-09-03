@@ -1,8 +1,5 @@
 package modules;
 
-import panacea.Condition;
-import panacea.MapFunction;
-import panacea.Panacea;
 import main.Message;
 import main.NoiseBot;
 import main.NoiseModule;
@@ -16,7 +13,11 @@ import com.wolfram.alpha.WAQueryResult;
 import com.wolfram.alpha.WASubpod;
 import com.wolfram.alpha.visitor.Visitable;
 
-import static panacea.Panacea.*;
+import java.util.Arrays;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import static org.jibble.pircbot.Colors.*;
 
 /**
@@ -88,31 +89,22 @@ public class Wolfram extends NoiseModule {
 				continue;
 
 			// grab all the content from the subpods
-			Object[] contents = map(pod.getSubpods(), new MapFunction<WASubpod, Object>() {
-				@Override public Object map(WASubpod subpod) { return subpod.getContents()[0]; }
-			});
+			Stream<Object> contentsStream = Arrays.stream(pod.getSubpods()).map(subpod -> subpod.getContents()[0]);
 			
 			// filter the content down to the WAPlainText objects
-			WAPlainText[] textContent = (WAPlainText[])filter(contents, new Condition<Object>() {
-				@Override public boolean satisfies(Object content) { return content instanceof WAPlainText; }
-			});
+			Stream<WAPlainText> textContentStream = contentsStream.filter(content -> content instanceof WAPlainText).map(content -> (WAPlainText)content);
 			
 			// extract the text from the PlainText objects and format it
-			String[] formattedContent = map(textContent, new MapFunction<WAPlainText, String>() {
-				@Override
-				public String map(WAPlainText source) {
+			final Function<WAPlainText, String> formatFn = new Function<WAPlainText, String>() {
+				@Override public String apply(WAPlainText source) {
 					// wolfram api uses newlines and pipes to separate data
 					String[] answerParts = source.getText().replace(" | ", ": ").split("\n");
-					return implode(Panacea.map(answerParts, new MapFunction<String, String>() {
-						@Override
-						public java.lang.String map(String source) {
-							return source == "" ? "" : COLOR_BRACKET + "[" + COLOR_TEXT + source.trim() + COLOR_BRACKET + "]";
-						}
-					}), " ");
+					return Arrays.stream(answerParts).map(source2 -> source2 == "" ? "" : COLOR_BRACKET + "[" + COLOR_TEXT + source2.trim() + COLOR_BRACKET + "]").collect(Collectors.joining(" "));
 				}
-			});
+			};
+			Stream<String> formattedContentStream = textContentStream.map(formatFn);
 			
-			String answer = implode(formattedContent, " ");
+			String answer = formattedContentStream.collect(Collectors.joining(" "));
 			
 			// if we have a non-empty answer, return it
 			if(!answer.trim().isEmpty())

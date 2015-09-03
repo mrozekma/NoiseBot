@@ -21,8 +21,7 @@ import debugging.Log;
 
 import main.Message;
 import main.NoiseModule;
-
-import static panacea.Panacea.*;
+import static main.Utilities.pluralize;
 
 /**
  * StackExchange

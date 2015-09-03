@@ -6,16 +6,15 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import debugging.Log;
 
 import au.com.bytecode.opencsv.CSVParser;
 
-import panacea.MapFunction;
-
 import main.Message;
 import main.NoiseModule;
-import static panacea.Panacea.*;
+import static main.Utilities.getRandom;
 
 /**
  * Choose
@@ -42,15 +41,9 @@ public class Choose extends NoiseModule {
 			return;
 		}
 
-		final Set<String> options = new TreeSet<String>();
-		options.addAll(Arrays.asList(map(opts, new MapFunction<String, String>() {
-			@Override public String map(String source) {
-				return source.trim();
-			}
-		})));
-
+		final Set<String> options = Arrays.stream(opts).map(s -> s.trim()).collect(Collectors.toSet());
 		if(options.size() > 1) {
-			this.bot.reply(message, COLOR_CHOICE + getRandom(options.toArray(new String[0])).trim());
+			this.bot.reply(message, COLOR_CHOICE + getRandom(options.toArray(new String[0])));
 		} else {
 			this.bot.reply(message, "You're having me choose from a set of one...fine, " + COLOR_CHOICE + options.iterator().next());
 		}

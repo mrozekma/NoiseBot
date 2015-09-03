@@ -3,8 +3,6 @@ package modules;
 import static org.jibble.pircbot.Colors.*;
 import debugging.Log;
 
-import panacea.MapFunction;
-
 import main.Git;
 import main.Message;
 import main.ModuleInitException;
@@ -13,7 +11,6 @@ import main.ModuleUnloadException;
 import main.NoiseBot;
 import main.NoiseModule;
 import main.Git.SyncException;
-import static panacea.Panacea.*;
 
 /**
  * Core
@@ -55,7 +52,7 @@ public class Core extends NoiseModule {
 	public void unloadModules(Message message, String qm, String moduleNames) {
 		final boolean showErrors = qm.isEmpty();
 		for(String moduleName : moduleNames.split(" ")) {
-			if(moduleName.equals(this.getClass().getName())) {
+			if(moduleName.equals(this.getClass().getSimpleName())) {
 				this.bot.sendNotice(COLOR_ERROR + ".unload cannot unload the " + this.getFriendlyName() + " module");
 				continue;
 			}

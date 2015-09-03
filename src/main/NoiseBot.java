@@ -9,15 +9,21 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.jibble.pircbot.Colors.*;
-import static panacea.Panacea.*;
 
 import debugging.Log;
+
+import static main.Utilities.pluralize;
+import static main.Utilities.reverse;
+import static main.Utilities.sleep;
 
 import modules.Help;
 
@@ -27,9 +33,6 @@ import org.jibble.pircbot.PircBot;
 import org.jibble.pircbot.User;
 
 import com.google.gson.internal.StringMap;
-
-import panacea.MapFunction;
-import panacea.ReduceFunction;
 
 /**
  * NoiseBot
@@ -157,15 +160,7 @@ public class NoiseBot {
 
 		{
 			final int moduleCount = this.modules.size();
-			final int patternCount = reduce(map(this.modules.values().toArray(new NoiseModule[0]), new MapFunction<NoiseModule, Integer>() {
-				@Override public Integer map(NoiseModule module) {
-					return module.getPatterns().length;
-				}
-			}), new ReduceFunction<Integer, Integer>() {
-				@Override public Integer reduce(Integer source, Integer accum) {
-					return source + accum;
-				}
-			}, 0);
+			final int patternCount = this.modules.values().stream().mapToInt(module -> module.getPatterns().length).sum();
 
 			Log.i("Done loading revision %s", this.revision.getHash());
 			if(!this.quiet) {
@@ -194,9 +189,7 @@ public class NoiseBot {
 		}
 
 		if(!failedSaves.isEmpty()) {
-			throw new ModuleSaveException("Unable to save some modules: " + implode(map(failedSaves.toArray(new NoiseModule[0]), new MapFunction<NoiseModule, String>() {
-				@Override public String map(NoiseModule module) {return module.getClass().getSimpleName();}
-			}), ", "));
+			throw new ModuleSaveException("Unable to save some modules: " + failedSaves.stream().map(module -> module.getClass().getSimpleName()).collect(Collectors.joining(", ")));
 		}
 	}
 
@@ -330,11 +323,7 @@ public class NoiseBot {
 
 	public User[] getUsers() {return this.server.getUsers(this.channel);}
 	public String[] getNicks() {
-		return map(this.getUsers(), new MapFunction<User, String>() {
-			@Override public String map(User source) {
-				return source.getNick();
-			}
-		}, new String[0]);
+		return Arrays.stream(this.getUsers()).map(source -> source.getNick()).toArray(String[]::new);
 	}
 	public boolean isOnline(String nick) {
 		for(User user : this.getUsers()) {
@@ -416,12 +405,8 @@ public class NoiseBot {
 				}
 			}
 			if(moduleNames.length != 0) {
-				final String[] coloredNames = map(moduleNames, new MapFunction<String, String>() {
-					@Override public String map(String name) {
-						return Help.COLOR_MODULE +  name + NORMAL;
-					}
-				}, new String[0]);
-				this.sendNotice("Reloaded modules: " + implode(coloredNames, ", "));
+				final Stream<String> coloredNamesStream = Arrays.stream(moduleNames).map(name -> Help.COLOR_MODULE + name + NORMAL);
+				this.sendNotice("Reloaded modules: " + coloredNamesStream.collect(Collectors.joining(", ")));
 			}
 		}
 	}
@@ -558,7 +543,7 @@ public class NoiseBot {
 				}
 			}
 			if(!checkSet.isEmpty()) {
-				System.out.printf("Undefined connections: %s\n", implode(checkSet.toArray(new String[0])));
+				System.out.printf("Undefined connections: %s\n", checkSet.stream().collect(Collectors.joining(", ")));
 				bad = true;
 			}
 			if(bad) {
@@ -584,7 +569,7 @@ public class NoiseBot {
 			}
 
 			if(!server.connect()) {
-				exit();
+				System.exit(0);
 			}
 		}
 

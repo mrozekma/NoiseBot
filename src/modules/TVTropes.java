@@ -5,6 +5,8 @@ import static org.jibble.pircbot.Colors.*;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -23,7 +25,6 @@ import debugging.Log;
 import main.Message;
 import main.NoiseModule;
 import static main.Utilities.*;
-import static panacea.Panacea.*;
 
 /**
  * TVTropes
@@ -55,7 +56,7 @@ public class TVTropes extends NoiseModule {
 				words[i] = Character.toUpperCase(words[i].charAt(0)) + words[i].substring(1);
 			}
 		}
-		return implode(words, "");
+		return Arrays.stream(words).collect(Collectors.joining());
 	}
 
 	private void sendEntry(final String term, final String url, boolean includeLink) {

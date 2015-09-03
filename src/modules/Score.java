@@ -22,12 +22,6 @@ import main.Message;
 import main.ModuleInitException;
 import main.NoiseBot;
 import main.NoiseModule;
-import panacea.Condition;
-import panacea.MapFunction;
-import panacea.Panacea;
-import panacea.ReduceFunction;
-
-import static panacea.Panacea.*;
 
 /**
  * Score

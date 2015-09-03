@@ -2,8 +2,8 @@ package modules;
 
 import main.Message;
 import main.NoiseModule;
+import static main.Utilities.range;
 
-import static panacea.Panacea.*;
 import static org.jibble.pircbot.Colors.*;
 
 /**

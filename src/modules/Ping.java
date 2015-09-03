@@ -3,8 +3,7 @@ package modules;
 import main.Message;
 import main.NoiseBot;
 import main.NoiseModule;
-
-import static panacea.Panacea.*;
+import static main.Utilities.getRandom;
 
 /**
  * Ping

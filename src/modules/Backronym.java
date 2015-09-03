@@ -2,10 +2,12 @@ package modules;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.Vector;
+import java.util.stream.Collectors;
 
 import debugging.Log;
 import au.com.bytecode.opencsv.CSVParser;
@@ -13,8 +15,9 @@ import main.Message;
 import main.ModuleInitException;
 import main.NoiseBot;
 import main.NoiseModule;
+import static main.Utilities.getMatches;
+import static main.Utilities.getRandom;
 import static org.jibble.pircbot.Colors.*;
-import static panacea.Panacea.*;
 
 /**
  * Backronym
@@ -88,7 +91,7 @@ public class Backronym extends NoiseModule {
 			choices[i] = getRandom(this.words.get(Character.toLowerCase(letters.charAt(i))));
 		}
 
-		this.bot.sendMessage(implode(choices, " "));
+		this.bot.sendMessage(Arrays.stream(choices).collect(Collectors.joining(" ")));
 	}
 
 	@Command("\\.b(?:ackronym)? (.*[^A-Za-z].*)")
@@ -116,7 +119,7 @@ public class Backronym extends NoiseModule {
 				choices[i] = choices[i].substring(2);
 			}
 
-			this.bot.sendMessage(implode(choices, " "));
+			this.bot.sendMessage(Arrays.stream(choices).collect(Collectors.joining(" ")));
 		} catch (Exception e) {
 			this.bot.reply(message, COLOR_ERROR + "What do you want me to do, interpret a pony?");
 			e.printStackTrace();

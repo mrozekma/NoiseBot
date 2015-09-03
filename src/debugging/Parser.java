@@ -9,13 +9,13 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import main.NoiseBot;
 import main.NoiseModule;
+import static main.Utilities.sleep;
 
 import org.jibble.pircbot.Colors;
-
-import static panacea.Panacea.*;
 
 /**
  * Parser
@@ -99,7 +99,7 @@ public class Parser {
 	}
 
 	private static void parseSay(Client client, String[] args) {
-		client.getBot().sendMessage(implode(args, " "));
+		client.getBot().sendMessage(Arrays.stream(args).collect(Collectors.joining(" ")));
 	}
 
 	private static void parsePattern(Client client, String[] args) {
@@ -111,7 +111,7 @@ public class Parser {
 			{
 				String[] remainingArgs = new String[args.length - 1];
 				System.arraycopy(args, 1, remainingArgs, 0, remainingArgs.length);
-				testPattern = implode(remainingArgs, " ");
+				testPattern = Arrays.stream(remainingArgs).collect(Collectors.joining(" "));
 			}
 
 			if(!modules.containsKey(moduleName)) {
@@ -123,7 +123,7 @@ public class Parser {
 			modulesToTest = new NoiseModule[] {module};
 		} else {
 			modulesToTest = modules.values().toArray(new NoiseModule[0]);
-			testPattern = implode(args, " ");
+			testPattern = Arrays.stream(args).collect(Collectors.joining(" "));
 		}
 
 		Debugger.me.out(client, "Testing " + modulesToTest.length + " modules");
@@ -141,7 +141,7 @@ public class Parser {
 	private static void parseQuit(Client client, String[] args) {
 		String msg = "Bot disconnected by debugger";
 		if(args.length > 0) {
-			msg += ": " + Colors.BLUE + implode(args, " ");
+			msg += ": " + Colors.BLUE + Arrays.stream(args).collect(Collectors.joining(" "));
 		}
 		client.getBot().sendNotice(msg);
 		sleep(2);

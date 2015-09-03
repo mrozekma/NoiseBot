@@ -20,7 +20,6 @@ import org.jsoup.select.Elements;
 
 import main.Message;
 import main.NoiseModule;
-import static panacea.Panacea.*;
 
 /**
  * Untappd module

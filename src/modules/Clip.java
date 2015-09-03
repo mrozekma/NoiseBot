@@ -12,7 +12,6 @@ import debugging.Log;
 
 import main.Message;
 import main.NoiseModule;
-import static panacea.Panacea.*;
 
 /**
  * Clip
