@@ -16,12 +16,12 @@ import main.Git.SyncException;
 import static panacea.Panacea.*;
 
 /**
- * ModuleManager
+ * Core
  *
  * @author Michael Mrozek
  *         Created Jun 14, 2009.
  */
-public class ModuleManager extends NoiseModule {
+public class Core extends NoiseModule {
 	private static final String MODULE_REGEX = "[a-zA-Z0-9_ -]+";
 
 	private static final String COLOR_ERROR = RED + REVERSE;
@@ -55,8 +55,8 @@ public class ModuleManager extends NoiseModule {
 	public void unloadModules(Message message, String qm, String moduleNames) {
 		final boolean showErrors = qm.isEmpty();
 		for(String moduleName : moduleNames.split(" ")) {
-			if(moduleName.equals("ModuleManager")) {
-				this.bot.sendNotice(COLOR_ERROR + ".unload cannot unload the ModuleManager");
+			if(moduleName.equals(this.getClass().getName())) {
+				this.bot.sendNotice(COLOR_ERROR + ".unload cannot unload the " + this.getFriendlyName() + " module");
 				continue;
 			}
 
@@ -121,16 +121,14 @@ public class ModuleManager extends NoiseModule {
 	public void rehash(Message message) {
 		this.triggerIfOwner(message, new Runnable() {
 			@Override public void run() {
-				for(NoiseBot bot : NoiseBot.bots.values()) {
-					bot.sendMessage("Reloading configuration");
-				}
+				NoiseBot.broadcastNotice("Reloading configuration");
 				NoiseBot.rehash();
 			}
 		}, true);
 	}
 
-	@Override public String getDescription() {return "Manages modules";}
-	@Override public String getFriendlyName() {return "Module Manager";}
+	@Override public String getDescription() {return "Core functionality";}
+	@Override public String getFriendlyName() {return "Core";}
 	@Override public String[] getExamples() {
 		return new String[] {
 				".load _module_ -- Loads the specified module",

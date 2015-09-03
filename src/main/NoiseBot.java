@@ -119,9 +119,9 @@ public class NoiseBot {
 			return;
 		}
 
-		// Always load the module manager
+		// Always load the core module
 		try {
-			this.loadModule("ModuleManager");
+			this.loadModule("Core");
 		} catch(ModuleInitException e) {
 			Log.e(e);
 		}
@@ -145,7 +145,7 @@ public class NoiseBot {
 		Log.i("Loading %d modules from store", moduleNames.length);
 
 		for(String moduleName : moduleNames) {
-			if(moduleName.equals("ModuleManager")) {continue;}
+			if(moduleName.equals("Core")) {continue;}
 			try {
 				this.loadModule(moduleName);
 			} catch(ModuleInitException e) {
@@ -204,7 +204,7 @@ public class NoiseBot {
 		Log.i("Loading module: %s", moduleName);
 		if(this.modules.containsKey(moduleName)) {
 			throw new ModuleInitException("Module " + moduleName + " already loaded");
-		} else if(!moduleName.equals("ModuleManager") && this.server.getConnection().fixedModules != null && !Arrays.asList(this.server.getConnection().fixedModules).contains(moduleName)) {
+		} else if(!moduleName.equals("Core") && this.server.getConnection().fixedModules != null && !Arrays.asList(this.server.getConnection().fixedModules).contains(moduleName)) {
 			throw new ModuleInitException("This bot does not allow dynamic module loading");
 		}
 
@@ -269,8 +269,8 @@ public class NoiseBot {
 		this.modules.remove(moduleName);
 		moduleFileDeps.remove(moduleName);
 
-		// Immediately reload the module manager
-		if(!reloading && moduleName.equals("ModuleManager")) {
+		// Immediately reload the core module
+		if(!reloading && moduleName.equals("Core")) {
 			try {
 				loadModule(moduleName);
 			} catch(ModuleInitException e) {
