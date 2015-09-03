@@ -233,7 +233,7 @@ public class Git {
 										final JSONObject json = new JSONObject(payload);
 										if(event.equals("ping")) {
 											Log.v("Github ping");
-										} else if(event.equals("sync")) {
+										} else if(event.equals("push")) {
 											Git.attemptUpdate();
 										} else if(event.equals("issues")) {
 											final String action = json.getString("action");
