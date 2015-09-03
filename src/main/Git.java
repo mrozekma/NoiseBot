@@ -22,6 +22,9 @@ import org.apache.http.HttpEntityEnclosingRequest;
 import org.apache.http.HttpException;
 import org.apache.http.impl.DefaultBHttpServerConnection;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import panacea.Panacea;
 
 import debugging.Log;
@@ -188,7 +191,7 @@ public class Git {
 										final HttpEntityEnclosingRequest req = (HttpEntityEnclosingRequest)conn.receiveRequestHeader();
 										conn.receiveRequestEntity(req);
 
-										final Header[] headers = req.getHeaders("X-Hub-Signature");
+										Header[] headers = req.getHeaders("X-Hub-Signature");
 										if(headers.length != 1) {
 											Log.e("Signature headers: %d", headers.length);
 											return;
@@ -222,11 +225,31 @@ public class Git {
 											return;
 										}
 
-										// Don't actually need the payload for anything
-										// Just pull from github and try to sync
-										// final JSONObject json = new JSONObject(payload);
-										Git.attemptUpdate();
-									} catch(SyncException | IOException | HttpException e) {
+										headers = req.getHeaders("X-GitHub-Event");
+										if(headers.length != 1) {
+											Log.e("Event headers: %d", headers.length);
+											return;
+										}
+
+										final String event = headers[0].getValue();
+										final JSONObject json = new JSONObject(payload);
+										if(event.equals("ping")) {
+											Log.v("Github ping");
+										} else if(event.equals("sync")) {
+											Git.attemptUpdate();
+										} else if(event.equals("issues")) {
+											final String action = json.getString("action");
+											if(action.equals("opened") || action.equals("closed") || action.equals("reopened")) { // The others we don't care about are 'assigned', 'unassigned', 'labeled', and 'unlabeled'
+												final JSONObject issue = json.getJSONObject("issue");
+												NoiseBot.broadcastNotice(String.format("Issue #%d %s: %s -- %s", issue.getInt("number"), action, issue.getString("title"), issue.getString("html_url")));
+											}
+										} else if(event.equals("issue_comment")) {
+											final JSONObject issue = json.getJSONObject("issue");
+											final JSONObject comment = json.getJSONObject("comment");
+											final JSONObject user = comment.getJSONObject("user");
+											NoiseBot.broadcastNotice(String.format("Issue #%d new comment by %s -- %s", issue.getInt("number"), user.getString("login"), comment.getString("html_url")));
+										}
+									} catch(SyncException | IOException | HttpException | JSONException e) {
 										Log.e(e);
 									}
 								}

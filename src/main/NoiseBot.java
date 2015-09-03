@@ -517,6 +517,18 @@ public class NoiseBot {
 	public void reply(Message sender, String message) {this.reply(sender.getSender(), message);}
 	public void reply(String username, String message) {this.sendMessage((username == null ? "" : username + ": ") + message);}
 
+	public static void broadcastMessage(String message) {
+		for(NoiseBot bot : bots.values()) {
+			bot.sendMessage(message);
+		}
+	}
+
+	public static void broadcastNotice(String notice) {
+		for(NoiseBot bot : bots.values()) {
+			bot.sendNotice(notice);
+		}
+	}
+
 	void onChannelJoin() {
 		this.loadModules();
 	}
