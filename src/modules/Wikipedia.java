@@ -155,7 +155,7 @@ public class Wikipedia extends NoiseModule {
 		return new String[] {
 				".wik _term_ -- Returns the beginning of the wikipedia article for _term_",
 				".wp _term_ -- Same as above",
-				"[_term_] -- Same as above (can appear in the middle of a line)",
+				"[[_term_]] -- Same as above (can appear in the middle of a line)",
 				".featured -- Show the wikipedia definition for the current featured article"
 		};
 	}
