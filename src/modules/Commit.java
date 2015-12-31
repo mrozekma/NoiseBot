@@ -53,8 +53,8 @@ public class Commit extends NoiseModule {
 	@Command("\\.commit")
 	public void commit(Message message) {
 		if(this.messages.length > 0) {
-			final User user = getRandom(this.bot.getUsers());
-			this.bot.sendMessage(getRandom(this.messages).replace("XNAMEX", user.getNick()).replace("XUPPERNAMEX", user.getNick().toUpperCase()));
+			final String nick = getRandom(this.bot.getNicks());
+			this.bot.sendMessage(getRandom(this.messages).replace("XNAMEX", nick).replace("XUPPERNAMEX", nick.toUpperCase()));
 		}
 	}
 

@@ -4,13 +4,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
@@ -23,14 +19,8 @@ import debugging.Log;
 
 import static main.Utilities.pluralize;
 import static main.Utilities.reverse;
-import static main.Utilities.sleep;
 
 import modules.Help;
-
-import org.jibble.pircbot.IrcException;
-import org.jibble.pircbot.NickAlreadyInUseException;
-import org.jibble.pircbot.PircBot;
-import org.jibble.pircbot.User;
 
 import com.google.gson.internal.StringMap;
 
@@ -40,66 +30,31 @@ import com.google.gson.internal.StringMap;
  * @author Michael Mrozek
  *         Created June 13, 2009.
  */
-public class NoiseBot {
+public abstract class NoiseBot {
 	public static final String DEFAULT_CONNECTION = "default";
 	private static final String CONFIG_FILENAME = "config";
 	private static final String DATA_DIRECTORY = "data";
 	public static final String STORE_DIRECTORY = "store";
-	private static final String COLOR_ERROR = RED + REVERSE;
+	protected static final String COLOR_ERROR = RED + REVERSE;
 
 	public static final Map<String, NoiseBot> bots = new HashMap<String, NoiseBot>();
 	public static final Map<String, Set<File>> moduleFileDeps = new HashMap<String, Set<File>>();
 	public static Git.Revision revision = Git.head();
 	private static Map config;
 
-	private final Server server;
-	private final String channel;
-	private final boolean quiet;
-	private final Vector outQueue; // This is controlled by the "server"'s parent PircBot instance
+	protected final String channel;
+	protected final boolean quiet;
+	protected final String[] fixedModules;
 	private Map<String, NoiseModule> modules = new HashMap<String, NoiseModule>();
 
-	public NoiseBot(Server server, String channel, boolean quiet) {
-		this.server = server;
+	protected NoiseBot(String channel, boolean quiet, String[] fixedModules) {
 		this.channel = channel;
 		this.quiet = quiet;
-
-		Vector outQueue = null;
-		try {
-			// I laugh at abstractions
-			final Field outQueueField = this.server.getClass().getSuperclass().getDeclaredField("_outQueue");
-			outQueueField.setAccessible(true);
-			final org.jibble.pircbot.Queue _outQueue = (org.jibble.pircbot.Queue)outQueueField.get(this.server);
-
-			// I laugh at them further
-			// Also, implementing a queue using a vector is terrible
-			final Field queueField = _outQueue.getClass().getDeclaredField("_queue");
-			queueField.setAccessible(true);
-			outQueue = (Vector)queueField.get(_outQueue);
-		} catch(NoSuchFieldException e) {
-			Log.e(e);
-		} catch(IllegalAccessException e) {
-			Log.e(e);
-		}
-		this.outQueue = outQueue;
+		this.fixedModules = fixedModules;
 	}
 
 	// Note: 'exitCode' is only applicable if this is the last connection
 	public void quit(int exitCode) {
-		// Wait (for a little while) for outgoing messages to be sent
-		if(this.outQueue != null) {
-			for(int tries = 0; tries < 5 && !this.outQueue.isEmpty(); tries++) {
-				sleep(1);
-			}
-		}
-
-		if(this.server.getChannels().length > 1) {
-			Log.i("Parting " + this.channel);
-			this.server.partChannel(this.channel);
-		} else {
-			Log.i("Disconnecting");
-			this.server.disconnect();
-		}
-
 		try {this.saveModules();} catch(ModuleSaveException e) {Log.e(e);}
 
 		for(Map.Entry<String, NoiseBot> entry : NoiseBot.bots.entrySet()) {
@@ -131,8 +86,8 @@ public class NoiseBot {
 
 		final String[] moduleNames;
 		final File moduleFile = new File(this.getStoreDirectory(), "modules");
-		if(this.server.getConnection().fixedModules != null) {
-			moduleNames = this.server.getConnection().fixedModules;
+		if(this.fixedModules != null) {
+			moduleNames = fixedModules;
 		} else if(moduleFile.exists()) {
 			try {
 				moduleNames = Serializer.deserialize(moduleFile, String[].class);
@@ -197,7 +152,7 @@ public class NoiseBot {
 		Log.i("Loading module: %s", moduleName);
 		if(this.modules.containsKey(moduleName)) {
 			throw new ModuleInitException("Module " + moduleName + " already loaded");
-		} else if(!moduleName.equals("Core") && this.server.getConnection().fixedModules != null && !Arrays.asList(this.server.getConnection().fixedModules).contains(moduleName)) {
+		} else if(!moduleName.equals("Core") && this.fixedModules != null && !Arrays.asList(this.fixedModules).contains(moduleName)) {
 			throw new ModuleInitException("This bot does not allow dynamic module loading");
 		}
 
@@ -241,7 +196,7 @@ public class NoiseBot {
 	public void unloadModule(String moduleName, boolean reloading) throws ModuleUnloadException {
 		Log.i("Unloading module: %s", moduleName);
 
-		if(!reloading && this.server.getConnection().fixedModules != null) {
+		if(!reloading && this.fixedModules != null) {
 			throw new ModuleUnloadException("This bot does not allow dynamic module unloading");
 		}
 
@@ -265,7 +220,7 @@ public class NoiseBot {
 		// Immediately reload the core module
 		if(!reloading && moduleName.equals("Core")) {
 			try {
-				loadModule(moduleName);
+				this.loadModule(moduleName);
 			} catch(ModuleInitException e) {
 				throw new ModuleUnloadException(e);
 			}
@@ -317,50 +272,21 @@ public class NoiseBot {
 		}
 	}
 
-	public String getBotNick() {
-		return this.server.getConnection().nick;
-	}
+	public abstract Protocol getProtocol();
 
-	public User[] getUsers() {return this.server.getUsers(this.channel);}
-	public String[] getNicks() {
-		return Arrays.stream(this.getUsers()).map(source -> source.getNick()).toArray(String[]::new);
-	}
+	public abstract String getBotNick();
+
+	public abstract String[] getNicks();
+
 	public boolean isOnline(String nick) {
-		for(User user : this.getUsers()) {
-			if(nick.equals(user.getNick())) {
-				return true;
-			}
-		}
-		return false;
+		return Arrays.asList(this.getNicks()).contains(nick);
 	}
 
-	public boolean clearPendingSends() {
-		if(this.outQueue == null) {
-			return false;
-		}
+	public abstract boolean clearPendingSends();
 
-		synchronized(this.outQueue) {
-			final Iterator iter = this.outQueue.iterator();
-			while(iter.hasNext()) {
-				final Object obj = iter.next();
-				if(obj.toString().startsWith("PRIVMSG " + this.channel + " ")) {
-					iter.remove();
-				}
-			}
-		}
-		return true;
-	}
+	abstract File getStoreDirectory();
 
-	File getStoreDirectory() {
-		final Connection conn = this.server.getConnection();
-		return new File(STORE_DIRECTORY, String.format("%s@%s:%d%s", conn.nick, conn.server, conn.port, this.channel));
-	}
-
-	public void whois(String nick, WhoisHandler handler) {
-		handler.setNick(nick);
-		handler.startWaiting();
-		this.server.sendRawLine("WHOIS " + nick);
-	}
+	public abstract void whois(String nick, WhoisHandler handler);
 
 	boolean isOwner(String nick, String hostname, String account) {
 		if(!config.containsKey("owner")) {
@@ -445,57 +371,17 @@ public class NoiseBot {
 
 	// Most things should use send*(String)
 	// The target versions should only be used for PMing
-	public void sendMessage(String target, String message) {this.server.sendMessage(target, message);}
-	public void sendAction(String target, String message) {this.server.sendAction(target, message);}
-	public void sendNotice(String target, String message) {this.server.sendNotice(target, message);}
+	public abstract void sendMessage(String target, String message);
+	public abstract void sendAction(String target, String message);
+	public abstract void sendNotice(String target, String message);
+	public abstract void kickVictim(String victim, String reason);
 
-	public void sendMessage(String message) {Log.out("M> " + message); this.server.sendMessage(this.channel, message);}
-	public void sendAction(String action) {Log.out("A> " + action); this.server.sendAction(this.channel, action);}
-	public void sendNotice(String notice) {Log.out("N> " + notice); this.server.sendNotice(this.channel, notice);}
-	public void kickVictim(String victim, String reason) {this.server.kick(this.channel, victim, reason);}
+	public void sendMessage(String message) {Log.out("M> " + message); this.sendMessage(this.channel, message);}
+	public void sendAction(String action) {Log.out("A> " + action); this.sendAction(this.channel, action);}
+	public void sendNotice(String notice) {Log.out("N> " + notice); this.sendNotice(this.channel, notice);}
 
 	public void sendMessageParts(final String separator, final String... parts) {this.sendTargetedMessageParts(this.channel, separator, parts);}
-	public void sendTargetedMessageParts(final String target, final String separator, final String... parts) {
-		final String whois = this.server.getWhoisString();
-		if(whois == null) {
-			this.whois(this.getBotNick(), new WhoisHandler() {
-				@Override public void onResponse() {
-					NoiseBot.this.server.setWhoisString(String.format("%s!%s@%s", this.nick, this.username, this.hostname));
-					NoiseBot.this.sendTargetedMessageParts(target, separator, parts);
-                }
-
-				@Override public void onTimeout() {
-					NoiseBot.this.server.setWhoisString("");
-					NoiseBot.this.sendMessageParts(separator, parts);
-                }
-			});
-			return;
-		}
-
-		final int maxLen = this.server.getMaxLineLength()
-		                  - (whois.isEmpty() ? 100 : 1 + whois.length())
-		                  - " PRIVMSG ".length()
-		                  - this.channel.length()
-		                  -  " :\r\n".length();
-
-		final StringBuilder message = new StringBuilder();
-		for(int i = 0; i < parts.length; i++) {
-			final String part = (message.length() > 0 ? separator : "") + parts[i];
-			if(message.length() + part.length() <= maxLen) {
-				message.append(part);
-			} else if(message.length() == 0) {
-				this.sendMessage(target, COLOR_ERROR + "Message part too long to send");
-				// Skip it
-			} else {
-				this.sendMessage(target, message.toString());
-				message.setLength(0);
-				i--; // Redo this piece
-			}
-		}
-		if(message.length() > 0) {
-			this.sendMessage(target, message.toString());
-		}
-	}
+	public abstract void sendTargetedMessageParts(final String target, final String separator, final String... parts);
 
 	public void respond(Message sender, String message) {this.sendMessage(sender.isPM() ? sender.getSender() : this.channel, message);}
 	public void respondParts(Message sender, String separator, String... parts) {this.sendTargetedMessageParts(sender.isPM() ? sender.getSender() : this.channel, separator, parts);}
@@ -547,29 +433,34 @@ public class NoiseBot {
 				bad = true;
 			}
 			if(bad) {
-				return;
+				System.exit(1);
 			}
 		}
 
 		for(String connectionName : connectionNames) {
 			final StringMap data = (StringMap)configConnections.get(connectionName);
-			final String host = (String)data.get("server");
-			final int port = (int)Double.parseDouble("" + data.get("port"));
-			final String nick = (String)data.get("nick");
-			final String pass = data.containsKey("password") ? (String)data.get("password") : null;
-			final boolean quiet = data.containsKey("quiet") ? (Boolean)data.get("quiet") : false;
-			final String[] modules = data.containsKey("modules") ? ((List<String>)data.get("modules")).toArray(new String[0]) : null;
-			final Server server = new Server(new Connection(host, port, nick, pass, modules));
+			final String type = data.containsKey("type") ? (String)data.get("type") : "irc";
 
-			final List<String> channels = (List<String>)data.get("channels");
-			for(String channel : channels) {
-				final NoiseBot bot = new NoiseBot(server, channel, quiet);
-				NoiseBot.bots.put(connectionName + channel, bot);
-				server.addBot(channel, bot);
-			}
-
-			if(!server.connect()) {
-				System.exit(0);
+			try {
+				Protocol prot = null;
+				for(Protocol candidate : Protocol.values()) {
+					if(candidate.name().equalsIgnoreCase(type)) {
+						prot = candidate;
+						break;
+					}
+				}
+				if(prot == null) {
+					System.out.printf("Unknown connection type: %s\n", type);
+					System.exit(1);
+				}
+				switch(prot) {
+				case IRC:
+					IRCNoiseBot.createBots(connectionName, data);
+					break;
+				}
+			} catch(IOException e) {
+				System.out.printf("%s\n", e.getMessage());
+				System.exit(1);
 			}
 		}
 

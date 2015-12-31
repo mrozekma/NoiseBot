@@ -139,7 +139,7 @@ public class Twitter extends NoiseModule {
 			}
 		} catch(IOException e) {
 			Log.e(e);
-			if(e.getMessage().contains("Server returned HTTP response code: 403")) {
+			if(e.getMessage().contains("IRCServer returned HTTP response code: 403")) {
 				this.bot.sendMessage(COLOR_ERROR + "Tweet is protected");
 			} else {
 				this.bot.sendMessage(COLOR_ERROR + "Unable to connect to Twitter");

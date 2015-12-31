@@ -39,10 +39,10 @@ public class Wheel extends NoiseModule implements Serializable {
 		this.bot.sendMessage("Spin, Spin, Spin! the wheel of " + getRandom(wheels));
 		sleep(2);
 
-		final User[] users = this.bot.getUsers();
+		final String[] nicks = this.bot.getNicks();
 		String choice;
 		do {
-			choice = getRandom(users).getNick();
+			choice = getRandom(nicks);
 		} while(choice.equals(this.bot.getBotNick()));
 
 		this.victims.put(choice, (this.victims.containsKey(choice) ? this.victims.get(choice) : 0) + 1);

@@ -30,10 +30,10 @@ public class Cloud extends NoiseModule {
 
 	@Command("\\.(?:kill|stab)")
 	public void killRandom(Message message) {
-		final User[] users = this.bot.getUsers();
+		final String[] nicks = this.bot.getNicks();
 		String choice;
 		do {
-			choice = getRandom(users).getNick();
+			choice = getRandom(nicks);
 		} while(choice.equals(this.bot.getBotNick()));
 
 		kill(message, choice);

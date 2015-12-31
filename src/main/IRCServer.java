@@ -17,12 +17,12 @@ import debugging.Log;
 import static main.Utilities.sleep;
 
 /**
- * Server
+ * IRCServer
  *
  * @author Michael Mrozek
  *         Created Jun 29, 2014.
  */
-public class Server extends PircBot {
+public class IRCServer extends PircBot {
 	private static abstract class ModuleCall {
 		public abstract void call(NoiseBot bot, NoiseModule module);
 		public void onException(NoiseBot bot, Exception e) {
@@ -35,7 +35,7 @@ public class Server extends PircBot {
 	private final Map<String, NoiseBot> bots = new HashMap<String, NoiseBot>();
 	private String selfWhoisString = null;
 
-	Server(Connection connection) {
+	IRCServer(Connection connection) {
 		this.connection = connection;
 
 		try {
