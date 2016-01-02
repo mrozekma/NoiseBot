@@ -1,23 +1,18 @@
 package modules;
 
+import java.awt.*;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Scanner;
-import java.util.Vector;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import debugging.Log;
 import au.com.bytecode.opencsv.CSVParser;
-import main.Message;
-import main.ModuleInitException;
-import main.NoiseBot;
-import main.NoiseModule;
+import main.*;
+import org.json.JSONException;
+
 import static main.Utilities.getMatches;
 import static main.Utilities.getRandom;
-import static org.jibble.pircbot.Colors.*;
 
 /**
  * Backronym
@@ -26,8 +21,9 @@ import static org.jibble.pircbot.Colors.*;
  *         Created Sep 11, 2010.
  */
 public class Backronym extends NoiseModule {
-	private static final String COLOR_ERROR = RED;
-	private static final String COLOR_RESPONSE = GREEN;
+	private static final int MAX_LENGTH = 16;
+	private static final Color COLOR_ERROR = Color.RED;
+	private static final Color COLOR_RESPONSE = Color.GREEN;
 
 	private final CSVParser parser = new CSVParser(' ');
 
@@ -46,10 +42,10 @@ public class Backronym extends NoiseModule {
 			return;
 		}
 
-		final HashMap<Character, Vector<String>> words = new HashMap<Character, Vector<String>>(26);
-		final Vector<String> dict = new Vector<String>();
+		final HashMap<Character, Vector<String>> words = new HashMap<>(26);
+		final Vector<String> dict = new Vector<>();
 		for(int i = 'a'; i <= 'z'; i++) {
-			words.put((char)i, new Vector<String>());
+			words.put((char)i, new Vector<>());
 		}
 
 		try {
@@ -68,7 +64,7 @@ public class Backronym extends NoiseModule {
 			throw new ModuleInitException("No dictionary found");
 		}
 
-		this.words = new HashMap<Character, String[]>(words.size());
+		this.words = new HashMap<>(words.size());
 		for(Character key : words.keySet()) {
 			this.words.put(key, words.get(key).toArray(new String[0]));
 		}
@@ -76,36 +72,36 @@ public class Backronym extends NoiseModule {
 	}
 
 	@Command("\\.b(?:ackronym)? ([A-Za-z]+)")
-	public void backronym(Message message, String letters) {
+	public JSONObject backronym(Message message, String letters) throws JSONException {
 		if(this.words == null) {
-			this.bot.sendMessage(COLOR_ERROR + "No dictionary file loaded");
-			return;
+			return new JSONObject().put("error", "No dictionary file loaded");
 		}
-		if(letters.length() > 16) {
-			this.bot.reply(message, COLOR_ERROR + "Maximum length: 16");
-			return;
+		if(letters.length() > MAX_LENGTH) {
+			return new JSONObject().put("error", "Maximum length: " + MAX_LENGTH);
 		}
 
-		final String[] choices = new String[letters.length()];
+		final JSONObject rtn = new JSONObject();
+		rtn.put("original", letters);
 		for(int i = 0; i < letters.length(); i++) {
-			choices[i] = getRandom(this.words.get(Character.toLowerCase(letters.charAt(i))));
+			rtn.append("choices", getRandom(this.words.get(Character.toLowerCase(letters.charAt(i)))));
 		}
-
-		this.bot.sendMessage(Arrays.stream(choices).collect(Collectors.joining(" ")));
+		return rtn;
 	}
 
+
 	@Command("\\.b(?:ackronym)? (.*[^A-Za-z].*)")
-	public void backronymRegex(Message message, String line) {
+	public JSONObject backronymRegex(Message message, String line) throws JSONException {
 		if(this.dict == null) {
-			this.bot.sendMessage(COLOR_ERROR + "No dictionary file loaded");
-			return;
+			return new JSONObject().put("error", "No dictionary file loaded");
 		}
 		try {
 			final String[] choices = this.parser.parseLine(line);
-			if(choices.length > 16) {
-				this.bot.reply(message, COLOR_ERROR + "Maximum length: 16");
-				return;
+			if(choices.length > MAX_LENGTH) {
+				return new JSONObject().put("error", "Maximum length: " + MAX_LENGTH);
 			}
+
+			final JSONObject rtn = new JSONObject();
+			rtn.put("original", choices);
 
 			for(int i = 0; i < choices.length; i++) {
 				if (choices[i].length() == 2 && choices[i].charAt(1) == ':')
@@ -119,15 +115,26 @@ public class Backronym extends NoiseModule {
 				choices[i] = choices[i].substring(2);
 			}
 
-			this.bot.sendMessage(Arrays.stream(choices).collect(Collectors.joining(" ")));
-		} catch (Exception e) {
-			this.bot.reply(message, COLOR_ERROR + "What do you want me to do, interpret a pony?");
-			e.printStackTrace();
+			rtn.put("choices", choices);
+			return rtn;
+		} catch(Exception e) {
+			Log.e(e);
+			return new JSONObject().put("error", "What do you want me to do, interpret a pony?");
 		}
 	}
 
 	@Command("\\.b(?:ackronym)?")
-	public void backronymDefault(Message message) {this.backronym(message, message.getSender());}
+	public JSONObject backronymDefault(Message message) throws JSONException {return this.backronym(message, message.getSender());}
+
+	@View(Protocol.IRC)
+	public void viewIRC(JSONObject data) throws JSONException {
+		IRCNoiseBot bot = (IRCNoiseBot)this.bot;
+		if(data.has("error")) {
+			bot.sendMessage(bot.getColor(COLOR_ERROR) + data.get("error"));
+			return;
+		}
+		bot.sendMessage(bot.getColor(COLOR_RESPONSE) + Arrays.stream(data.getStringArray("choices")).collect(Collectors.joining(" ")));
+	}
 
 	@Override public String getFriendlyName() {return "Backronym";}
 	@Override public String getDescription() {return "Chooses a random word for each letter specified";}
