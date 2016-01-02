@@ -32,7 +32,7 @@ public class IRCServer extends PircBot {
 
 	private final Connection connection;
 	// channel -> bot for that channel
-	private final Map<String, NoiseBot> bots = new HashMap<String, NoiseBot>();
+	private final Map<String, NoiseBot> bots = new HashMap<>();
 	private String selfWhoisString = null;
 
 	IRCServer(Connection connection) {
@@ -82,8 +82,10 @@ public class IRCServer extends PircBot {
 		} catch(NickAlreadyInUseException e) {
 			System.err.printf("The nick %s is already in use\n", this.connection.nick);
 		} catch(IrcException e) {
+			Log.e(e);
 			System.err.printf("Unexpected IRC error: %s\n", e.getMessage());
 		} catch(IOException e) {
+			Log.e(e);
 			System.err.printf("Network error: %s\n", e.getMessage());
 		}
 
@@ -106,7 +108,7 @@ public class IRCServer extends PircBot {
 	}
 
 	@Override protected void onMessage(final String channel, final String sender, final String login, final String hostname, final String message) {
-		Log.in("<" + sender + " (" + login + " @ " + hostname + ") -> " + channel + ": " + message);
+		Log.in(String.format("<%s (%s@%s) -> %s: %s", sender, login, hostname, channel, message));
 		this.moduleDispatch(channel, new ModuleCall() {
 			@Override public void call(NoiseBot bot, NoiseModule module) {
 				module.processMessage(new Message(Colors.removeFormattingAndColors(message.trim()), sender, false));
@@ -120,7 +122,7 @@ public class IRCServer extends PircBot {
 	}
 
 	@Override protected void onPrivateMessage(final String sender, final String login, final String hostname, final String message) {
-		Log.in("<" + sender + " (" + login + " @ " + hostname + ") -> (direct): " + message);
+		Log.in(String.format("<%s (%s@%s) -> (direct): %s", sender, login, hostname, message));
 
 		String channel = null;
 		final String realMessage;

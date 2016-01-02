@@ -25,6 +25,10 @@ run: $(OBJECTS)
 test: conn=test
 test: run
 
+.PHONY: slack
+slack: conn=slack
+slack: run
+
 .PHONY: clean
 clean:
 	rm -rf bin

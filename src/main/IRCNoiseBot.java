@@ -18,7 +18,7 @@ import static main.Utilities.sleep;
  * IRCNoiseBot
  *
  * @author Michael Mrozek
- *         Created December 31, 2015.
+ *         Created Dec 31, 2015.
  */
 public class IRCNoiseBot extends NoiseBot {
 	private final IRCServer server;
@@ -151,7 +151,6 @@ public class IRCNoiseBot extends NoiseBot {
 	@Override public void sendMessage(String target, String message) {this.server.sendMessage(target, message);}
 	@Override public void sendAction(String target, String message) {this.server.sendAction(target, message);}
 	@Override public void sendNotice(String target, String message) {this.server.sendNotice(target, message);}
-	@Override public void kickVictim(String victim, String reason) {this.server.kick(this.channel, victim, reason);}
 
 	@Override public void sendTargetedMessageParts(final String target, final String separator, final String... parts) {
 		final String whois = this.server.getWhoisString();

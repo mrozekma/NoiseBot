@@ -374,14 +374,15 @@ public abstract class NoiseBot {
 	public abstract void sendMessage(String target, String message);
 	public abstract void sendAction(String target, String message);
 	public abstract void sendNotice(String target, String message);
-	public abstract void kickVictim(String victim, String reason);
 
 	public void sendMessage(String message) {Log.out("M> " + message); this.sendMessage(this.channel, message);}
 	public void sendAction(String action) {Log.out("A> " + action); this.sendAction(this.channel, action);}
 	public void sendNotice(String notice) {Log.out("N> " + notice); this.sendNotice(this.channel, notice);}
 
 	public void sendMessageParts(final String separator, final String... parts) {this.sendTargetedMessageParts(this.channel, separator, parts);}
-	public abstract void sendTargetedMessageParts(final String target, final String separator, final String... parts);
+	public void sendTargetedMessageParts(String target, String separator, String... parts) {
+		this.sendMessage(target, Arrays.stream(parts).collect(Collectors.joining(separator)));
+	}
 
 	public void respond(Message sender, String message) {this.sendMessage(sender.isPM() ? sender.getSender() : this.channel, message);}
 	public void respondParts(Message sender, String separator, String... parts) {this.sendTargetedMessageParts(sender.isPM() ? sender.getSender() : this.channel, separator, parts);}
@@ -417,16 +418,11 @@ public abstract class NoiseBot {
 			checkSet.addAll(Arrays.asList(connectionNames));
 			for(Object entry : configConnections.entrySet()) {
 				final String name = (String)((Map.Entry)entry).getKey();
-				final StringMap values = (StringMap)((Map.Entry)entry).getValue();
 				if(name.contains("#")) {
 					System.out.printf("Bad connection name (contains #): %s\n", name);
 					bad = true;
 				}
 				checkSet.remove(name);
-				if(!values.keySet().containsAll(Arrays.asList(new String[] {"server", "port", "nick", "channels"}))) {
-					System.out.printf("Malformed connection: %s\n", name);
-					bad = true;
-				}
 			}
 			if(!checkSet.isEmpty()) {
 				System.out.printf("Undefined connections: %s\n", checkSet.stream().collect(Collectors.joining(", ")));
@@ -456,6 +452,9 @@ public abstract class NoiseBot {
 				switch(prot) {
 				case IRC:
 					IRCNoiseBot.createBots(connectionName, data);
+					break;
+				case Slack:
+					SlackNoiseBot.createBots(connectionName, data);
 					break;
 				}
 			} catch(IOException e) {
