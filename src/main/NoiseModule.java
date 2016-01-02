@@ -229,7 +229,7 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 							args[i] = matcher.group(i);
 						}
 					}
-					if(!method.getReturnType().equals(Void.TYPE) && !method.getReturnType().equals(JSONObject.class)) {
+					if(!method.getReturnType().equals(Void.TYPE) && !JSONObject.class.isAssignableFrom(method.getReturnType())) {
 						throw new ArgumentMismatchException(String.format("Method returns %s (should either be void or return a JSONObject)", method.getReturnType().getName()));
 					}
 

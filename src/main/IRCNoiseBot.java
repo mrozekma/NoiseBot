@@ -2,15 +2,15 @@ package main;
 
 import com.google.gson.internal.StringMap;
 import debugging.Log;
+import org.jibble.pircbot.Colors;
 import org.jibble.pircbot.User;
 
+import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.util.Arrays;
-import java.util.Iterator;
+import java.util.*;
 import java.util.List;
-import java.util.Vector;
 
 import static main.Utilities.sleep;
 
@@ -23,6 +23,26 @@ import static main.Utilities.sleep;
 public class IRCNoiseBot extends NoiseBot {
 	private final IRCServer server;
 	private final Vector outQueue; // This is controlled by the "server"'s parent PircBot instance
+
+	private static final Map<Color, String> COLORS = new HashMap<Color, String>() {{
+		put(null, Colors.NORMAL);
+		put(Color.BLACK, Colors.BLACK);
+		put(Color.RED, Colors.RED);
+		put(Color.YELLOW, Colors.YELLOW);
+		put(Color.GREEN, Colors.GREEN);
+		put(Color.BLUE, Colors.BLUE);
+		put(Color.MAGENTA, Colors.MAGENTA);
+		put(Color.CYAN, Colors.CYAN);
+		put(Color.WHITE, Colors.WHITE);
+	}};
+
+	public String getColor(Color color) {
+		return this.getColor(color, false, false);
+	}
+
+	public String getColor(Color color, boolean bold, boolean reverse) {
+		return COLORS.get(color) + (bold ? Colors.BOLD : "") + (reverse ? Colors.REVERSE : "");
+	}
 
 	public IRCNoiseBot(IRCServer server, String channel, boolean quiet) {
 		super(channel, quiet, server.getConnection().fixedModules);
