@@ -6,6 +6,7 @@ import java.io.FileNotFoundException;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import com.ullink.slack.simpleslackapi.SlackAttachment;
 import debugging.Log;
 import au.com.bytecode.opencsv.CSVParser;
 import main.*;
@@ -127,13 +128,23 @@ public class Backronym extends NoiseModule {
 	public JSONObject backronymDefault(Message message) throws JSONException {return this.backronym(message, message.getSender());}
 
 	@View(Protocol.IRC)
-	public void viewIRC(JSONObject data) throws JSONException {
+	public void ircView(JSONObject data) throws JSONException {
 		IRCNoiseBot bot = (IRCNoiseBot)this.bot;
 		if(data.has("error")) {
 			bot.sendMessage(bot.getColor(COLOR_ERROR) + data.get("error"));
 			return;
 		}
 		bot.sendMessage(bot.getColor(COLOR_RESPONSE) + Arrays.stream(data.getStringArray("choices")).collect(Collectors.joining(" ")));
+	}
+
+	@View(Protocol.Slack)
+	public void slackView(JSONObject data) throws JSONException {
+		SlackNoiseBot bot = (SlackNoiseBot)this.bot;
+		if(data.has("error")) {
+			bot.sendTitled(COLOR_ERROR, "Error", data.getString("error"));
+			return;
+		}
+		bot.sendMessage(Arrays.stream(data.getStringArray("choices")).collect(Collectors.joining(" ")));
 	}
 
 	@Override public String getFriendlyName() {return "Backronym";}

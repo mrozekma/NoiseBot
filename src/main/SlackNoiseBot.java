@@ -6,6 +6,7 @@ import com.ullink.slack.simpleslackapi.SlackChannel;
 import com.ullink.slack.simpleslackapi.SlackPersona;
 import com.ullink.slack.simpleslackapi.SlackUser;
 
+import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
@@ -98,5 +99,17 @@ public class SlackNoiseBot extends NoiseBot {
 	@Override public void sendNotice(String target, String message) {
 		//TODO
 		this.sendMessage(target, message);
+	}
+
+	public void sendAttachment(SlackAttachment attachment) {
+		this.server.sendMessage(this.server.findChannelByName(this.channel.substring(1)), null, attachment);
+	}
+
+	public void sendTitled(Color color, String title, String text) {
+		final SlackAttachment attachment = new SlackAttachment();
+		attachment.setColor(String.format("#%02x%02x%02x", color.getRed(), color.getGreen(), color.getBlue()));
+		attachment.setTitle(title);
+		attachment.setText(text);
+		this.sendAttachment(attachment);
 	}
 }
