@@ -39,14 +39,8 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 	@Target(ElementType.METHOD)
 	protected @interface Command {
 		String value(); // Regex pattern (must be named 'value' for Java reasons)
+		boolean allowPM() default false; // Command can be triggered from private message
 		boolean caseSensitive() default true; // Pattern is case-sensitive
-	}
-
-	@Retention(RetentionPolicy.RUNTIME)
-	@Target(ElementType.METHOD)
-	protected @interface PM {
-		String value();
-		boolean caseSensitive() default true;
 	}
 
 	@Retention(RetentionPolicy.RUNTIME)
@@ -78,18 +72,13 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 		final StrSubstitutor sub = new StrSubstitutor(variables);
 
 		try {
-			for(Method method : getAnnotatedMethods(this.getClass(), Command.class, PM.class)) {
+			for(Method method : getAnnotatedMethods(this.getClass(), Command.class)) {
 				final Command command = method.getAnnotation(Command.class);
-				if(command != null) {
-					final Pattern pattern = Pattern.compile(sub.replace(command.value()), command.caseSensitive() ? 0 : Pattern.CASE_INSENSITIVE);
-					Log.i(this + " - Added pattern %s for method %s", command.value(), method);
-					this.patterns.put(pattern, method);
-				}
-
-				final PM pm = method.getAnnotation(PM.class);
-				if(pm != null) {
-					final Pattern pattern = Pattern.compile(sub.replace(pm.value()), pm.caseSensitive() ? 0 : Pattern.CASE_INSENSITIVE);
-					Log.i(this + " - Added PM pattern %s for method %s", pm.value(), method);
+				final Pattern pattern = Pattern.compile(sub.replace(command.value()), command.caseSensitive() ? 0 : Pattern.CASE_INSENSITIVE);
+				Log.i(this + " - Added pattern %s for method %s", command.value(), method);
+				this.patterns.put(pattern, method);
+				if(command.allowPM()) {
+					Log.i(this + " - Added PM pattern %s for method %s", command.value(), method);
 					this.pmPatterns.put(pattern, method);
 				}
 			}

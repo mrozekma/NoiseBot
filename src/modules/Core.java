@@ -99,8 +99,8 @@ public class Core extends NoiseModule {
 	@Command("\\.rev")
 	public void rev(Message message) {
 		final Git.Revision rev = this.bot.revision;
-		this.bot.reply(message, "Currently on revision " + COLOR_HASH + rev.getHash() + NORMAL + " by " + COLOR_AUTHOR + rev.getAuthor() + NORMAL + " -- " + COLOR_DESCRIPTION + rev.getDescription() + NORMAL);
-		this.bot.reply(message, Git.revisionLink(rev));
+		message.respond("Currently on revision " + COLOR_HASH + rev.getHash() + NORMAL + " by " + COLOR_AUTHOR + rev.getAuthor() + NORMAL + " -- " + COLOR_DESCRIPTION + rev.getDescription() + NORMAL);
+		message.respond(Git.revisionLink(rev));
 	}
 
 	@Command("\\.sync")

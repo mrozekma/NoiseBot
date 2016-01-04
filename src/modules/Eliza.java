@@ -29,7 +29,7 @@ public class Eliza extends NoiseModule {
 
 	@Command("${bot.nick}: (.*)")
 	public void eliza(Message message, String userMessage) {
-		this.bot.reply(message, this.eliza.processInput(userMessage));
+		message.respond(this.eliza.processInput(userMessage));
 	}
 
 	@Override public String getFriendlyName() {return "Eliza";}

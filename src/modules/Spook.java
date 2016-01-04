@@ -69,16 +69,16 @@ public class Spook extends NoiseModule {
 		if (!spook.matches("^[a-zA-Z0-9][a-zA-Z0-9 _.-]+")) {
 			this.bot.sendAction(slapUser(message.getSender()));
 		} else if (this.lines.contains(spook)) {
-			this.bot.reply(message, COLOR_ERROR + "Message already exists");
+			message.respond(COLOR_ERROR + "Message already exists");
 		} else {
 			try {
 				FileWriter writer = new FileWriter(SPOOK_FILE, true);
 				writer.append(spook + '\u0000' + '\n');
 				writer.close();
 				this.lines.add(spook);
-				this.bot.reply(message, "Added");
+				message.respond("Added");
 			} catch (Exception e) {
-				this.bot.reply(message, COLOR_ERROR + "Error adding to spook file");
+				message.respond(COLOR_ERROR + "Error adding to spook file");
 			}
 		}
 	}

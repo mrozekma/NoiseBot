@@ -111,12 +111,12 @@ public class IRCServer extends PircBot {
 		Log.in(String.format("<%s (%s@%s) -> %s: %s", sender, login, hostname, channel, message));
 		this.moduleDispatch(channel, new ModuleCall() {
 			@Override public void call(NoiseBot bot, NoiseModule module) {
-				module.processMessage(new Message(Colors.removeFormattingAndColors(message.trim()), sender, false));
+				module.processMessage(new Message(bot, Colors.removeFormattingAndColors(message.trim()), sender, false));
             }
 
 			@Override public void onException(NoiseBot bot, Exception e) {
 				super.onException(bot, e);
-				bot.sendNotice(e.getMessage());
+				bot.sendMessageTo(sender, Style.FATAL, "%s", e.getMessage());
 			}
 		});
 	}
@@ -139,14 +139,14 @@ public class IRCServer extends PircBot {
 						channel = entry.getKey();
 					} else {
 						// We can use any instance to reply
-						entry.getValue().sendMessage(sender, "You are in multiple channels served by this bot. You must prefix PMs with #channel to specify which channel you mean");
+						entry.getValue().sendMessageTo(sender, "You are in multiple channels served by this bot. You must prefix PMs with #channel to specify which channel you mean");
 						return;
 					}
 				}
 			}
 			if(channel == null) {
 				// We can use any instance to reply
-				this.bots.values().iterator().next().sendMessage(sender, "You aren't in any channels served by this bot. You must prefix PMs with #channel to specify which channel you mean");
+				this.bots.values().iterator().next().sendMessageTo(sender, "You aren't in any channels served by this bot. You must prefix PMs with #channel to specify which channel you mean");
 				return;
 			}
 			realMessage = message;
@@ -154,12 +154,12 @@ public class IRCServer extends PircBot {
 
 		this.moduleDispatch(channel, new ModuleCall() {
 			@Override public void call(NoiseBot bot, NoiseModule module) {
-				module.processMessage(new Message(Colors.removeFormattingAndColors(realMessage.trim()), sender, true));
+				module.processMessage(new Message(bot, Colors.removeFormattingAndColors(realMessage.trim()), sender, true));
             }
 
 			@Override public void onException(NoiseBot bot, Exception e) {
 				super.onException(bot, e);
-				bot.sendNotice(sender, e.getMessage());
+				bot.sendMessageTo(sender, Style.FATAL, "%s", e.getMessage());
 			}
 		});
 	}

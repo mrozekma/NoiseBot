@@ -59,7 +59,7 @@ public class Fortune extends NoiseModule {
 		if(match != null) {
 			this.bot.sendMessage(match);
 		} else {
-			this.bot.reply(message, COLOR_ERROR + "No matches");
+			message.respond(COLOR_ERROR + "No matches");
 		}
 	}
 

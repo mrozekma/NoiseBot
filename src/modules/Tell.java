@@ -41,21 +41,21 @@ public class Tell extends NoiseModule implements Serializable {
 	@Command("\\.(?:tell|ask) ([^ ]+) (.+)")
 	public void tell(Message message, String nick, String userMessage) {
 		if(nick.equals(message.getSender())) {
-			this.bot.reply(message, COLOR_ERROR + "That's you");
+			message.respond(COLOR_ERROR + "That's you");
 		} else if(this.bot.isOnline(nick)) {
-			this.bot.reply(message, COLOR_ERROR + "They're here now");
+			message.respond(COLOR_ERROR + "They're here now");
 		} else {
 			if(!this.messages.containsKey(nick)) {this.messages.put(nick, new LinkedList<CachedMessage>());}
 			this.messages.get(nick).add(new CachedMessage(message.getSender(), userMessage));
 			this.save();
-			this.bot.reply(message, COLOR_SUCCESS + "Queued");
+			message.respond(COLOR_SUCCESS + "Queued");
 		}
 	}
 	
 	@Override protected void joined(String nick) {
 		if(this.messages.containsKey(nick)) {
 			for(CachedMessage message : this.messages.get(nick)) {
-				this.bot.reply(nick, "" + message);
+				this.bot.sendMessage("%s: %s", nick, "" + message);
 			}
 			this.messages.remove(nick);
 			this.save();

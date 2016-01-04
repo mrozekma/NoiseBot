@@ -21,6 +21,11 @@ import static main.Utilities.sleep;
  *         Created Dec 31, 2015.
  */
 public class IRCNoiseBot extends NoiseBot {
+	@FunctionalInterface
+	private interface MessageSender {
+		public void send(String target, String message);
+	}
+
 	private final IRCServer server;
 	private final Vector outQueue; // This is controlled by the "server"'s parent PircBot instance
 
@@ -148,49 +153,48 @@ public class IRCNoiseBot extends NoiseBot {
 		this.server.sendRawLine("WHOIS " + nick);
 	}
 
-	@Override public void sendMessage(String target, String message) {this.server.sendMessage(target, message);}
-	@Override public void sendAction(String target, String message) {this.server.sendAction(target, message);}
-	@Override public void sendNotice(String target, String message) {this.server.sendNotice(target, message);}
-
-	@Override public void sendTargetedMessageParts(final String target, final String separator, final String... parts) {
+	@Override public void sendMessage(final MessageBuilder builder) {
 		final String whois = this.server.getWhoisString();
 		if(whois == null) {
 			this.whois(this.getBotNick(), new WhoisHandler() {
 				@Override public void onResponse() {
 					IRCNoiseBot.this.server.setWhoisString(String.format("%s!%s@%s", this.nick, this.username, this.hostname));
-					IRCNoiseBot.this.sendTargetedMessageParts(target, separator, parts);
+					IRCNoiseBot.this.sendMessage(builder);
 				}
 
 				@Override public void onTimeout() {
-					IRCNoiseBot.this.server.setWhoisString("");
-					IRCNoiseBot.this.sendMessageParts(separator, parts);
+					// For this message, fake a long whois string
+					// Clear if after sending so the next message will try to get the whois again
+					IRCNoiseBot.this.server.setWhoisString(new String("----------------------------------------------------------------------------------------------------"));
+					IRCNoiseBot.this.sendMessage(builder);
+					IRCNoiseBot.this.server.setWhoisString(null);
 				}
 			});
+			// This could lead to messages being sent out of order, but it's unlikely enough that I don't really care
 			return;
 		}
 
-		final int maxLen = this.server.getMaxLineLength()
-				- (whois.isEmpty() ? 100 : 1 + whois.length())
-				- " PRIVMSG ".length()
-				- this.channel.length()
-				-  " :\r\n".length();
+		int maxLen = this.server.getMaxLineLength()
+		           - whois.length()
+		           - " PRIVMSG ".length()
+		           - builder.target.length()
+		           - " :\r\n".length();
 
-		final StringBuilder message = new StringBuilder();
-		for(int i = 0; i < parts.length; i++) {
-			final String part = (message.length() > 0 ? separator : "") + parts[i];
-			if(message.length() + part.length() <= maxLen) {
-				message.append(part);
-			} else if(message.length() == 0) {
-				this.sendMessage(target, COLOR_ERROR + "Message part too long to send");
-				// Skip it
-			} else {
-				this.sendMessage(target, message.toString());
-				message.setLength(0);
-				i--; // Redo this piece
-			}
+		final MessageSender fn;
+		switch(builder.type) {
+		case MESSAGE:
+		default:
+			fn = this.server::sendMessage;
+			break;
+		case ACTION:
+			fn = this.server::sendAction;
+			break;
+		case NOTICE:
+			fn = this.server::sendNotice;
+			break;
 		}
-		if(message.length() > 0) {
-			this.sendMessage(target, message.toString());
+		for(String message : builder.getFinalMessages(Optional.of(maxLen))) {
+			fn.send(builder.target, message);
 		}
 	}
 }

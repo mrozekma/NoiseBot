@@ -22,9 +22,8 @@ import static main.Utilities.getRandom;
  *         Created Sep 11, 2010.
  */
 public class Backronym extends NoiseModule {
+	private static final Style STYLE_RESPONSE = Style.GREEN;
 	private static final int MAX_LENGTH = 16;
-	private static final Color COLOR_ERROR = Color.RED;
-	private static final Color COLOR_RESPONSE = Color.GREEN;
 
 	private final CSVParser parser = new CSVParser(' ');
 
@@ -89,7 +88,6 @@ public class Backronym extends NoiseModule {
 		return rtn;
 	}
 
-
 	@Command("\\.b(?:ackronym)? (.*[^A-Za-z].*)")
 	public JSONObject backronymRegex(Message message, String line) throws JSONException {
 		if(this.dict == null) {
@@ -127,16 +125,16 @@ public class Backronym extends NoiseModule {
 	@Command("\\.b(?:ackronym)?")
 	public JSONObject backronymDefault(Message message) throws JSONException {return this.backronym(message, message.getSender());}
 
-	@View(Protocol.IRC)
-	public void ircView(JSONObject data) throws JSONException {
-		IRCNoiseBot bot = (IRCNoiseBot)this.bot;
+	@View
+	public void plainView(JSONObject data) throws JSONException {
 		if(data.has("error")) {
-			bot.sendMessage(bot.getColor(COLOR_ERROR) + data.get("error"));
+			this.bot.sendMessage(Style.ERROR, "%s", data.getString("error"));
 			return;
 		}
-		bot.sendMessage(bot.getColor(COLOR_RESPONSE) + Arrays.stream(data.getStringArray("choices")).collect(Collectors.joining(" ")));
+		this.bot.buildMessage().addParts(STYLE_RESPONSE, " ", "%s", data.getStringArray("choices"));
 	}
 
+	/*
 	@View(Protocol.Slack)
 	public void slackView(JSONObject data) throws JSONException {
 		SlackNoiseBot bot = (SlackNoiseBot)this.bot;
@@ -146,6 +144,7 @@ public class Backronym extends NoiseModule {
 		}
 		bot.sendMessage(Arrays.stream(data.getStringArray("choices")).collect(Collectors.joining(" ")));
 	}
+	*/
 
 	@Override public String getFriendlyName() {return "Backronym";}
 	@Override public String getDescription() {return "Chooses a random word for each letter specified";}

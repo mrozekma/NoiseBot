@@ -43,9 +43,9 @@ public class Choose extends NoiseModule {
 
 		final Set<String> options = Arrays.stream(opts).map(s -> s.trim()).collect(Collectors.toSet());
 		if(options.size() > 1) {
-			this.bot.reply(message, COLOR_CHOICE + getRandom(options.toArray(new String[0])));
+			message.respond(COLOR_CHOICE + getRandom(options.toArray(new String[0])));
 		} else {
-			this.bot.reply(message, "You're having me choose from a set of one...fine, " + COLOR_CHOICE + options.iterator().next());
+			message.respond("You're having me choose from a set of one...fine, " + COLOR_CHOICE + options.iterator().next());
 		}
 	}
 

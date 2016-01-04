@@ -88,12 +88,12 @@ public class SlackServer implements SlackMessagePostedListener {
 		Log.in(String.format("<%s -> %s: %s", sender, channel, message));
 		this.moduleDispatch(channel, new ModuleCall() {
 			@Override public void call(NoiseBot bot, NoiseModule module) {
-				module.processMessage(new Message(message, sender, false));
+				module.processMessage(new Message(bot, message, sender, false));
 			}
 
 			@Override public void onException(NoiseBot bot, Exception e) {
 				super.onException(bot, e);
-				bot.sendNotice(e.getMessage());
+				bot.sendMessage(Style.FATAL, "%s", e.getMessage());
 			}
 		});
 	}

@@ -92,10 +92,10 @@ public class QDB extends NoiseModule {
 			for(String line : getQuote(id))
 				this.bot.sendMessage(COLOR_QUOTE + line);
 		} catch(ParseException e) {
-			this.bot.reply(message, COLOR_ERROR + e.getMessage());
+			message.respond(COLOR_ERROR + e.getMessage());
 			Log.e(e);
 		} catch(IOException e) {
-			this.bot.reply(message, COLOR_ERROR + "Unable to connect to QDB");
+			message.respond(COLOR_ERROR + "Unable to connect to QDB");
 			Log.e(e);
 		}
 	}
@@ -115,10 +115,10 @@ public class QDB extends NoiseModule {
 			for(String line : quote)
 				this.bot.sendMessage(COLOR_QUOTE + line);
 		} catch(ParseException e) {
-			this.bot.reply(message, COLOR_ERROR + e.getMessage());
+			message.respond(COLOR_ERROR + e.getMessage());
 			Log.e(e);
 		} catch(IOException e) {
-			this.bot.reply(message, COLOR_ERROR + "Unable to connect to QDB");
+			message.respond(COLOR_ERROR + "Unable to connect to QDB");
 			Log.e(e);
 		}
 	}

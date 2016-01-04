@@ -63,7 +63,7 @@ public class Wheel extends NoiseModule implements Serializable {
 		final int total = victims.values().stream().mapToInt(i -> i).sum();
 		final String[] parts = nickStream.map(nick -> String.format("(%2.2f%%) %s", ((double)victims.get(nick)/(double)total*100.0), nick)).toArray(String[]::new);
 
-		this.bot.sendMessageParts(", ", parts);
+		message.buildResponse().addParts(", ", "%s", parts);
 	}
 
 	@Override public String getFriendlyName() {return "Wheel";}

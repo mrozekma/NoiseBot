@@ -11,6 +11,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static main.Utilities.substring;
@@ -84,25 +86,34 @@ public class SlackNoiseBot extends NoiseBot {
 		handler.notifyDone(true);
 	}
 
-	@Override public void sendMessage(String target, String message) {
-		if(target.charAt(0) == '#') {
-			this.server.sendMessage(this.server.findChannelByName(target.substring(1)), message, null);
-		} else {
-			this.server.sendMessageToUser(target, message, null);
+	@Override public void sendMessage(MessageBuilder builder) {
+		final SlackChannel target = (builder.target.charAt(0) == '#') ? this.server.findChannelByName(builder.target.substring(1)) : null;
+		final Consumer<String> fn;
+		switch(builder.type) {
+		case MESSAGE:
+		case NOTICE:
+		default:
+			fn = (target != null)
+			   ? message -> this.server.sendMessage(target, message, null)
+			   : message -> this.server.sendMessageToUser(builder.target, message, null);
+			break;
+		case ACTION:
+			fn = (target != null)
+			   ? message -> this.server.sendMessage(target, "/me " + message, null)
+			   : message -> this.server.sendMessageToUser(builder.target, "/me " + message, null);
 		}
-	}
 
-	@Override public void sendAction(String target, String message) {
-		this.sendMessage(target, "/me " + message);
-	}
-
-	@Override public void sendNotice(String target, String message) {
-		//TODO
-		this.sendMessage(target, message);
+		for(String message : builder.getFinalMessages(Optional.empty())) {
+			fn.accept(message);
+		}
 	}
 
 	public void sendAttachment(SlackAttachment attachment) {
 		this.server.sendMessage(this.server.findChannelByName(this.channel.substring(1)), null, attachment);
+	}
+
+	public void sendAttachmentTo(String target, SlackAttachment attachment) {
+		this.server.sendMessageToUser(target, null, attachment);
 	}
 
 	public void sendTitled(Color color, String title, String text) {

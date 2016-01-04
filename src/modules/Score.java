@@ -17,11 +17,9 @@ import java.util.NavigableMap;
 import java.util.TreeMap;
 import java.util.Vector;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import main.Message;
-import main.ModuleInitException;
-import main.NoiseBot;
-import main.NoiseModule;
+import main.*;
 
 /**
  * Score
@@ -30,38 +28,8 @@ import main.NoiseModule;
  * @author Will Fuqua February 09, 2013.
  */
 public class Score extends NoiseModule implements Serializable {
-	private static final String COLOR_POSITIVE = GREEN;
-	private static final String COLOR_NEGATIVE = RED;
-
-	// This is the old deprecated store. init() will convert data in it to the new store and clear it
-
-	@Deprecated
-	private Map<String, ScoreEntry> userScores = new HashMap<String, ScoreEntry>();
-
-	@Deprecated
-	public static class ScoreEntry implements Comparable<ScoreEntry>, Serializable {
-		public String username;
-		public int score;
-
-		public ScoreEntry() {}
-
-		public ScoreEntry(String username, int score) {
-			this.username = username;
-			this.score = score;
-		}
-
-		@Override
-		public int compareTo(ScoreEntry o) {
-			return this.score - o.score;
-		}
-
-		public String ircFormat() {
-			String scoreColor = (this.score >= 0 ? Score.COLOR_POSITIVE	: Score.COLOR_NEGATIVE);
-			return this.username  + ": " + scoreColor + this.score + NORMAL;
-		}
-	}
-
-	// This is the new store
+	private static final Style STYLE_POSITIVE = Style.GREEN;
+	private static final Style STYLE_NEGATIVE = Style.RED;
 
 	private static class ScoreChange implements Serializable {
 		public final String user;
@@ -77,7 +45,7 @@ public class Score extends NoiseModule implements Serializable {
 		}
 	}
 
-	private static enum When {
+	private enum When {
 		day, week, month, year, ever;
 
 		public static When getByLetter(char c) {
@@ -97,21 +65,9 @@ public class Score extends NoiseModule implements Serializable {
 
 	@Override public void init(final NoiseBot bot) throws ModuleInitException {
 		super.init(bot);
-		if(diskScores == null) {
-			// Convert old data
-			final Date now = new Date();
-			final Calendar when = new Calendar.Builder().setDate(now.getYear() + 1900, now.getMonth(), now.getDate()).setTimeOfDay(0, 0, 0).build();
-			for(ScoreEntry e : this.userScores.values()) {
-				this.scores.put(when.getTime(), new ScoreChange(null, e.username, when.getTime(), e.score));
-				when.add(Calendar.SECOND, 1);
-			}
-			this.userScores.clear();
-			this.save();
-		} else {
-			// Populate 'scores' from 'diskScores'
-			for(ScoreChange score : this.diskScores) {
-				this.scores.put(score.when, score);
-			}
+		// Populate 'scores' from 'diskScores'
+		for(ScoreChange score : this.diskScores) {
+			this.scores.put(score.when, score);
 		}
 	}
 
@@ -174,15 +130,13 @@ public class Score extends NoiseModule implements Serializable {
 		return totals;
 	}
 
-	private String formatScore(String user, int score) {
-		return String.format("%s: %s%d%s", user, (score >= 0) ? COLOR_POSITIVE : COLOR_NEGATIVE, score, NORMAL);
-	}
-
 	@Command("\\.score(?: @(day|week|month|year|ever))? (.+)")
 	public void getScore(Message message, String whenStr, String nick) {
 		final When when = (whenStr == null || whenStr.isEmpty()) ? When.ever : When.valueOf(whenStr);
 		final Map<String, Integer> totals = this.getTotals(nick, when);
-		this.bot.respondParts(message, this.formatScore(nick, totals.getOrDefault(nick, 0)));
+		final int total = totals.getOrDefault(nick, 0);
+
+		message.buildResponse().add("%s: ", nick).add(total >= 0 ? STYLE_POSITIVE : STYLE_NEGATIVE, "%s", "" + total).send();
 	}
 
 	@Command("\\.score(?: @(day|week|month|year|ever))?")
@@ -200,27 +154,27 @@ public class Score extends NoiseModule implements Serializable {
 		this.getSelfScore(message, When.getByLetter(when.charAt(0)).toString());
 	}
 
-	@Command("\\.(?:scores|scoreboard)(?: @(day|week|month|year|ever))?")
-	@PM("\\.(?:scores|scoreboard)(?: @(day|week|month|year|ever))?")
+	@Command(value = "\\.(?:scores|scoreboard)(?: @(day|week|month|year|ever))?", allowPM = true)
 	public void scores(Message message, String whenStr) {
 		final List<String> nicks = Arrays.asList(this.bot.getNicks());
 		final When when = (whenStr == null || whenStr.isEmpty()) ? When.ever : When.valueOf(whenStr);
-		//TODO |score| > 2 || nicks.contains(user)
-		final String[] parts = this.getTotals(null, when).entrySet().stream()
+		final MessageBuilder messageBuilder = message.buildResponse();
+		final MessageBuilder.PartBuilder partBuilder = messageBuilder.buildParts(", ", "%s: %s");
+
+		this.getTotals(null, when).entrySet().stream()
 			.filter(e -> Math.abs(e.getValue()) > 2 || nicks.contains(e.getKey()))
 			.sorted((e1, e2) -> Integer.compare(e2.getValue(), e1.getValue()))
-			.map(e -> this.formatScore(e.getKey(), e.getValue()))
-			.toArray(String[]::new);
+			.forEach(e -> partBuilder.addPart(new String[] {e.getKey(), "" + e.getValue()}, new Style[] {null, e.getValue() >= 0 ? STYLE_POSITIVE : STYLE_NEGATIVE}));
 
-		if(parts.length == 0) {
-			this.bot.respond(message, "No scores available");
+		if(partBuilder.isEmpty()) {
+			message.respond("%s", "No scores available");
 		} else {
-			this.bot.respondParts(message, ", ", parts);
+			partBuilder.done();
+			messageBuilder.send();
 		}
 	}
 
-	@Command("\\.([dwmye])(?:scores|scoreboard)")
-	@PM("\\.([dwmye])(?:scores|scoreboard)")
+	@Command(value = "\\.([dwmye])(?:scores|scoreboard)", allowPM = true)
 	public void scoresWhen(Message message, String when) {
 		this.scores(message, When.getByLetter(when.charAt(0)).toString());
 	}

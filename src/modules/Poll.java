@@ -48,7 +48,7 @@ public class Poll extends NoiseModule {
 	@Command("\\.poll (.*)")
 	public void poll(Message message, String argLine) {
 		if(this.pollTimer != null) {
-			this.bot.reply(message, "A poll is in progress");
+			message.respond("A poll is in progress");
 			return;
 		}
 		
@@ -77,7 +77,7 @@ public class Poll extends NoiseModule {
 		}
 		
 		if(this.validVotes.size() < 2) {
-			this.bot.reply(message, "Polls need at least two options");
+			message.respond("Polls need at least two options");
 			return;
 		}
 		
@@ -110,44 +110,44 @@ public class Poll extends NoiseModule {
 	@Command("\\.vote  *(.+) *")
 	public void vote(Message message, String vote) {
 		if(this.pollText == "") {
-			this.bot.reply(message, COLOR_ERROR + "There is no poll to vote on");
+			message.respond(COLOR_ERROR + "There is no poll to vote on");
 			return;
 		}
 		
 		vote = vote.replaceAll("\\\\\\$", "\\$");
 		if(!this.validVotes.contains(vote)) {
-			this.bot.reply(message, COLOR_ERROR + "Invalid vote");
+			message.respond(COLOR_ERROR + "Invalid vote");
 			return;
 		}
 		
 		this.votes.put(message.getSender(), vote);
 		if (this.pollTimer == null)
 			this.bot.sendAction(slapUser(message.getSender()));
-		this.bot.reply(message, COLOR_SUCCESS + "Vote recorded" + NORMAL + ". Current standing: " + this.tabulate());
+		message.respond(COLOR_SUCCESS + "Vote recorded" + NORMAL + ". Current standing: " + this.tabulate());
 	}
 	
 	@Command("\\.pollstats")
 	public void stats(Message message) {
 		if(this.pollTimer == null) {
-			this.bot.reply(message, COLOR_ERROR + "There is no poll in progress to check");
+			message.respond(COLOR_ERROR + "There is no poll in progress to check");
 		} else {
 			final int timeLeft = WAIT_TIME + (int)(this.startTime - System.currentTimeMillis()) / 1000;
-			this.bot.reply(message, "(" + timeLeft + "s remain" + (timeLeft == 1 ? "s" : "") + "): " + this.tabulate());
+			message.respond("(" + timeLeft + "s remain" + (timeLeft == 1 ? "s" : "") + "): " + this.tabulate());
 		}
 	}
 	
 	@Command("\\.cancelpoll")
 	public void cancel(Message message) {
 		if(this.pollTimer == null) {
-			this.bot.reply(message, COLOR_ERROR + "There is no poll in progress to cancel");
+			message.respond(COLOR_ERROR + "There is no poll in progress to cancel");
 		} else if(!this.pollOwner.equals(message.getSender())) {
-			this.bot.reply(message, COLOR_ERROR + "Only " + this.pollOwner + " can cancel the poll");
+			message.respond(COLOR_ERROR + "Only " + this.pollOwner + " can cancel the poll");
 		} else if(!this.votes.isEmpty()) {
-			this.bot.reply(message, COLOR_ERROR + "You can't cancel a poll once votes are in");
+			message.respond(COLOR_ERROR + "You can't cancel a poll once votes are in");
 		} else {
 			this.pollTimer.cancel();
 			this.pollTimer = null;
-			this.bot.reply(message, COLOR_SUCCESS + "Poll canceled");
+			message.respond(COLOR_SUCCESS + "Poll canceled");
 		}
 	}
 	

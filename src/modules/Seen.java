@@ -27,7 +27,7 @@ public class Seen extends NoiseModule implements Serializable {
 	@Command("\\.seen (.+)")
 	public void seen(Message message, String target) {
 		target = target.replaceAll(" +$", "");
-		this.bot.reply(message, this.bot.isOnline(target)
+		message.respond(this.bot.isOnline(target)
 				? COLOR_HERE + target + " is here now" + NORMAL + (this.talkDates.containsKey(target) ? " -- last spoke " + this.talkDates.get(target) : "")
 				: (this.seenDates.containsKey(target)
 						? COLOR_LAST_SEEN + target + " was last seen " + this.seenDates.get(target)

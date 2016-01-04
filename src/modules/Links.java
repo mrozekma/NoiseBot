@@ -43,7 +43,7 @@ public class Links extends NoiseModule implements Serializable {
 	@Command(".*((?:ftp|http|https):\\/\\/(?:\\w+:{0,1}\\w*@)?(?:\\S+)(?::[0-9]+)?(?:\\/|\\/(?:[\\w#!:.?+=&%@!\\-\\/]))?).*")
 	public void url(Message message, String url) {
 		if(links.containsKey(url)) {
-			this.bot.reply(message, DUP_COLOR + "Duplicate URL: " + links.get(url));
+			message.respond(DUP_COLOR + "Duplicate URL: " + links.get(url));
 		} else {
 			links.put(url, new CachedMessage(message));
 			for(int i = lastN.length - 2; i >= 0; i--)
@@ -58,7 +58,7 @@ public class Links extends NoiseModule implements Serializable {
 		num = range(num, 1, lastN.length);
 		for(int i = 0; i < num; i++) {
 			if(lastN[i] == null) continue;
-			this.bot.reply(message, RECAP_COLOR + this.links.get(lastN[i]));
+			message.respond(RECAP_COLOR + this.links.get(lastN[i]));
 		}
 	}
 
@@ -67,7 +67,7 @@ public class Links extends NoiseModule implements Serializable {
 		final int num = 5;
 		links.values().stream()
 			.filter(c -> c.fromUser(user)).sorted().limit(num)
-			.forEach(c -> this.bot.reply(message, RECAP_COLOR + c.toString()));
+			.forEach(c -> message.respond(RECAP_COLOR + c.toString()));
 	}
 
 	@Command("\\.(?:lasturls|links)")

@@ -119,7 +119,7 @@ public class Debugger {
 				}
 
 				client.startAuthentication(nick, code, bot);
-				bot.sendMessage(nick, "Debugger authentication request. Code: " + code);
+				bot.sendMessageTo(nick, "Debugger authentication request. Code: " + code);
 			} else if(command.startsWith("code ")) {
 				final String code = command.substring(5);
 				client.authenticate(code);

@@ -4,12 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -37,15 +32,15 @@ public abstract class NoiseBot {
 	public static final String STORE_DIRECTORY = "store";
 	protected static final String COLOR_ERROR = RED + REVERSE;
 
-	public static final Map<String, NoiseBot> bots = new HashMap<String, NoiseBot>();
-	public static final Map<String, Set<File>> moduleFileDeps = new HashMap<String, Set<File>>();
+	public static final Map<String, NoiseBot> bots = new HashMap<>();
+	public static final Map<String, Set<File>> moduleFileDeps = new HashMap<>();
 	public static Git.Revision revision = Git.head();
 	private static Map config;
 
 	protected final String channel;
 	protected final boolean quiet;
 	protected final String[] fixedModules;
-	private Map<String, NoiseModule> modules = new HashMap<String, NoiseModule>();
+	private Map<String, NoiseModule> modules = new HashMap<>();
 
 	protected NoiseBot(String channel, boolean quiet, String[] fixedModules) {
 		this.channel = channel;
@@ -369,25 +364,60 @@ public abstract class NoiseBot {
 		}
 	}
 
-	// Most things should use send*(String)
-	// The target versions should only be used for PMing
-	public abstract void sendMessage(String target, String message);
-	public abstract void sendAction(String target, String message);
-	public abstract void sendNotice(String target, String message);
-
-	public void sendMessage(String message) {Log.out("M> " + message); this.sendMessage(this.channel, message);}
-	public void sendAction(String action) {Log.out("A> " + action); this.sendAction(this.channel, action);}
-	public void sendNotice(String notice) {Log.out("N> " + notice); this.sendNotice(this.channel, notice);}
-
-	public void sendMessageParts(final String separator, final String... parts) {this.sendTargetedMessageParts(this.channel, separator, parts);}
-	public void sendTargetedMessageParts(String target, String separator, String... parts) {
-		this.sendMessage(target, Arrays.stream(parts).collect(Collectors.joining(separator)));
+	// By default, just ignore the style entirely. Child classes will probably override this
+	public String format(Style style, String text) {
+		return text;
 	}
 
-	public void respond(Message sender, String message) {this.sendMessage(sender.isPM() ? sender.getSender() : this.channel, message);}
-	public void respondParts(Message sender, String separator, String... parts) {this.sendTargetedMessageParts(sender.isPM() ? sender.getSender() : this.channel, separator, parts);}
-	public void reply(Message sender, String message) {this.reply(sender.getSender(), message);}
-	public void reply(String username, String message) {this.sendMessage((username == null ? "" : username + ": ") + message);}
+	public abstract void sendMessage(MessageBuilder builder);
+
+	public MessageBuilder buildMessage() {
+		return this.buildMessageTo(this.channel);
+	}
+
+	public MessageBuilder buildMessageTo(String target) {
+		return new MessageBuilder(this, target, MessageBuilder.Type.MESSAGE);
+	}
+
+	public MessageBuilder buildAction() {
+		return this.buildActionTo(this.channel);
+	}
+
+	public MessageBuilder buildActionTo(String target) {
+		return new MessageBuilder(this, target, MessageBuilder.Type.ACTION);
+	}
+
+	public MessageBuilder buildNotice() {
+		return new MessageBuilder(this, this.channel, MessageBuilder.Type.NOTICE);
+	}
+
+	public void sendMessage(String fmt, String... args) {
+		this.buildMessage().add(fmt, args).send();
+	}
+
+	public void sendMessage(Style style, String fmt, String... args) {
+		this.buildMessage().add(style, fmt, args).send();
+	}
+
+	public void sendMessageTo(String target, String fmt, String... args) {
+		this.buildMessageTo(target).add(fmt, args).send();
+	}
+
+	public void sendMessageTo(String target, Style style, String fmt, String... args) {
+		this.buildMessageTo(target).add(style, fmt, args).send();
+	}
+
+	public void sendAction(String fmt, String... args) {
+		this.buildAction().add(fmt, args).send();
+	}
+
+	public void sendActionTo(String target, String fmt, String... args) {
+		this.buildActionTo(target).add(fmt, args).send();
+	}
+
+	public void sendNotice(String fmt, String... args) {
+		this.buildNotice().add(fmt, args).send();
+	}
 
 	public static void broadcastMessage(String message) {
 		for(NoiseBot bot : bots.values()) {
