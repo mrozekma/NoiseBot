@@ -23,12 +23,8 @@ public class Message {
 	public String getSender() {return this.sender;}
 	public boolean isPM() {return this.pm;}
 
-	public void respond(String fmt, String... args) {
+	public void respond(String fmt, Object... args) {
 		this.bot.sendMessageTo(this.pm ? this.sender : this.bot.channel, fmt, args);
-	}
-
-	public void respond(Style style, String fmt, String... args) {
-		this.bot.sendMessageTo(this.pm ? this.sender : this.bot.channel, style, fmt, args);
 	}
 
 	public MessageBuilder buildResponse() {

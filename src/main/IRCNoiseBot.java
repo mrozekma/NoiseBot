@@ -10,6 +10,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.*;
+import java.util.concurrent.Semaphore;
 import java.util.List;
 
 import static main.Utilities.sleep;
@@ -28,6 +29,7 @@ public class IRCNoiseBot extends NoiseBot {
 
 	private final IRCServer server;
 	private final Vector outQueue; // This is controlled by the "server"'s parent PircBot instance
+	private String whoisString = "----------------------------------------------------------------------------------------------------";
 
 	private static final Map<Color, String> COLORS = new HashMap<Color, String>() {{
 		put(null, Colors.NORMAL);
@@ -40,14 +42,6 @@ public class IRCNoiseBot extends NoiseBot {
 		put(Color.CYAN, Colors.CYAN);
 		put(Color.WHITE, Colors.WHITE);
 	}};
-
-	public String getColor(Color color) {
-		return this.getColor(color, false, false);
-	}
-
-	public String getColor(Color color, boolean bold, boolean reverse) {
-		return COLORS.get(color) + (bold ? Colors.BOLD : "") + (reverse ? Colors.REVERSE : "");
-	}
 
 	public IRCNoiseBot(IRCServer server, String channel, boolean quiet) {
 		super(channel, quiet, server.getConnection().fixedModules);
@@ -90,6 +84,17 @@ public class IRCNoiseBot extends NoiseBot {
 		if(!server.connect()) {
 			throw new IOException("Unable to connect to server");
 		}
+	}
+
+	@Override public void onChannelJoin() {
+		this.whois(this.getBotNick(), new WhoisHandler() {
+			@Override public void onResponse() {
+				IRCNoiseBot.this.whoisString = String.format("%s!%s@%s", this.nick, this.username, this.hostname);
+			}
+
+			// On timeout, just leave the whoisString at the old value
+		});
+		super.onChannelJoin();
 	}
 
 	// Note: 'exitCode' is only applicable if this is the last connection
@@ -153,29 +158,24 @@ public class IRCNoiseBot extends NoiseBot {
 		this.server.sendRawLine("WHOIS " + nick);
 	}
 
-	@Override public void sendMessage(final MessageBuilder builder) {
-		final String whois = this.server.getWhoisString();
-		if(whois == null) {
-			this.whois(this.getBotNick(), new WhoisHandler() {
-				@Override public void onResponse() {
-					IRCNoiseBot.this.server.setWhoisString(String.format("%s!%s@%s", this.nick, this.username, this.hostname));
-					IRCNoiseBot.this.sendMessage(builder);
-				}
-
-				@Override public void onTimeout() {
-					// For this message, fake a long whois string
-					// Clear if after sending so the next message will try to get the whois again
-					IRCNoiseBot.this.server.setWhoisString(new String("----------------------------------------------------------------------------------------------------"));
-					IRCNoiseBot.this.sendMessage(builder);
-					IRCNoiseBot.this.server.setWhoisString(null);
-				}
-			});
-			// This could lead to messages being sent out of order, but it's unlikely enough that I don't really care
-			return;
+	@Override public String format(Style style, String text) {
+		String before = "";
+		if(style.color != null) {
+			before += COLORS.getOrDefault(style.color, Colors.NORMAL);
 		}
+		if(style.bold) {
+			before += Colors.BOLD;
+		}
+		if(style.reverse) {
+			before += Colors.REVERSE;
+		}
+		final String after = before.isEmpty() ? "" : Colors.NORMAL;
+		return before + text + after;
+	}
 
+	@Override public void sendMessage(final MessageBuilder builder) {
 		int maxLen = this.server.getMaxLineLength()
-		           - whois.length()
+		           - this.whoisString.length()
 		           - " PRIVMSG ".length()
 		           - builder.target.length()
 		           - " :\r\n".length();

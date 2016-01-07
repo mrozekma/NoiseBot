@@ -33,7 +33,6 @@ public class IRCServer extends PircBot {
 	private final Connection connection;
 	// channel -> bot for that channel
 	private final Map<String, NoiseBot> bots = new HashMap<>();
-	private String selfWhoisString = null;
 
 	IRCServer(Connection connection) {
 		this.connection = connection;
@@ -46,14 +45,6 @@ public class IRCServer extends PircBot {
 
 		this.setName(this.connection.nick);
 		this.setLogin(this.connection.nick);
-	}
-
-	public String getWhoisString() {
-		return this.selfWhoisString;
-	}
-
-	public void setWhoisString(String whoisString) {
-		this.selfWhoisString = whoisString;
 	}
 
 	void addBot(String channel, NoiseBot bot) {
@@ -116,7 +107,7 @@ public class IRCServer extends PircBot {
 
 			@Override public void onException(NoiseBot bot, Exception e) {
 				super.onException(bot, e);
-				bot.sendMessageTo(sender, Style.FATAL, "%s", e.getMessage());
+				bot.sendMessageTo(sender, "coreerror %s", e.getMessage());
 			}
 		});
 	}
@@ -159,7 +150,7 @@ public class IRCServer extends PircBot {
 
 			@Override public void onException(NoiseBot bot, Exception e) {
 				super.onException(bot, e);
-				bot.sendMessageTo(sender, Style.FATAL, "%s", e.getMessage());
+				bot.sendMessageTo(sender, "coreerror %s", e.getMessage());
 			}
 		});
 	}
@@ -177,7 +168,7 @@ public class IRCServer extends PircBot {
 			}
 			bot.onChannelJoin();
 		} else {
-			Log.v("Joined %s: %s (%s2%s)", channel, sender, login, hostname);
+			Log.v("Joined %s: %s (%s@%s)", channel, sender, login, hostname);
 			this.moduleDispatch(channel, new ModuleCall() {
 				@Override public void call(NoiseBot bot, NoiseModule module) {
 					module.onJoin(sender, login, hostname);

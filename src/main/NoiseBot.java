@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -26,6 +27,15 @@ import com.google.gson.internal.StringMap;
  *         Created June 13, 2009.
  */
 public abstract class NoiseBot {
+	private static class QueuedAction {
+		final String source; // Target to contact in case of failure, either channel or nick
+		final Consumer<NoiseModule> fn;
+		QueuedAction(String source, Consumer<NoiseModule> fn) {
+			this.source = source;
+			this.fn = fn;
+		}
+	}
+
 	public static final String DEFAULT_CONNECTION = "default";
 	private static final String CONFIG_FILENAME = "config";
 	private static final String DATA_DIRECTORY = "data";
@@ -40,7 +50,8 @@ public abstract class NoiseBot {
 	protected final String channel;
 	protected final boolean quiet;
 	protected final String[] fixedModules;
-	private Map<String, NoiseModule> modules = new HashMap<>();
+	protected final Map<String, NoiseModule> modules = new HashMap<>();
+	protected final Queue<QueuedAction> rxQueue = new LinkedList<>();
 
 	protected NoiseBot(String channel, boolean quiet, String[] fixedModules) {
 		this.channel = channel;
@@ -391,31 +402,24 @@ public abstract class NoiseBot {
 		return new MessageBuilder(this, this.channel, MessageBuilder.Type.NOTICE);
 	}
 
-	public void sendMessage(String fmt, String... args) {
+
+	public void sendMessage(String fmt, Object... args) {
 		this.buildMessage().add(fmt, args).send();
 	}
 
-	public void sendMessage(Style style, String fmt, String... args) {
-		this.buildMessage().add(style, fmt, args).send();
-	}
-
-	public void sendMessageTo(String target, String fmt, String... args) {
+	public void sendMessageTo(String target, String fmt, Object... args) {
 		this.buildMessageTo(target).add(fmt, args).send();
 	}
 
-	public void sendMessageTo(String target, Style style, String fmt, String... args) {
-		this.buildMessageTo(target).add(style, fmt, args).send();
-	}
-
-	public void sendAction(String fmt, String... args) {
+	public void sendAction(String fmt, Object... args) {
 		this.buildAction().add(fmt, args).send();
 	}
 
-	public void sendActionTo(String target, String fmt, String... args) {
+	public void sendActionTo(String target, String fmt, Object... args) {
 		this.buildActionTo(target).add(fmt, args).send();
 	}
 
-	public void sendNotice(String fmt, String... args) {
+	public void sendNotice(String fmt, Object... args) {
 		this.buildNotice().add(fmt, args).send();
 	}
 

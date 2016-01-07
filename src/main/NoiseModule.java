@@ -264,9 +264,9 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 							// Choose the best match, or use the default view if there are none
 							final Optional<Method> view = Arrays.asList(new Method[] {methodAndProtocolMatch, methodMatches, protocolMatches, wildMatch}).stream().filter(m -> m != null).findFirst();
 							if(view.isPresent()) {
-								view.get().invoke(this, data);
+								view.get().invoke(this, message, data);
 							} else {
-								this.defaultView(data);
+								this.defaultView(message, data);
 							}
 						}
 						break;
@@ -281,8 +281,8 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 	}
 
 	@View // This method is called directly by processMessage(); the annotation is just for consistency
-	private void defaultView(JSONObject data) {
-		this.bot.sendMessage("" + data);
+	private void defaultView(Message message, JSONObject data) {
+		message.respond("%s", data);
 	}
 
 	public static <T extends NoiseModule> T load(NoiseBot bot, Class<T> moduleType) {
