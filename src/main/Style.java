@@ -9,6 +9,7 @@ import java.util.function.UnaryOperator;
  *         Created Jan 2, 2016.
  */
 public class Style {
+	// Add new styles to getMod() below so they can be resolved in format specifiers
 	public static final Style BLACK = new Style(Color.BLACK);
 	public static final Style RED = new Style(Color.RED);
 	public static final Style YELLOW = new Style(Color.YELLOW);
@@ -20,7 +21,7 @@ public class Style {
 
 	public static final Style PLAIN = new Style(null);
 	public static final Style ERROR = RED;
-	public static final Style FATAL = RED.reverse();
+	public static final Style COREERROR = RED.reverse();
 
 	public final Color color;
 	public final boolean bold, reverse;
@@ -83,6 +84,17 @@ public class Style {
 		if(name.equals("reverse")) {
 			return Optional.of(style ->style.reverse());
 		}
+
+		if(name.equals("plain")) {
+			return Optional.of(style -> PLAIN);
+		}
+		if(name.equals("error")) {
+			return Optional.of(style -> ERROR);
+		}
+		if(name.equals("coreerror")) {
+			return Optional.of(style -> COREERROR);
+		}
+
 		return Optional.empty();
 	}
 }

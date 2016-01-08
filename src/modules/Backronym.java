@@ -126,25 +126,13 @@ public class Backronym extends NoiseModule {
 	public JSONObject backronymDefault(Message message) throws JSONException {return this.backronym(message, message.getSender());}
 
 	@View
-	public void plainView(JSONObject data) throws JSONException {
+	public void plainView(Message message, JSONObject data) throws JSONException {
 		if(data.has("error")) {
-			this.bot.sendMessage(Style.ERROR, "%s", data.getString("error"));
+			message.respond("#error %s", data.getString("error"));
 			return;
 		}
-		this.bot.buildMessage().addParts(STYLE_RESPONSE, " ", "%s", data.getStringArray("choices"));
+		message.respond("#(%s)", (Object)data.getStringArray("choices"));
 	}
-
-	/*
-	@View(Protocol.Slack)
-	public void slackView(JSONObject data) throws JSONException {
-		SlackNoiseBot bot = (SlackNoiseBot)this.bot;
-		if(data.has("error")) {
-			bot.sendTitled(COLOR_ERROR, "Error", data.getString("error"));
-			return;
-		}
-		bot.sendMessage(Arrays.stream(data.getStringArray("choices")).collect(Collectors.joining(" ")));
-	}
-	*/
 
 	@Override public String getFriendlyName() {return "Backronym";}
 	@Override public String getDescription() {return "Chooses a random word for each letter specified";}

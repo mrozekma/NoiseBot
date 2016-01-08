@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.Serializable;
 import java.lang.annotation.*;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -270,6 +271,9 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 							}
 						}
 						break;
+					} catch(InvocationTargetException e) {
+						Log.e(e);
+						message.respond("#coreerror %s while handling command: %s", e.getCause().getClass().getSimpleName(), e.getCause().getMessage(), "test");
 					} catch(Exception e) {
 						Log.e(e);
 					}
