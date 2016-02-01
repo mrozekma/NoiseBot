@@ -2,65 +2,64 @@ package modules;
 
 import debugging.Log;
 import main.Message;
+import main.MessageBuilder;
 import main.NoiseModule;
 import static main.Utilities.formatSeconds;
+
+import main.Style;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
 
-import static org.jibble.pircbot.Colors.PURPLE;
-import static org.jibble.pircbot.Colors.RED;
 import static main.Utilities.pluralize;
 
 /**
  * Created by yellingdog on 3/29/14.
  */
 public class Vimeo extends NoiseModule{
-    private static final String COLOR_ERROR = RED;
-    private static final String COLOR_INFO = PURPLE;
+    @Override protected Map<String, Style> styles() {
+        return new HashMap<String, Style>() {{
+            put("info", Style.MAGENTA);
+        }};
+    }
 
     @Command(".*https?://(?:.+\\.)?vimeo.com/(?:.+/)?([a-zA-Z0-9]+).*")
-    public void vimeo(Message message, String imgID) {
+    public JSONObject vimeo(Message message, String vidID) throws JSONException {
         try {
-            final JSONObject data = this.getJSON(imgID);
+            final URLConnection c = new URL("http://vimeo.com/api/v2/video/" + vidID + ".json").openConnection();
+            final Scanner s = new Scanner(c.getInputStream());
             final StringBuilder buffer = new StringBuilder();
+            while(s.hasNextLine()) {
+                buffer.append(s.nextLine());
+            }
 
-            buffer.append((data.has("title") && !data.isNull("title")) ? data.get("title") : "Untitled");
-            buffer.append(" (");
-            buffer.append("posted by ").append(data.getString("user_name"));
-            if(data.getInt("duration") != 0)
-                buffer.append(", ").append(formatSeconds(data.getInt("duration")));
-            buffer.append(", ").append(pluralize(data.getInt("stats_number_of_plays"), "view", "views"));
-            buffer.append(")");
-
-            this.bot.sendMessage(COLOR_INFO + buffer);
+            String jsonText = buffer.substring(1, buffer.length()-1);
+            return new JSONObject(jsonText);
         } catch(FileNotFoundException e) {
             Log.e(e);
-            this.bot.sendMessage(COLOR_ERROR + String.format("No video with ID %s exists", imgID));
+            return new JSONObject().put("error", String.format("No video with ID %s exists", vidID));
         } catch(Exception e) {
             Log.e(e);
-            this.bot.sendMessage(COLOR_ERROR + "Problem parsing Vimeo data");
+            return new JSONObject().put("error", "Problem parsing Vimeo data");
         }
     }
 
-    private JSONObject getJSON(String vidID) throws IOException, JSONException {
-        final URLConnection c = new URL("http://vimeo.com/api/v2/video/" + vidID + ".json").openConnection();
-        final Scanner s = new Scanner(c.getInputStream());
-        final StringBuilder buffer = new StringBuilder();
-        while(s.hasNextLine()) {
-            buffer.append(s.nextLine());
+    @View
+    public void plainView(Message message, JSONObject data) throws JSONException {
+        final MessageBuilder builder = message.buildResponse();
+        builder.add("#info %s (posted by %s", new Object[] {data.optString("title", "Untitled"), data.get("user_name")});
+        if(data.getInt("duration") > 0) {
+            builder.add("#info , %s", new Object[] {formatSeconds(data.getInt("duration"))});
         }
-
-        String jsonText = buffer.substring(1, buffer.length()-1);
-        return new JSONObject(jsonText);
+        builder.add("#info , %s)", new Object[] {pluralize(data.getInt("stats_number_of_plays"), "view", "views")});
+        builder.send();
     }
-
-
 
     @Override
     public String getFriendlyName() {

@@ -1,7 +1,5 @@
 package modules;
 
-import static org.jibble.pircbot.Colors.*;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -15,14 +13,12 @@ import java.util.Vector;
 
 import debugging.Log;
 
-import main.Message;
-import main.ModuleInitException;
-import main.NoiseBot;
-import main.NoiseModule;
+import main.*;
+import org.json.JSONArray;
+import org.json.JSONException;
+
 import static main.Utilities.getRandomInt;
 import static main.Utilities.substring;
-
-import static modules.Slap.slapUser;
 
 /**
  *                                  _____
@@ -76,27 +72,11 @@ import static modules.Slap.slapUser;
  *         Created Jun 18, 2009.
  */
 public class Lebowski extends NoiseModule {
-	private static class Match {
-		private String line;
-		private int lineNum;
-		private int pos;
-
-		public Match(String line, int lineNum, int pos) {
-			this.line = line;
-			this.lineNum = lineNum;
-			this.pos = pos;
-		}
-
-		public String getLine() {return this.line;}
-		public int getLineNum() {return this.lineNum;}
-		public int getPos() {return this.pos;}
-	}
-
 	private static class RateLimiter {
 		private Map<String,List<Long>> users;
 
 		public RateLimiter() {
-			this.users = new HashMap<String,List<Long>>();
+			this.users = new HashMap<>();
 		}
 
 		public boolean isAllowed(String user) {
@@ -129,9 +109,6 @@ public class Lebowski extends NoiseModule {
 	private static final int MAX_CONSECUTIVE_MATCHES = 3;
 	private static final int SPACER_LINES = 30;
 
-	private static final String COLOR_QUOTE = CYAN;
-	private static final String COLOR_ERROR = RED;
-
 	static {
 		assert MIN_MESSAGE > TOLERANCE : "Messages must be longer than the number of errors allowed";
 	}
@@ -142,7 +119,7 @@ public class Lebowski extends NoiseModule {
 	private int lastLineMatched = -1;
 	private int linesSinceLastQuote = SPACER_LINES;
 	private RateLimiter limiter = null;
-	private List<Match> undisplayedMatches = null;
+	private JSONArray undisplayedMatches = null;
 	private String lastMatchedUserMessage = null;
 
 	@Override public void init(NoiseBot bot) throws ModuleInitException {
@@ -150,7 +127,7 @@ public class Lebowski extends NoiseModule {
 		this.limiter = new RateLimiter();
 		this.lines = new String[0];
 		try {
-			final Vector<String> linesVec = new Vector<String>();
+			final Vector<String> linesVec = new Vector<>();
 			// I'd love to know why Scanner can't read this file...
 			final BufferedReader r = new BufferedReader(new FileReader(TRANSCRIPT_FILE));
 			String line;
@@ -168,93 +145,116 @@ public class Lebowski extends NoiseModule {
 		}
 	}
 
-	@Command(".*fascist.*")
-	public void fascist(Message message) {
-		this.lebowski(message, "fucking fascist");
+	@Override protected Map<String, Style> styles() {
+		return new HashMap<String, Style>() {{
+			put("quote", Style.CYAN);
+			put("quoteexact", Style.CYAN.update("underline"));
+			put("count", Style.CYAN.update("italic"));
+		}};
 	}
 
-	@Command(".*shut the fuck up.*")
-	public void shutTheFuckUp(Message message) {
-		this.lebowski(message, "shut the fuck up");
+	@Command(value = ".*fascist.*", allowPM = false)
+	public JSONObject fascist(Message message) throws JSONException {
+		return this.lebowski(message, "fucking fascist");
+	}
+
+	@Command(value = ".*shut the fuck up.*", allowPM = false)
+	public JSONObject shutTheFuckUp(Message message) throws JSONException {
+		return this.lebowski(message, "shut the fuck up");
 	}
 
 	// Single char at the beginning doesn't allow . to avoid matching commands
 	// [a-zA-Z0-9,\\'\\\" !-][a-zA-Z0-9,\\'\\\"\\. !-]
-	@Command("([^\\.].{" + (MIN_MESSAGE - 1) + "," + (PATTERN_MAX - 1) + "})")
-	public void lebowski(Message message, String userMessage) {
+	@Command(value = "([^\\.].{" + (MIN_MESSAGE - 1) + "," + (PATTERN_MAX - 1) + "})", allowPM = false)
+	public JSONObject lebowski(Message message, String userMessage) throws JSONException {
 		Log.i("Lebowski: Searching for matches for \"%s\"", userMessage);
-		this.linesSinceLastQuote++;
 
-		final Vector<Match> matches = new Vector<Match>();
+		final JSONObject rtn = new JSONObject().put("message", userMessage);
 		for(int lineNum = 0; lineNum < lines.length; lineNum++) {
 			final String line = lines[lineNum];
 			final int match = search(line.toLowerCase(), userMessage.toLowerCase(), TOLERANCE);
 			if(match >= 0) {
-				matches.add(new Match(line, lineNum, match));
+				rtn.append("matches", new JSONObject().put("line", line).put("line_num", lineNum).put("offset", match));
 			}
 		}
 
-		Log.v("Matches: %d", matches.size());
+		Log.v("Matches: %d", rtn.has("matches") ? rtn.getJSONArray("matches").length() : 0);
+		return rtn;
+	}
 
-		if(!matches.isEmpty()) {
-			if(this.linesSinceLastQuote < SPACER_LINES) {
+	@View
+	public void view(Message message, JSONObject data) throws JSONException {
+		this.linesSinceLastQuote++;
+
+		if(!data.has("matches")) {return;}
+		final JSONArray matches = data.getJSONArray("matches");
+		if(matches.length() == 0) {return;}
+
+		if(this.linesSinceLastQuote < SPACER_LINES) {
+			return;
+		} else if(this.lastNick.equalsIgnoreCase(message.getSender())) {
+			if(++this.lastNickMatches > MAX_CONSECUTIVE_MATCHES) {
 				return;
-			} else if(this.lastNick.equalsIgnoreCase(message.getSender())) {
-				if(++this.lastNickMatches > MAX_CONSECUTIVE_MATCHES) {return;}
-			} else {
-				this.lastNick = message.getSender();
-				this.lastNickMatches = 0;
-				this.linesSinceLastQuote = 0;
 			}
-
-			final Match match = matches.get(getRandomInt(0, matches.size() - 1));
-			this.lastLineMatched = match.getLineNum();
-			this.bot.sendMessage(renderMatch(match, matches.size(), userMessage));
-
-			this.undisplayedMatches = matches;
-			this.undisplayedMatches.remove(match);
-			this.lastMatchedUserMessage = userMessage;
+		} else {
+			this.lastNick = message.getSender();
+			this.lastNickMatches = 0;
+			this.linesSinceLastQuote = 0;
 		}
+
+		final int idx = getRandomInt(0, matches.length() - 1);
+		final org.json.JSONObject match = matches.getJSONObject(idx);
+		this.lastLineMatched = match.getInt("line_num");
+		this.undisplayedMatches = matches;
+		this.undisplayedMatches.remove(idx);
+		this.lastMatchedUserMessage = data.getString("message");
+
+		final MessageBuilder builder = message.buildResponse();
+		this.renderMatch(builder, match, matches.length(), data.getString("message"));
+		builder.send();
 	}
 
 	@Command("\\.next") public void nextLine(Message message) {
 		if(this.lastLineMatched < 0) {
-			this.bot.sendMessage(COLOR_ERROR + "No matches yet");
+			message.respond("#error No matches yet");
 		} else if(this.lastLineMatched+1 == this.lines.length) {
-			this.bot.sendMessage(COLOR_ERROR + "Out of lines");
+			message.respond("#error Out of lines");
 		} else {
-			if(this.undisplayedMatches != null) // Should always be true
-				this.undisplayedMatches.clear();
-			if(this.limiter.isAllowed(message.getSender()))
-				this.bot.sendMessage(COLOR_QUOTE + this.lines[++this.lastLineMatched]);
-			else
-				this.bot.sendAction(slapUser(message.getSender()));
+			this.undisplayedMatches = null;
+			if(this.limiter.isAllowed(message.getSender())) {
+				message.respond("#quote %s", this.lines[++this.lastLineMatched]);
+			} else {
+				Slap.slap(this.bot, message);
+			}
 		}
 	}
 
-	@Command("\\.other") public void other(Message message) {
+	@Command("\\.other") public void other(Message message) throws JSONException {
 		if(this.lastLineMatched < 0 || this.undisplayedMatches == null) {
-			this.bot.sendMessage(COLOR_ERROR + "No matches yet");
-		} else if(this.undisplayedMatches.isEmpty()) {
-			this.bot.sendMessage(COLOR_ERROR + "No other matches to display");
+			message.respond("#error No matches yet");
+		} else if(this.undisplayedMatches.length() == 0) {
+			message.respond("#error No other matches to display");
 		} else {
-			final Match match = this.undisplayedMatches.get(getRandomInt(0, this.undisplayedMatches.size() - 1));
-			this.lastLineMatched = match.getLineNum();
-			this.undisplayedMatches.remove(match);
-			this.bot.sendMessage(renderMatch(match, 1, this.lastMatchedUserMessage));
+			final int idx = getRandomInt(0, this.undisplayedMatches.length() - 1);
+			final org.json.JSONObject match = this.undisplayedMatches.getJSONObject(idx);
+			this.lastLineMatched = match.getInt("line_num");
+			this.undisplayedMatches.remove(idx);
+
+			final MessageBuilder builder = message.buildResponse();
+			this.renderMatch(builder, match, 1, this.lastMatchedUserMessage);
+			builder.send();
 		}
 	}
 
-	private static String renderMatch(Match match, int matches, String userMessage) {
-		final StringBuffer b = new StringBuffer();
-		if(matches > 1) {b.append("(").append(matches).append(") ");}
-		b.append(COLOR_QUOTE);
-		if(match.getPos() > 0) {b.append(match.getLine().substring(0, match.getPos()));}
-		b.append(UNDERLINE);
-		b.append(substring(match.getLine(), match.getPos(), userMessage.length()));
-		b.append(NORMAL).append(COLOR_QUOTE);
-		if(match.getPos() + userMessage.length() < match.getLine().length()) {b.append(match.getLine().substring(match.getPos() + userMessage.length()));}
-		return b.toString();
+	private void renderMatch(MessageBuilder builder, org.json.JSONObject match, int matches, String userMessage) throws JSONException {
+		if(matches > 1) {
+			builder.add("#count (%d) ", new Object[] {matches});
+		}
+		builder.add("%(#quote)s%(#quoteexact)s%(#quote)s", new Object[] {
+				match.getString("line").substring(0, match.getInt("offset")),
+				substring(match.getString("line"), match.getInt("offset"), userMessage.length()),
+				match.getString("line").substring(match.getInt("offset") + userMessage.length())
+		});
 	}
 
 	// http://en.wikipedia.org/wiki/Bitap_algorithm

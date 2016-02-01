@@ -3,17 +3,14 @@ package modules;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 
-import main.Message;
-import main.NoiseBot;
-import main.NoiseModule;
-
-import static org.jibble.pircbot.Colors.*;
+import main.*;
+import org.json.JSONException;
 
 /**
  * Discordianism
  *
  * @author Michael Mrozek
- *         Created on the 51st day of Confusion, 3178 YOLD
+ *         Created on the 51st day of Confusion in the YOLD 3178
  */
 public class Discordianism extends NoiseModule {
 	private static String[] SEASONS = {"Chaos", "Discord", "Confusion", "Bureaucracy", "the Aftermath"};
@@ -22,8 +19,14 @@ public class Discordianism extends NoiseModule {
 	private static String[] HOLYDAYS = {"Mungday", "Chaoflux", "Mojoday", "Discoflux", "Syaday", "Confuflux", "Zaraday", "Bureflux", "Maladay", "Afflux"};
 
 	@Command("\\.ddate")
-	public void ddate(Message message) {
+	public JSONObject ddate(Message message) throws JSONException {
+		final JSONObject rtn = new JSONObject();
 		final GregorianCalendar now = new GregorianCalendar();
+		rtn.put("gregorian", new JSONObject()
+			.put("year", now.get(Calendar.YEAR))
+			.put("month", now.get(Calendar.MONTH) + 1)
+			.put("day", now.get(Calendar.DAY_OF_MONTH)));
+
 		int dayOfYear = now.get(Calendar.DAY_OF_YEAR);
 
 		String dotw = null;
@@ -49,7 +52,25 @@ public class Discordianism extends NoiseModule {
 		final String season = SEASONS[seasonIndex];
 		final int year = now.get(Calendar.YEAR) + 1166;
 
+		final JSONObject obj = new JSONObject()
+			.put("dotw", dotw)
+			.put("day", dayOfSeason)
+			.put("season", season)
+			.put("year", year);
+
+		if(dayOfSeason == 5 || dayOfSeason == 50) {
+			obj.put("holyday", HOLYDAYS[seasonIndex * 2 + (dayOfSeason == 50 ? 1 : 0)]);
+		}
+
+		rtn.put("discordian", obj);
+		return rtn;
+	}
+
+	@View
+	public void view(Message message, JSONObject data) throws JSONException {
 		// It's sad that this is the most complicated part
+		final org.json.JSONObject disco = data.getJSONObject("discordian");
+		final int dayOfSeason = disco.getInt("day");
 		final String daySuffix;
 		if(dayOfSeason >= 10 && dayOfSeason < 20) {
 			daySuffix = "th";
@@ -70,12 +91,13 @@ public class Discordianism extends NoiseModule {
 			}
 		}
 
-		String holyday = "";
-		if(dayOfSeason == 5 || dayOfSeason == 50) {
-			holyday = HOLYDAYS[seasonIndex * 2 + (dayOfSeason == 50 ? 1 : 0)] + ", ";
+		final MessageBuilder builder = message.buildResponse();
+		builder.add("Today is ");
+		if(disco.has("holyday")) {
+			builder.add("%s, ", new Object[] {disco.get("holyday")});
 		}
-
-		this.bot.sendMessage(String.format("Today is %s%s, the %d%s day of %s in the YOLD %d", holyday, dotw, dayOfSeason, daySuffix, season, year));
+		builder.add("%s, the %d%s day of %s in the YOLD %d", new Object[] {disco.get("dotw"), dayOfSeason, daySuffix, disco.get("season"), disco.getInt("year")});
+		builder.send();
 	}
 
 	@Override public String getFriendlyName() {return "Discordianism";}

@@ -1,23 +1,15 @@
 package modules;
 
 import java.io.Serializable;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.*;
 
-import org.jibble.pircbot.User;
-
+import main.JSONObject;
 import main.Message;
-import main.NoiseBot;
 import main.NoiseModule;
+import org.json.JSONException;
+
 import static main.Utilities.getRandom;
 import static main.Utilities.sleep;
-
-import static modules.Slap.slapUser;
 
 /**
  * Wheel
@@ -26,17 +18,17 @@ import static modules.Slap.slapUser;
  *         Created Jun 18, 2009.
  */
 public class Wheel extends NoiseModule implements Serializable {
-	private Map<String, Integer> victims = new HashMap<String, Integer>();
-
-	@Command("\\.(?:wheel|spin)")
-	public void wheel(Message message) {
-		final String[] wheels = new String[] {
+	private static final String[] wheels = new String[] {
 			"justice", "misfortune", "fire", "blame", "doom", "science", "morality", "fortune", "wheels", "time",
 			"futility", "utility", "arbitrary choice", "wood", "chrome"
-			 // THIS LIST MUST GROW!
-		};
+			// THIS LIST MUST GROW!
+	};
 
-		this.bot.sendMessage("Spin, Spin, Spin! the wheel of " + getRandom(wheels));
+	private Map<String, Integer> victims = new HashMap<>();
+
+	@Command(value = "\\.(?:wheel|spin)", allowPM = false)
+	public void wheel(Message message) {
+		message.respond("Spin, Spin, Spin! the wheel of %s", getRandom(wheels));
 		sleep(2);
 
 		final String[] nicks = this.bot.getNicks();
@@ -45,25 +37,56 @@ public class Wheel extends NoiseModule implements Serializable {
 			choice = getRandom(nicks);
 		} while(choice.equals(this.bot.getBotNick()));
 
-		this.victims.put(choice, (this.victims.containsKey(choice) ? this.victims.get(choice) : 0) + 1);
+		this.victims.put(choice, this.victims.getOrDefault(choice, 0) + 1);
 		this.save();
 
-		this.bot.sendAction(slapUser(choice));
+		Slap.slap(this.bot, message, choice);
 	}
 
 	@Command("\\.wheelstats")
-	public void wheelStats(Message message) {
-		if(victims.isEmpty()) {
-			this.bot.sendMessage("No victims yet");
+	public JSONObject wheelStats(Message message) throws JSONException {
+		final JSONObject rtn = new JSONObject();
+		for(Map.Entry<String, Integer> e : this.victims.entrySet()) {
+			rtn.put(e.getKey(), e.getValue().intValue());
+		}
+		return rtn;
+	}
+
+	@View(method = "wheelStats")
+	public void plainWheelStatsView(Message message, JSONObject data) throws JSONException {
+		if(data.length() == 0) {
+			message.respond("No victims yet");
 			return;
 		}
 
-		// Reversed to order max -> min
-		final Stream<String> nickStream = victims.keySet().stream().sorted((s1, s2) -> victims.get(s2).compareTo(victims.get(s1)));
-		final int total = victims.values().stream().mapToInt(i -> i).sum();
-		final String[] parts = nickStream.map(nick -> String.format("(%2.2f%%) %s", ((double)victims.get(nick)/(double)total*100.0), nick)).toArray(String[]::new);
+		class Entry implements Comparable<Entry> {
+			final String victim;
+			final int attacks;
+			Entry(String victim, int attacks) {
+				this.victim = victim;
+				this.attacks = attacks;
+			}
+			@Override public int compareTo(Entry o) {
+				// attacks comparison is backwards so largest will be first
+				return this.attacks != o.attacks ? Integer.compare(o.attacks, this.attacks) : this.victim.compareTo(o.victim);
+			}
+		}
 
-		message.buildResponse().addParts(", ", "%s", parts);
+		int total = 0;
+		final Set<Entry> sorted = new TreeSet<>();
+		for(Iterator<String> iter = data.keys(); iter.hasNext();) {
+			final String key = iter.next();
+			final int attacks = data.getInt(key);
+			sorted.add(new Entry(key, attacks));
+			total += attacks;
+		}
+
+		final List<Object> args = new LinkedList<>();
+		for(Entry e : sorted) {
+			args.add(e.attacks * 100. / total);
+			args.add(e.victim);
+		}
+		message.respond("#([, ] (%2.2f%%) %s)", (Object)args.toArray());
 	}
 
 	@Override public String getFriendlyName() {return "Wheel";}

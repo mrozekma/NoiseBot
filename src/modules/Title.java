@@ -1,11 +1,10 @@
 package modules;
 
-import java.util.Arrays;
-import java.util.stream.Collectors;
-
+import main.JSONObject;
 import main.Message;
-import main.NoiseBot;
 import main.NoiseModule;
+import org.json.JSONException;
+
 import static main.Utilities.getRandom;
 
 /**
@@ -15,21 +14,23 @@ import static main.Utilities.getRandom;
  *         Created May 8, 2011.
  */
 public class Title extends NoiseModule {
-
 	// http://gaming.stackexchange.com/q/21292/3391
-	private static final String[][] lists = {
-		{"Lead", "Senior", "Direct", "Dynamic", "Future", "National", "Regional", "Central", "Global", "Dynamic", "International", "Legacy", "Forward", "Internal", "Chief", "Principal", "Postdoctoral", "Regulatory"},
-		{"Human", "Environmental", "Aerospace", "Space", "Deep Sea", "Atmospheric", "Cardiovascular", "Electrical", "Computer", "Emergency", "Mining", "Nuclear", "Safety", "Histology", "Forensic"},
-		{"Surgeon", "Scientist", "Engineer", "Technologist", "Neurosurgeon", "Pilot", "Astronaut", "Archeologist", "Aviator", "Specialist", "Psychologist", "Composer", "Fighter", "Professional", "Geographer", "Architect", "Astronomer", "Cytogeneticist", "Dentist", "Interpreter", "Phlebotomist", "Physician", "Meteorologist", "Philosopher", "Garbologist"}
-	};
-	
+	private static final String[] prefixes = {"Lead", "Senior", "Direct", "Dynamic", "Future", "National", "Regional", "Central", "Global", "Dynamic", "International", "Legacy", "Forward", "Internal", "Chief", "Principal", "Postdoctoral", "Regulatory"},
+	                              middles = {"Human", "Environmental", "Aerospace", "Space", "Deep Sea", "Atmospheric", "Cardiovascular", "Electrical", "Computer", "Emergency", "Mining", "Nuclear", "Safety", "Histology", "Forensic"},
+	                              suffixes = {"Surgeon", "Scientist", "Engineer", "Technologist", "Neurosurgeon", "Pilot", "Astronaut", "Archeologist", "Aviator", "Specialist", "Psychologist", "Composer", "Fighter", "Professional", "Geographer", "Architect", "Astronomer", "Cytogeneticist", "Dentist", "Interpreter", "Phlebotomist", "Physician", "Meteorologist", "Philosopher", "Garbologist"};
+
 	@Command("\\.title (.*)")
-	public void title(Message message, String target) {
-		this.bot.sendMessage(String.format("%s: %s", target, Arrays.stream(lists).map(list -> getRandom(list)).collect(Collectors.joining(" "))));
+	public JSONObject title(Message message, String target) throws JSONException {
+		return new JSONObject().put("target", target).put("prefix", getRandom(prefixes)).put("middle", getRandom(middles)).put("suffix", getRandom(suffixes));
 	}
 	
-	@Command("\\.title") public void titleSelf(Message message) {
-		this.title(message, message.getSender());
+	@Command("\\.title") public JSONObject titleSelf(Message message) throws JSONException {
+		return this.title(message, message.getSender());
+	}
+
+	@View
+	public void plainView(Message message, JSONObject data) throws JSONException {
+		message.respond("%s: %s %s %s", data.get("target"), data.get("prefix"), data.get("middle"), data.get("suffix"));
 	}
 	
 	@Override public String getFriendlyName() {return "Title";}

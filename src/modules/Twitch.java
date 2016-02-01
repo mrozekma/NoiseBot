@@ -1,7 +1,6 @@
 package modules;
 
 import static main.Utilities.getJSON;
-import static org.jibble.pircbot.Colors.*;
 
 import debugging.Log;
 
@@ -12,15 +11,15 @@ import java.net.HttpURLConnection;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
-import java.util.Locale;
+import java.util.*;
 
 import main.Message;
+import main.MessageBuilder;
 import main.NoiseModule;
 import static main.Utilities.formatSeconds;
 import static main.Utilities.pluralize;
 
+import main.Style;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -31,73 +30,79 @@ import org.json.JSONObject;
  *         Created Nov 24, 2013.
  */
 public class Twitch extends NoiseModule {
-	private static final String COLOR_ERROR = RED;
-	private static final String COLOR_INFO = PURPLE;
-
 	private static final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssX");
 
+	@Override protected Map<String, Style> styles() {
+		return new HashMap<String, Style>() {{
+			put("info", Style.MAGENTA);
+		}};
+	}
+
 	@Command(".*https?://(?:www\\.)?twitch.tv/([^/]+)/([bc])/([0-9]+).*")
-	public void twitch(Message message, String username, String type, String videoID) {
+	public JSONObject twitch(Message message, String username, String type, String videoID) throws JSONException {
 		try {
 			// I can't figure out where the video ID prefix is documented, but it seems to be this
-			final JSONObject json = apiCall(String.format("/videos/%c%s", type.equals("b") ? 'a' : 'c', videoID), true);
-			if(json == null) {return;}
-
-			final StringBuffer info = new StringBuffer();
-			info.append(json.getString("title"));
-			info.append(" (");
-			info.append(formatSeconds(json.getInt("length")));
-			info.append(", recorded ");
-			final Calendar date = new GregorianCalendar();
-			date.setTime(dateFormat.parse(json.getString("recorded_at")));
-			info.append(String.format("%d %s %d", date.get(Calendar.DAY_OF_MONTH), date.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.getDefault()), date.get(Calendar.YEAR)));
-
-			// It'd be nice to confirm the username actually matches the video, but the API doesn't easily expose it
-			final JSONObject user = apiCall(String.format("/users/%s", username), false);
-			if(user != null && user.has("display_name")) {
-				info.append(" by ");
-				info.append(user.getString("display_name"));
+			final JSONObject json = apiCall(String.format("/videos/%c%s", type.equals("b") ? 'a' : 'c', videoID));
+			if(!json.has("error")) {
+				final JSONObject user = apiCall(String.format("/users/%s", username));
+				if(!user.has("error") && user.has("display_name")) {
+					json.put("user", user);
+				}
 			}
 
-			if(json.has("game") && !json.isNull("game")) {
-				info.append(" playing ");
-				info.append(json.getString("game"));
-			}
-
-			info.append(", ");
-			info.append(pluralize(json.getInt("views"), "view", "views"));
-			info.append(')');
-
-			this.bot.sendMessage(COLOR_INFO + info.toString());
-		} catch(JSONException | ParseException e) {
-			this.bot.sendMessage(COLOR_ERROR + "Problem parsing Twitch response");
+			return json;
+		} catch(JSONException e) {
 			Log.e(e);
+			return new JSONObject().put("error", "Problem parsing Twitch response");
 		} catch(FileNotFoundException e) {
-			this.bot.sendMessage(COLOR_ERROR + "Video not found");
 			Log.e(e);
+			return new JSONObject().put("error", "Video not found");
 		} catch(IOException e) {
-			this.bot.sendMessage(COLOR_ERROR + "Unable to contact Twitch");
 			Log.e(e);
+			return new JSONObject().put("error", "Unable to contact Twitch");
 		}
 	}
 
-	private JSONObject apiCall(String url, boolean showError) throws IOException, JSONException {
+	@View
+	public void plainView(Message message, JSONObject json) throws JSONException {
+		final Calendar date = new GregorianCalendar();
+		try {
+			date.setTime(dateFormat.parse(json.getString("recorded_at")));
+		} catch(ParseException e) {
+			Log.e(e);
+			message.respond("#error %s", e.getMessage());
+			return;
+		}
+
+		final MessageBuilder builder = message.buildResponse();
+		builder.add("#info %s (%s, recorded %d %s %d", new Object[] {json.get("title"), formatSeconds(json.getInt("length")), date.get(Calendar.DAY_OF_MONTH), date.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.getDefault()), date.get(Calendar.YEAR)});
+
+		if(json.has("user")) {
+			builder.add("#info  by %s", new Object[] {json.getJSONObject("user").get("display_name")});
+		}
+
+		if(json.has("game") && !json.isNull("game")) {
+			builder.add("#info  playing %s", new Object[] {json.get("game")});
+		}
+
+		builder.add("#info , %s)", new Object[] {pluralize(json.getInt("views"), "view", "views")});
+		builder.send();
+	}
+
+	private JSONObject apiCall(String url) throws IOException, JSONException {
 		final HttpURLConnection conn = (HttpURLConnection)(new URL("https://api.twitch.tv/kraken" + url).openConnection());
 		conn.setRequestProperty("Accept", "application/vnd.twichtv.v2+json");
 		final int code = conn.getResponseCode();
 		final JSONObject json = getJSON(conn);
 
 		if(code != 200) {
-			if(showError) {
-				final StringBuffer error = new StringBuffer();
-				error.append(json.has("error") ? json.getString("error") : "Error");
-				if(json.has("message")) {
-					error.append(": ");
-					error.append(json.getString("message"));
-				}
-				this.bot.sendMessage(COLOR_ERROR + error.toString());
+			final StringBuffer error = new StringBuffer();
+			error.append(json.has("error") ? json.getString("error") : "Error");
+			if(json.has("message")) {
+				error.append(": ");
+				error.append(json.getString("message"));
 			}
-			return null;
+			return new JSONObject().put("error", error.toString());
 		}
 
 		return json;

@@ -1,14 +1,15 @@
 package modules;
 
-import static org.jibble.pircbot.Colors.*;
-
 import java.io.Serializable;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+import main.JSONObject;
 import main.Message;
 import main.NoiseModule;
+import main.Style;
+import org.json.JSONException;
 
 /**
  * Seen
@@ -17,21 +18,48 @@ import main.NoiseModule;
  *         Created Jun 14, 2009.
  */
 public class Seen extends NoiseModule implements Serializable {
-	private static final String COLOR_HERE = GREEN;
-	private static final String COLOR_LAST_SEEN = YELLOW;
-	private static final String COLOR_NEVER_SEEN = RED;
-	
-	private Map<String, Date> seenDates = new HashMap<String, Date>();
-	private Map<String, Date> talkDates = new HashMap<String, Date>();
+	private Map<String, Date> seenDates = new HashMap<>();
+	private Map<String, Date> talkDates = new HashMap<>();
+
+	@Override protected Map<String, Style> styles() {
+		return new HashMap<String, Style>() {{
+			put("here", Style.GREEN);
+			put("last_seen", Style.YELLOW);
+			put("never_seen", Style.RED);
+		}};
+	}
 
 	@Command("\\.seen (.+)")
-	public void seen(Message message, String target) {
+	public JSONObject seen(Message message, String target) throws JSONException {
 		target = target.replaceAll(" +$", "");
-		message.respond(this.bot.isOnline(target)
-				? COLOR_HERE + target + " is here now" + NORMAL + (this.talkDates.containsKey(target) ? " -- last spoke " + this.talkDates.get(target) : "")
-				: (this.seenDates.containsKey(target)
-						? COLOR_LAST_SEEN + target + " was last seen " + this.seenDates.get(target)
-						: COLOR_NEVER_SEEN + target + " hasn't been seen"));
+		final JSONObject rtn = new JSONObject();
+		rtn.put("who", target);
+		if(this.bot.isOnline(target)) {
+			rtn.put("last_online", "now");
+		} else if(this.seenDates.containsKey(target)) {
+			rtn.put("last_online", this.seenDates.get(target));
+		}
+		if(this.talkDates.containsKey(target)) {
+			rtn.put("last_spoke", this.talkDates.get(target));
+		}
+		return rtn;
+	}
+
+	@View(method = "seen")
+	public void plainView(Message message, JSONObject data) throws JSONException {
+		if(data.has("last_online")) {
+			if(data.optString("last_online", "").equals("now")) {
+				if(data.has("last_spoke")) {
+					message.respond("#here %s is here now -- last spoke %s", data.get("who"), data.get("last_spoke"));
+				} else {
+					message.respond("#here %s is here now", data.get("who"));
+				}
+			} else {
+				message.respond("#last_seen %s was last seen %s", data.get("who"), data.get("last_online"));
+			}
+		} else {
+			message.respond("#never_seen %s hasn't been seen", data.get("who"));
+		}
 	}
 	
 	@Command(".*")

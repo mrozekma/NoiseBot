@@ -1,7 +1,5 @@
 package modules;
 
-import static org.jibble.pircbot.Colors.*;
-
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLConnection;
@@ -9,14 +7,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
 
+import main.JSONObject;
 import org.json.JSONArray;
 import org.json.JSONException;
-import org.json.JSONObject;
 
 import debugging.Log;
 
 import main.Message;
-import main.NoiseBot;
 import main.NoiseModule;
 
 /**
@@ -26,7 +23,7 @@ import main.NoiseModule;
  *         Created Mar 12, 2014.
  */
 public class Bitcoin extends NoiseModule {
-	private static class Price {
+	public static class Price {
 		public final double bid, ask, avg;
 		public Price(double bid, double ask, double avg) {
 			this.bid = bid;
@@ -35,18 +32,15 @@ public class Bitcoin extends NoiseModule {
 		}
 	}
 
-	private static final String COLOR_ERROR = RED + REVERSE;
-
-	private final Map<String, Price> exchanges = new HashMap<String, Price>();
+	private final Map<String, Price> exchanges = new HashMap<>();
 
 	@Command("\\.bitcoin ([a-zA-Z]+)")
-	public void bitcoin(Message message, String exchange) {
+	public JSONObject bitcoin(Message message, String exchange) throws JSONException {
 		exchange = exchange.toLowerCase();
 		try {
 			this.refresh();
 			if(this.exchanges.isEmpty()) {
-				this.bot.sendMessage(COLOR_ERROR + "No exchanges found");
-				return;
+				return new JSONObject().put("error", "No exchanges found");
 			}
 
 			final Price price;
@@ -55,32 +49,41 @@ public class Bitcoin extends NoiseModule {
 			} else if(this.exchanges.containsKey(exchange + "usd")) {
 				price = this.exchanges.get(exchange + "usd");
 			} else {
-				this.bot.sendMessage(COLOR_ERROR + "Unknown exchange");
-				return;
+				return new JSONObject().put("error", "Unknown exchange");
 			}
 
-			this.bot.sendMessage(String.format("$%.2f / $%.2f", price.ask, price.bid));
+			return new JSONObject().put("exchange", exchange).put("price", price);
 		} catch(Exception e) {
 			Log.e(e);
-			this.bot.sendMessage(COLOR_ERROR + "Problem parsing data");
+			return new JSONObject().put("error", "Problem parsing data");
 		}
 	}
 
 	@Command("\\.bitcoin")
-	public void bitcoinAvg(Message message) {
+	public JSONObject bitcoinAvg(Message message) throws JSONException {
 		try {
 			this.refresh();
 			if(this.exchanges.isEmpty()) {
-				this.bot.sendMessage(COLOR_ERROR + "No exchanges found");
-				return;
+				return new JSONObject().put("error", "No exchanges found");
 			}
 
 			final double avg = this.exchanges.values().stream().filter(p -> p.avg > 0).mapToDouble(p -> p.avg).average().orElse(0.0);
-			this.bot.sendMessage(String.format("$%.2f", avg));
+			return new JSONObject().put("average", avg);
 		} catch(Exception e) {
 			Log.e(e);
-			this.bot.sendMessage(COLOR_ERROR + "Problem parsing data");
+			return new JSONObject().put("error", "Problem parsing data");
 		}
+	}
+
+	@View(method = "bitcoin")
+	public void plainBitcoinView(Message message, JSONObject data) throws JSONException {
+		final Price price = data.getT("price");
+		message.respond("$%.2f / $%.2f", price.ask, price.bid);
+	}
+
+	@View(method = "bitcoinAvg")
+	public void plainBitcoinAvgView(Message message, JSONObject data) throws JSONException {
+		message.respond("$%.2f", data.getDouble("average"));
 	}
 
 	@Override public String getFriendlyName() {return "Bitcoin";}
@@ -103,7 +106,7 @@ public class Bitcoin extends NoiseModule {
 		final JSONArray json = new JSONArray(buffer.toString());
 		this.exchanges.clear();
 		for(int i = 0; i < json.length(); i++) {
-			final JSONObject obj = json.getJSONObject(i);
+			final org.json.JSONObject obj = json.getJSONObject(i);
 			if(obj.getString("currency").equals("USD")) {
 				final double bid = obj.isNull("bid") ? 0.0 : obj.getDouble("bid");
 				final double ask = obj.isNull("ask") ? 0.0 : obj.getDouble("ask");

@@ -24,7 +24,7 @@ import org.jibble.pircbot.User;
 import static org.jibble.pircbot.Colors.*;
 
 import debugging.Log;
-import org.json.JSONObject;
+import org.json.JSONException;
 
 
 /**
@@ -36,11 +36,33 @@ import org.json.JSONObject;
 public abstract class NoiseModule implements Comparable<NoiseModule> {
 	private static final String COLOR_ERROR = RED;
 
+	public static class MessageResult {
+		public final Message message;
+		public final Optional<Method> handler;
+		public final Optional<JSONObject> data;
+
+		public MessageResult(Message message, Method handler, JSONObject data) {
+			this.message = message;
+			this.handler = Optional.of(handler);
+			this.data = Optional.ofNullable(data);
+		}
+		public MessageResult(Message message, Method handler) {
+			this.message = message;
+			this.handler = Optional.of(handler);
+			this.data = Optional.empty();
+		}
+		public MessageResult(Message message) {
+			this.message = message;
+			this.handler = Optional.empty();
+			this.data = Optional.empty();
+		}
+	}
+
 	@Retention(RetentionPolicy.RUNTIME)
 	@Target(ElementType.METHOD)
 	protected @interface Command {
 		String value(); // Regex pattern (must be named 'value' for Java reasons)
-		boolean allowPM() default false; // Command can be triggered from private message
+		boolean allowPM() default true; // Command can be triggered from private message
 		boolean caseSensitive() default true; // Pattern is case-sensitive
 	}
 
@@ -48,7 +70,7 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 	@Target(ElementType.METHOD)
 	protected @interface View {
 		Protocol[] value() default {}; // protocol(s) this view is used for. Empty list if this is the default if no more-specific view exists
-		String method() default ""; // Apparently null isn't a constant, so I can't use it for the default value
+		String[] method() default {}; // Apparently null isn't a constant, so I can't use it for the default value
 	}
 
 	// Field is loaded from the config file
@@ -164,6 +186,10 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 		return true;
 	}
 
+	protected Map<String, Style> styles() {
+		return new HashMap<>();
+	}
+
 	public void onJoin(String sender, String login, String hostname) {if(this.isEnabled()) {this.joined(sender);}}
 	public void onPart(String sender, String login, String hostname) {if(this.isEnabled()) {this.left(sender);}}
 	public void onUserList(User[] users) {
@@ -192,10 +218,27 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 
 	public Pattern[] getPatterns() {return this.patterns.keySet().toArray(new Pattern[0]);}
 
-	public void processMessage(Message message) {
+	public boolean matches(Message message) {
+		return (message.isPM() ? this.pmPatterns : this.patterns).keySet().stream().anyMatch(pattern -> pattern.matcher(message.getMessage()).matches());
+	}
+
+	public void processMessageAndDisplayResult(Message message) {
+		final MessageResult result;
+		try {
+			result = this.processMessage(message);
+		} catch(InvocationTargetException e) {
+			message.respond("#coreerror %s while handling command: %s", e.getCause().getClass().getSimpleName(), e.getCause().getMessage());
+			return;
+		}
+		if(result.data.isPresent()) {
+			this.displayResult(result);
+		}
+	}
+
+	public MessageResult processMessage(Message message) throws InvocationTargetException {
 		if(!this.isEnabled()) {
 			Log.i(this + " - Skipping, module disabled");
-			return;
+			return new MessageResult(message);
 		}
 		Log.v(this + " - Processing message: %s", message);
 		for(Pattern pattern : (message.isPM() ? this.pmPatterns : this.patterns).keySet()) {
@@ -219,75 +262,121 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 							args[i] = matcher.group(i);
 						}
 					}
-					if(!method.getReturnType().equals(Void.TYPE) && !JSONObject.class.isAssignableFrom(method.getReturnType())) {
+					// We let modules return an org.json.JSONObject just because it's easier, but we wrap it in a main.JSONObject if it happens
+					if(!method.getReturnType().equals(Void.TYPE) && !org.json.JSONObject.class.isAssignableFrom(method.getReturnType())) {
 						throw new ArgumentMismatchException(String.format("Method returns %s (should either be void or return a JSONObject)", method.getReturnType().getName()));
 					}
 
+					Style.pushOverrideMap(this.styles());
 					try {
 						Log.v("Invoking with %d args", args.length);
-						final Object ret = method.invoke(this, args);
-
-						// If ret is null, the method is void. This is the simple case, where the method sends through the bot directly and returns no data
-						// If ret is non-null, it's the JSONObject of data the method returned. We search for a view to display it
-						if(ret != null) {
-							final JSONObject data = (JSONObject)ret;
-							final Class cls = method.getDeclaringClass();
-							final Method[] views = getAnnotatedMethods(cls, View.class);
-
-							// We do this CSS style and look for the most specific view (ties are broken by file-order, which is the order 'views' is in)
-							Method methodAndProtocolMatch = null, methodMatches = null, protocolMatches = null, wildMatch = null;
-							for(Method m : views) {
-								final View view = m.getAnnotation(View.class);
-								final boolean flagMethodMatches = view.method().equals(method.getName());
-								final boolean flagProtocolMatches = Arrays.stream(view.value()).anyMatch(this.bot.getProtocol()::equals);
-								final boolean flagMethodWild = view.method().isEmpty();
-								final boolean flagProtocolWild = view.value().length == 0;
-
-								if(flagMethodMatches && flagProtocolMatches) {
-									if(methodAndProtocolMatch == null) {
-										methodAndProtocolMatch = m;
-									}
-								} else if(flagMethodMatches && flagProtocolWild) {
-									if(methodMatches == null) {
-										methodMatches = m;
-									}
-								} else if(flagProtocolMatches && flagMethodWild) {
-									if(protocolMatches == null) {
-										protocolMatches = m;
-									}
-								} else if(flagMethodWild && flagProtocolWild) {
-									if(wildMatch == null) {
-										wildMatch = m;
-									}
-								}
-							}
-
-							// Choose the best match, or use the default view if there are none
-							final Optional<Method> view = Arrays.asList(new Method[] {methodAndProtocolMatch, methodMatches, protocolMatches, wildMatch}).stream().filter(m -> m != null).findFirst();
-							if(view.isPresent()) {
-								view.get().invoke(this, message, data);
-							} else {
-								this.defaultView(message, data);
-							}
+						Object o = method.invoke(this, args);
+						if(o != null && o.getClass() == org.json.JSONObject.class) {
+							o = new JSONObject((org.json.JSONObject)o);
 						}
-						break;
+						return new MessageResult(message, method, (JSONObject)o);
 					} catch(InvocationTargetException e) {
+						// Unwrap RuntimeJSONException
+						if(e.getTargetException() instanceof RuntimeJSONException) {
+							e = new InvocationTargetException(((RuntimeJSONException)e.getTargetException()).getException());
+						}
+
 						Log.e(e);
-						message.respond("#coreerror %s while handling command: %s", e.getCause().getClass().getSimpleName(), e.getCause().getMessage(), "test");
+						throw e;
 					} catch(Exception e) {
 						Log.e(e);
+						return new MessageResult(message, method);
+					} finally {
+						Style.popOverrideMap();
 					}
 				} else {
 					throw new ArgumentMismatchException(params.length == 0 ? "Method doesn't take the mandatory Message instance" : "Expected " + (params.length - 1) + " argument" + (params.length - 1 == 1 ? "" : "s") + "; found " + matcher.groupCount());
 				}
 			}
 		}
+		return new MessageResult(message);
 	}
 
-	@View // This method is called directly by processMessage(); the annotation is just for consistency
-	private void defaultView(Message message, JSONObject data) {
-		message.respond("%s", data);
+	private void displayResult(MessageResult result) {
+		try {
+			final Method method = result.handler.get();
+			final JSONObject data = result.data.get();
+			Optional<Method> view = Optional.empty();
+
+			// If there's an error, we force use of a default handler
+			if(!data.has("error")) {
+				view = this.findBestView(method, getAnnotatedMethods(method.getDeclaringClass(), View.class));
+			}
+
+			// If we couldn't find a valid view (or didn't try because of an error condition), find the best default handler
+			if(!view.isPresent()) {
+				view = this.findBestView(method, getAnnotatedMethods(NoiseModule.class, View.class));
+			}
+
+			Style.pushOverrideMap(this.styles());
+			try {
+				view.get().invoke(this, result.message, data);
+			} finally {
+				Style.popOverrideMap();
+				// Make sure any buffered responses are flushed
+				try {
+					result.message.flushResponses();
+				} catch(IllegalStateException e) {} // Message wasn't buffering responses
+			}
+		} catch(Throwable e) {
+			Log.e(e);
+			if(e instanceof InvocationTargetException) {
+				e = e.getCause();
+			}
+			result.message.respond("#error %s: %s", e.getClass().getSimpleName(), e.getMessage());
+		}
 	}
+
+	private Optional<Method> findBestView(Method dataSource, Method[] views) {
+		// We do this CSS style and look for the most specific view (ties are broken by file-order, which is the order 'views' is in)
+		Method methodAndProtocolMatch = null, methodMatches = null, protocolMatches = null, wildMatch = null;
+		for(Method m : views) {
+			final View view = m.getAnnotation(View.class);
+			final boolean flagMethodMatches = (view.method().length == 0) || Arrays.stream(view.method()).anyMatch(dataSource.getName()::equals);
+			final boolean flagProtocolMatches = Arrays.stream(view.value()).anyMatch(this.bot.getProtocol()::equals);
+			final boolean flagMethodWild = view.method().length == 0;
+			final boolean flagProtocolWild = view.value().length == 0;
+
+			if(flagMethodMatches && flagProtocolMatches) {
+				if(methodAndProtocolMatch == null) {
+					methodAndProtocolMatch = m;
+				}
+			} else if(flagMethodMatches && flagProtocolWild) {
+				if(methodMatches == null) {
+					methodMatches = m;
+				}
+			} else if(flagProtocolMatches && flagMethodWild) {
+				if(protocolMatches == null) {
+					protocolMatches = m;
+				}
+			} else if(flagMethodWild && flagProtocolWild) {
+				if(wildMatch == null) {
+					wildMatch = m;
+				}
+			}
+		}
+
+		// Choose the best match
+		return Arrays.asList(new Method[] {methodAndProtocolMatch, methodMatches, protocolMatches, wildMatch}).stream().filter(m -> m != null).findFirst();
+	}
+
+	@View
+	public void defaultView(Message message, JSONObject data) throws JSONException {
+		if(data.has("error")) {
+			message.respond("#error %s", data.getString("error"));
+			return;
+		}
+		message.respond("#mono %s", data);
+	}
+
+	// No custom Slack changes needed yet for the default view (the error block styling is handled by SlackNoiseBot)
+//	@View(Protocol.Slack)
+//	public void defaultSlackView(Message message, JSONObject data) throws JSONException {}
 
 	public static <T extends NoiseModule> T load(NoiseBot bot, Class<T> moduleType) {
 		Log.v("%s - Loading", moduleType.getSimpleName());
@@ -324,13 +413,13 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 				if(NoiseModule.this.bot.isOwner(this.nick, this.hostname, this.account)) {
 					fn.run();
 				} else if(errorOnFail) {
-					NoiseModule.this.bot.sendMessage(COLOR_ERROR + "Operation not permitted");
+					message.respond("#error Operation not permitted");
 				}
 			}
 
 			@Override public void onTimeout() {
 				if(errorOnFail) {
-					NoiseModule.this.bot.sendMessage(COLOR_ERROR + "Unable to whois " + message.getSender());
+					message.respond("#error Unable to whois %s", message.getSender());
 				}
 			}
 		});

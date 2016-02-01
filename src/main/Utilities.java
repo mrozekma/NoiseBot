@@ -8,11 +8,11 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Scanner;
-import java.util.Vector;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import org.json.JSONException;
@@ -132,14 +132,15 @@ public class Utilities {
 		return line;
 	}
 
-	public static String pluralize(int number, String singular, String plural) {
+	public static String pluralize(long number, String singular, String plural) {
 		return pluralize(number, singular, plural, true);
 	}
 
-	public static String pluralize(int number, String singular, String plural, boolean includeNumber) {
+	public static String pluralize(long number, String singular, String plural, boolean includeNumber) {
 		return (includeNumber ? number + " " : "") + (number == 1 ? singular : plural);
 	}
 
+	// min and max are both inclusive
 	public static int getRandomInt(int min, int max) {
 		return ((int)(Math.random() * (max - min + 1))) + min;
 	}
@@ -196,5 +197,60 @@ public class Utilities {
 		List<T> list = Arrays.asList(array);
 		Collections.reverse(list);
 		return list.toArray(array);
+	}
+
+	public static Optional<Integer> strstr(String haystack, String needle, int start) {
+		final int off = haystack.indexOf(needle, start);
+		return (off == -1) ? Optional.empty() : Optional.of(off);
+	}
+
+	// Parse an RFC822-esque date/time and return a string indicating, fuzzily, how long ago that was
+	public static String fuzzyTimeAgo(String rfc822date)
+	{
+		final DateFormat dateFormat = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss ZZZZZ");
+		long ms = 0;
+		try {
+			ms = new Date().getTime() - dateFormat.parse(rfc822date).getTime();
+		} catch (ParseException pe) {
+			return "";
+		}
+
+		if (ms < 0)
+			return "(sometime in the future...)";
+		if (ms < 1000)
+			return "(now)";
+
+		StringBuilder s = new StringBuilder("");
+
+		class FuzzyTime {
+			FuzzyTime(StringBuilder in, long milliseconds)
+			{
+				this.in = in;
+				this.milliseconds = milliseconds;
+			}
+
+			StringBuilder in;
+			final long milliseconds;
+
+			public void xlate(TimeUnit unit, String unitStr) {
+				if (!in.toString().equals(""))
+					return;
+
+				final long duration = unit.convert(milliseconds, TimeUnit.MILLISECONDS);
+				if (duration > 1)
+					unitStr += "s";
+
+				if (duration > 0)
+					in.append("(").append(duration).append(" ").append(unitStr).append(" ago)");
+			}
+		};
+
+		FuzzyTime f = new FuzzyTime(s, ms);
+		f.xlate(TimeUnit.DAYS,    "day");
+		f.xlate(TimeUnit.HOURS,   "hour");
+		f.xlate(TimeUnit.MINUTES, "minute");
+		f.xlate(TimeUnit.SECONDS, "second");
+
+		return s.toString();
 	}
 }

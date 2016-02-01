@@ -1,32 +1,20 @@
 package modules;
 
-import java.io.File;
 import java.io.IOException;
-import java.net.URL;
-import java.net.URLConnection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.Map;
-import java.util.Scanner;
-import java.util.Optional;
+import java.util.*;
 
 import main.Message;
-import main.ModuleInitException;
-import main.NoiseBot;
+import main.MessageBuilder;
 import main.NoiseModule;
-import static main.Utilities.getJSON;
-import static main.Utilities.getRandom;
-import static main.Utilities.range;
-import static main.Utilities.urlEncode;
 
-import static org.jibble.pircbot.Colors.*;
-
+import main.Style;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import debugging.Log;
+
+import static main.Utilities.*;
 
 /**
  * Translate
@@ -35,10 +23,6 @@ import debugging.Log;
  *         Created Jun 16, 2009.
  */
 public class Translate extends NoiseModule {
-	private static final String COLOR_ERROR = RED;
-	private static final String COLOR_RELIABLE = GREEN;
-	private static final String COLOR_UNRELIABLE = YELLOW;
-
 	// http://code.google.com/apis/language/translate/v2/using_rest.html#language-params
 	private static final Map<String, String> LANGUAGE_KEYS = new HashMap<String, String>() {{
 		put("af", "Afrikaans");
@@ -101,53 +85,23 @@ public class Translate extends NoiseModule {
 		}
 	}};
 
+	private static final String ENGRISH_ORIGIN = "en";
+
 	@Configurable("key")
 	private String key = null;
 
-	class Phrase {
-		private String code;
-		private String text;
+	@Override protected Map<String, Style> styles() {
+		return new HashMap<String, Style>() {{
+			put("reliable", Style.GREEN);
+			put("unreliable", Style.YELLOW);
+			put("language", Style.PLAIN);
+		}};
+	}
 
-		public Phrase(String code, String text)
-		{
-			this.code = code;
-			this.text = text;
-		}
-
-		public String getCode() { return code; }
-		@Override public String toString() { return text; }
-	};
-
-	class LanguageGuess {
-		private String code;
-		private double confidence;
-		private boolean reliable;
-
-		public LanguageGuess(String code, double confidence, boolean reliable)
-		{
-			this.code = code;
-			this.confidence = confidence;
-			this.reliable = reliable;
-		}
-
-		public String toString()
-		{
-			StringBuffer buffer = new StringBuffer();
-			if (LANGUAGE_KEYS.containsKey(this.code))
-				buffer.append(LANGUAGE_KEYS.get(this.code));
-			else
-				buffer.append(this.code);
-			buffer.append(String.format(" (%s%2.2f%%%s)", this.reliable ? COLOR_RELIABLE : COLOR_UNRELIABLE, this.confidence, NORMAL));
-			return buffer.toString();
-		}
-
-		public String getCode() { return code; }
-	};
-
-	private LanguageGuess guessLanguage(String phrase, String toCode)
-	{
+	@Command("\\.language (.+)")
+	public JSONObject guessLanguage(Message message, String phrase) throws JSONException {
 		try {
-			final JSONObject json = getJSON(String.format("https://www.googleapis.com/language/translate/v2/detect?key=%s&format=text&target=%s&q=%s", urlEncode(this.key), urlEncode(toCode), urlEncode(phrase)), true);
+			final JSONObject json = getJSON(String.format("https://www.googleapis.com/language/translate/v2/detect?key=%s&format=text&q=%s", urlEncode(this.key), urlEncode(phrase)), true);
 			if(json.has("data")) {
 				final JSONObject data = json.getJSONObject("data");
 				final JSONArray detections = data.getJSONArray("detections");
@@ -158,136 +112,153 @@ public class Translate extends NoiseModule {
 				final boolean isReliable = detection.getBoolean("isReliable");
 				final double confidence = detection.getDouble("confidence") * 100;
 
-				return new LanguageGuess(fromCode, confidence, isReliable);
+				final JSONObject rtn = new JSONObject().put("language_code", fromCode).put("confidence", confidence).put("reliable", isReliable);
+				if(LANGUAGE_KEYS.containsKey(fromCode)) {
+					rtn.put("language_name", LANGUAGE_KEYS.get(fromCode));
+				}
+				return rtn;
 			} else if(json.has("error")) {
 				final JSONObject error = json.getJSONObject("error");
-				this.bot.sendMessage(COLOR_ERROR + "Google Translate error " + error.getInt("code") + ": " + error.get("message"));
+				return new JSONObject().put("error", String.format("Google Translate error %d: %s", error.getInt("code"), error.get("message"))).put("error_detail", error);
 			} else {
-				this.bot.sendMessage(COLOR_ERROR + "Unknown Google Translate error");
-			}
-		} catch (Exception e) {
-			Log.e(e);
-		}
-
-		return null;
-	}
-
-	private Optional<Phrase> translate(Phrase p, String toCode)
-	{
-		String fromCode = p.getCode();
-		String phrase = p.toString();
-
-		try {
-			fromCode = interpretCode(fromCode);
-			toCode = interpretCode(toCode);
-		} catch(IllegalArgumentException e) {
-			this.bot.sendMessage(COLOR_ERROR + e.getMessage());
-			return Optional.empty();
-		}
-
-		try {
-			final StringBuffer buffer = new StringBuffer();
-
-			final JSONObject json = getJSON(String.format("https://www.googleapis.com/language/translate/v2?key=%s&format=text&source=%s&target=%s&q=%s", urlEncode(this.key), urlEncode(fromCode), urlEncode(toCode), urlEncode(phrase)));
-			if(json.has("data")) {
-				final JSONObject data = json.getJSONObject("data");
-				final JSONArray translations = data.getJSONArray("translations");
-				return Optional.of(new Phrase(toCode, translations.getJSONObject(0).get("translatedText").toString()));
-			} else if(json.has("error")) {
-				final JSONObject error = json.getJSONObject("error");
-				this.bot.sendMessage(COLOR_ERROR + "Google Translate error " + error.getInt("code") + ": " + error.get("message"));
-			} else {
-				this.bot.sendMessage(COLOR_ERROR + "Unknown Google Translate error");
+				return new JSONObject().put("error", "Unknown Google Translate error");
 			}
 		} catch(IOException e) {
 			Log.e(e);
-			this.bot.sendMessage(COLOR_ERROR + "Unable to connect to Google Translate");
-			return Optional.empty();
-		} catch(JSONException e) {
-			Log.e(e);
-			this.bot.sendMessage(COLOR_ERROR + "Problem parsing Google Translate response");
-			return Optional.empty();
+			return new JSONObject().put("error", "Unable to communicate with Google Translate: " + e.getMessage());
 		}
-
-		return Optional.empty();
 	}
 
-	private void translationHelper(String fromCode, String toCode, String phrase) {
-		try {
-			fromCode = fromCode == null ? null : interpretCode(fromCode);
-			toCode = interpretCode(toCode);
-		} catch(IllegalArgumentException e) {
-			this.bot.sendMessage(COLOR_ERROR + e.getMessage());
-			return;
-		}
+	@View(method = "guessLanguage")
+	public void plainLanguageView(Message message, JSONObject data) throws JSONException {
+		message.respond("%(#language)s (# %2.2f%%#plain )", data.optString("language_name", data.getString("language_code")), data.getBoolean("reliable") ? "reliable" : "unreliable", data.getDouble("confidence"));
+	}
 
-		final StringBuffer buffer = new StringBuffer();
-
-		if(fromCode == null) {
-			LanguageGuess lg = guessLanguage(phrase, toCode);
-			if (lg == null)
-				return;
-			fromCode = lg.getCode();
-			buffer.append(lg);
+	private static JSONObject getLanguage(String lang) throws JSONException {
+		final String code;
+		if(LANGUAGE_KEYS.containsKey(lang)) {
+			code = lang;
+		} else if(LANGUAGE_NAMES.containsKey(lang.toLowerCase())) {
+			code = LANGUAGE_NAMES.get(lang.toLowerCase());
 		} else {
-			buffer.append(LANGUAGE_KEYS.get(fromCode));
+			code = lang.toLowerCase();
 		}
 
-		buffer.append(" -> ").append(LANGUAGE_KEYS.get(toCode)).append(": ");
+		final JSONObject rtn = new JSONObject().put("language_code", code);
+		if(LANGUAGE_KEYS.containsKey(code)) {
+			rtn.put("language_name", LANGUAGE_KEYS.get(code));
+		}
+		return rtn;
+	}
 
-		translate(new Phrase(fromCode, phrase), toCode)
-			.ifPresent(p -> this.bot.sendMessage(buffer.append(p).toString()));
+	private JSONObject translate(Message message, JSONObject fromLanguage, JSONObject toLanguage, String phrase) throws JSONException {
+		try {
+			final JSONObject json = getJSON(String.format("https://www.googleapis.com/language/translate/v2?key=%s&format=text&source=%s&target=%s&q=%s", urlEncode(this.key), urlEncode(fromLanguage.getString("language_code")), urlEncode(toLanguage.getString("language_code")), urlEncode(phrase)));
+			if(json.has("data")) {
+				final JSONObject data = json.getJSONObject("data");
+				final JSONArray translations = data.getJSONArray("translations");
+				final String translated = translations.getJSONObject(0).getString("translatedText");
+				return new JSONObject().put("from_language", fromLanguage).put("to_language", toLanguage).put("from", phrase).put("to", translated);
+			} else if(json.has("error")) {
+				final JSONObject error = json.getJSONObject("error");
+				return new JSONObject().put("error", String.format("Google Translate error %d: %s", error.getInt("code"), error.get("message"))).put("error_detail", error);
+			} else {
+				return new JSONObject().put("error", "Unknown Google Translate error");
+			}
+		} catch(IOException e) {
+			Log.e(e);
+			return new JSONObject().put("error", "Unable to communicate with Google Translate: " + e.getMessage());
+		}
+	}
+
+	private JSONObject translate(Message message, JSONObject fromLanguage, String toCode, String phrase) throws JSONException {
+		return this.translate(message, fromLanguage, getLanguage(toCode), phrase);
 	}
 
 	@Command("\\.translate ([a-z]+) ([a-z]+) \"(.*)\"")
-	public void translate(Message message, String fromCode, String toCode, String phrase) {
-		this.translationHelper(fromCode, toCode, phrase);
+	public JSONObject translate(Message message, String fromCode, String toCode, String phrase) throws JSONException {
+		return this.translate(message, getLanguage(fromCode), toCode, phrase);
 	}
 
 	@Command("\\.translate ([a-z]+) \"(.*)\"")
-	public void detect(Message message, String toCode, String phrase) {
-		this.translationHelper(null, toCode, phrase);
+	public JSONObject translate(Message message, String toCode, String phrase) throws JSONException {
+		return this.translate(message, this.guessLanguage(message, phrase), toCode, phrase);
 	}
 
 	@Command("\\.translate \"(.*)\"")
-	public void toEnglish(Message message, String phrase) {
-		this.translationHelper(null, "en", phrase);
+	public JSONObject translate(Message message, String phrase) throws JSONException {
+		return this.translate(message, "en", phrase);
 	}
 
-	private void engrish(int times, String phrase)
-	{
-		Optional<Phrase> p = Optional.of(new Phrase("en", phrase));
-		Set<String> langs = new HashSet<String>(LANGUAGE_KEYS.keySet());
-		langs.remove("en");
+	@View(method = "translate")
+	public void plainTranslateView(Message message, JSONObject data) throws JSONException {
+		final MessageBuilder builder = message.buildResponse();
 
-		for (int i = 0; i < times; i++) {
-			final String language = getRandom(langs.toArray(new String[0]));
-			langs.remove(language);
-			p = p.flatMap(x -> translate(x, language));
+		JSONObject language = data.getJSONObject("from_language");
+		builder.add("#language %s", new Object[] {language.optString("language_name", language.getString("language_code"))});
+		if(language.has("reliable") && language.has("confidence")) {
+			builder.add(" (# %2.2f%%#plain )", new Object[] {language.getBoolean("reliable") ? "reliable" : "unreliable", language.getDouble("confidence")});
 		}
 
-		p.flatMap(x -> translate(x, "en")).ifPresent(x -> this.bot.sendMessage(x.toString()));
+		builder.add(" -> ");
+		language = data.getJSONObject("to_language");
+		builder.add("#language %s", new Object[] {language.optString("language_name", language.getString("language_code"))});
+
+		builder.add(": ");
+		builder.add(data.getString("to"));
+		builder.send();
 	}
 
 	@Command("\\.engrish \"(.*)\"")
-	public void toEngrish(Message message, String phrase) {
-		engrish(4, phrase);
+	public JSONObject engrish(Message message, String phrase) throws JSONException {
+		return this.engrish(message, 4, phrase);
 	}
 
 	@Command("\\.engrish ([0-9]+) \"(.*)\"")
-	public void toEngrish(Message message, int times, String phrase) {
-		int boundedTimes = range(times, 1, 20);
-		engrish(times, phrase);
+	public JSONObject engrish(Message message, int times, String phrase) throws JSONException {
+		times = range(times, 1, 20);
+		String[] langs = LANGUAGE_KEYS.keySet().toArray(new String[0]);
+		for(int i = 0; i < times; i++) {
+			// Swap langs[i] with a random choice later in the array
+			int j;
+			do {
+				j = getRandomInt(i, langs.length - 1);
+			} while(langs[j].equals(ENGRISH_ORIGIN));
+			final String swap = langs[i];
+			langs[i] = langs[j];
+			langs[j] = swap;
+		}
+		langs[times] = ENGRISH_ORIGIN;
+
+		JSONObject fromLang = getLanguage(ENGRISH_ORIGIN);
+		final JSONObject rtn = new JSONObject().put("original", phrase);
+		for(int i = 0; i <= times; i++) {
+			final JSONObject toLang = getLanguage(langs[i]);
+			final JSONObject translated = this.translate(message, fromLang, toLang, phrase);
+			if(translated.has("error")) {
+				return translated;
+			}
+			phrase = translated.getString("to");
+			rtn.append("engrish", new JSONObject().put("language", toLang).put("translated", phrase));
+			fromLang = toLang;
+		}
+		return rtn;
 	}
 
-	private static String interpretCode(String code) {
-		if(LANGUAGE_KEYS.containsKey(code)) {
-			return code;
-		} else if(LANGUAGE_NAMES.containsKey(code.toLowerCase())) {
-			return LANGUAGE_NAMES.get(code.toLowerCase());
-		} else {
-			return code.toLowerCase();
+	@View(method = "engrish")
+	public void plainEngrishView(Message message, JSONObject data) throws JSONException {
+		final JSONArray chain = data.getJSONArray("engrish");
+		final String[] languageChain = new String[chain.length() + 1];
+		languageChain[0] = getLanguage(ENGRISH_ORIGIN).optString("language_name", ENGRISH_ORIGIN);
+		String translated = data.getString("original");
+		for(int i = 0; i < chain.length(); i++) {
+			final JSONObject entry = chain.getJSONObject(i);
+			final JSONObject lang = entry.getJSONObject("language");
+			languageChain[i + 1] = lang.optString("language_name", lang.getString("language_code"));
+			translated = entry.getString("translated");
 		}
+		message.respond("#([ -> ] %(#language)s)", (Object)languageChain);
+		message.respond("%s", translated);
 	}
 
 	@Override public String getFriendlyName() {return "Translate";}

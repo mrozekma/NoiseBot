@@ -1,9 +1,13 @@
 package modules;
 
-import static org.jibble.pircbot.Colors.*;
-
 import main.Message;
 import main.NoiseModule;
+import main.Protocol;
+import main.Style;
+
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Dance!
@@ -12,30 +16,43 @@ import main.NoiseModule;
  *         Created Jun 23, 2011.
  */
 public class Dance extends NoiseModule {
-	private static final String COLOR_FIRST_GUY = YELLOW;
-	private static final String COLOR_SECOND_GUY = BLUE;
-	private static final String COLOR_FIRST_LINE = RED;
-	private static final String COLOR_SECOND_LINE = GREEN;
+	@Override protected Map<String, Style> styles() {
+		return new HashMap<String, Style>() {{
+			put("first_guy", Style.YELLOW);
+			put("second_guy", Style.BLUE);
+			put("first_line", Style.RED);
+			put("second_line", Style.GREEN);
+		}};
+	}
 
 	@Command(value = ".*\\bdanc(?:e|ing).*", caseSensitive = false)
 	public void dance(Message message) {
-		this.bot.sendAction("dances :D-<");
-		this.bot.sendAction("dances :D|-<");
-		this.bot.sendAction("dances :D/-<");
+		message.respondAction("dances :D-<");
+		message.respondAction("dances :D|-<");
+		message.respondAction("dances :D/-<");
 	}
 
 	@Command(value = ".*\\bdisco.*", caseSensitive = false)
 	public void disco(Message message) {
-		this.bot.sendMessage(String.format("%s\\o   %sLET'S   %so/", COLOR_FIRST_GUY, COLOR_FIRST_LINE, COLOR_SECOND_GUY));
-		this.bot.sendMessage(String.format(" %s|>  %sDISCO! %s<|", COLOR_FIRST_GUY, COLOR_SECOND_LINE, COLOR_SECOND_GUY));
-		this.bot.sendMessage(String.format("%s< \\         %s/ >", COLOR_FIRST_GUY, COLOR_SECOND_GUY));
+		// Not sure if this should be a view; I don't really want this to return data
+		final String[] lines = {
+			"#first_guy \\o   #first_line LET'S   #second_guy o/",
+			" #first_guy |>  #second_line DISCO! #second_guy <|",
+			"#first_guy < \\         #second_guy / >",
+		};
+		if(this.bot.getProtocol() == Protocol.Slack) {
+			// This looks so boring I think I'm just going to not disco on Slack. Disco is dead
+//			message.respond(String.format("```%s```", Arrays.stream(lines).collect(Collectors.joining("\n"))));
+		} else {
+			Arrays.stream(lines).forEach(message::respond);
+		}
 	}
 
 	@Command(value = ".*\\bflarhgunnstow.*", caseSensitive = false)
 	public void flarhgunnstow(Message message) {
-		this.bot.sendAction("flarhgunnstows :D]-<");
-		this.bot.sendAction("flarhgunnstows :D|-<");
-		this.bot.sendAction("flarhgunnstows :D[-<");
+		message.respondAction("flarhgunnstows :D]-<");
+		message.respondAction("flarhgunnstows :D|-<");
+		message.respondAction("flarhgunnstows :D[-<");
 	}
 
 	@Override public String getFriendlyName() {return "Dance";}

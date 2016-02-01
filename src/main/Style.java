@@ -1,7 +1,7 @@
 package main;
 
 import java.awt.Color;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.UnaryOperator;
 
 /**
@@ -9,6 +9,8 @@ import java.util.function.UnaryOperator;
  *         Created Jan 2, 2016.
  */
 public class Style {
+	public enum Prop {bold, italic, underline, reverse, mono, monoblock}
+
 	// Add new styles to getMod() below so they can be resolved in format specifiers
 	public static final Style BLACK = new Style(Color.BLACK);
 	public static final Style RED = new Style(Color.RED);
@@ -20,69 +22,114 @@ public class Style {
 	public static final Style WHITE = new Style(Color.WHITE);
 
 	public static final Style PLAIN = new Style(null);
-	public static final Style ERROR = RED;
-	public static final Style COREERROR = RED.reverse();
+	public static final Style BOLD = PLAIN.updateProp(Prop.bold);
+	public static final Style ITALIC = PLAIN.updateProp(Prop.italic);
+	public static final Style UNDERLINE = PLAIN.updateProp(Prop.underline);
+	public static final Style REVERSE = PLAIN.updateProp(Prop.reverse);
+
+	// It's important that these two be unique instances, since Slack checks for them specially
+	public static final Style ERROR = RED.isBlock(true);
+	public static final Style COREERROR = RED.updateProp(Prop.reverse).isBlock(true);
+	public static final Style WARNING = YELLOW;
+	public static final Style SUCCESS = GREEN;
 
 	public final Color color;
-	public final boolean bold, reverse;
+	public final Set<Prop> props;
+	public final boolean isBlock;
+
+	private static Stack<Map<String, Style>> overrideMap = new Stack<>();
 
 	public Style(Color color) {
-		this(color, false, false);
-	}
-
-	public Style(Color color, boolean bold, boolean reverse) {
 		this.color = color;
-		this.bold = bold;
-		this.reverse = reverse;
+		this.props = new HashSet<>();
+		this.isBlock = false;
 	}
 
-	public Style color(Color color) {
-		return (this.color == color) ? this : new Style(color, this.bold, this.reverse);
+	public Style(Color color, Set<Prop> props, boolean isBlock) {
+		this.color = color;
+		this.props = new HashSet<>(props);
+		this.isBlock = isBlock;
 	}
 
-	public Style bold() {
-		return this.bold ? this : new Style(this.color, true, this.reverse);
+	@Override public boolean equals(Object o) {
+		if(!(o instanceof Style)) {
+			return false;
+		}
+		final Style other = (Style)o;
+		return this.color.equals(other.color) && this.props.equals(other.props) && this.isBlock == other.isBlock;
 	}
 
-	public Style reverse() {
-		return this.reverse ? this : new Style(this.color, this.bold, true);
+	public boolean is(Prop prop) {
+		return this.props.contains(prop);
 	}
 
 	// Styles are immutable, so "update" is kind of a misnomer; this returns the modified Style
 	public Style update(String mod) {
-		return getMod(mod).get().apply(this);
+		return getMod(mod).orElseThrow(() -> new IllegalArgumentException(String.format("Unrecognized style modifier: %s", mod))).apply(this);
+	}
+
+	private Style updateColor(Color color) {
+		return new Style(color, this.props, this.isBlock);
+	}
+
+	private Style updateProp(Prop prop) {
+		final Style rtn = new Style(this.color, this.props, this.isBlock);
+		rtn.props.add(prop);
+		return rtn;
+	}
+
+	public Style isBlock(boolean b) {
+		return new Style(this.color, this.props, b);
+	}
+
+	public static void pushOverrideMap(Map<String, Style> m) {
+		synchronized(overrideMap) {
+			overrideMap.push(m);
+		}
+	}
+
+	public static void popOverrideMap() {
+		synchronized(overrideMap) {
+			overrideMap.pop();
+		}
 	}
 
 	public static Optional<UnaryOperator<Style>> getMod(String name) {
+		synchronized(overrideMap) {
+			if(!overrideMap.isEmpty() && overrideMap.peek().containsKey(name)) {
+				final Style rtn = overrideMap.peek().get(name);
+				return Optional.of(style -> rtn);
+			}
+		}
+
+		try {
+			final Prop prop = Prop.valueOf(name);
+			return Optional.of(style -> style.updateProp(prop));
+		} catch(IllegalArgumentException e) {} // 'name' isn't a prop
+
 		if(name.equals("black")) {
-			return Optional.of(style -> style.color(Color.BLACK));
+			return Optional.of(style -> style.updateColor(Color.BLACK));
 		}
 		if(name.equals("red")) {
-			return Optional.of(style -> style.color(Color.RED));
+			return Optional.of(style -> style.updateColor(Color.RED));
 		}
 		if(name.equals("yellow")) {
-			return Optional.of(style -> style.color(Color.YELLOW));
+			return Optional.of(style -> style.updateColor(Color.YELLOW));
 		}
 		if(name.equals("green")) {
-			return Optional.of(style -> style.color(Color.GREEN));
+			return Optional.of(style -> style.updateColor(Color.GREEN));
 		}
 		if(name.equals("blue")) {
-			return Optional.of(style -> style.color(Color.BLUE));
+			return Optional.of(style -> style.updateColor(Color.BLUE));
 		}
 		if(name.equals("magenta")) {
-			return Optional.of(style -> style.color(Color.MAGENTA));
+			return Optional.of(style -> style.updateColor(Color.MAGENTA));
 		}
 		if(name.equals("cyan")) {
-			return Optional.of(style -> style.color(Color.CYAN));
+			return Optional.of(style -> style.updateColor(Color.CYAN));
 		}
 		if(name.equals("white")) {
-			return Optional.of(style -> style.color(Color.WHITE));
-		}
-		if(name.equals("bold")) {
-			return Optional.of(style ->style.bold());
-		}
-		if(name.equals("reverse")) {
-			return Optional.of(style ->style.reverse());
+			return Optional.of(style -> style.updateColor(Color.WHITE));
 		}
 
 		if(name.equals("plain")) {
@@ -93,6 +140,12 @@ public class Style {
 		}
 		if(name.equals("coreerror")) {
 			return Optional.of(style -> COREERROR);
+		}
+		if(name.equals("warning")) {
+			return Optional.of(style -> WARNING);
+		}
+		if(name.equals("success")) {
+			return Optional.of(style -> SUCCESS);
 		}
 
 		return Optional.empty();

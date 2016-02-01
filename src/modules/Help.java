@@ -1,12 +1,14 @@
 package modules;
 
+import static main.Utilities.strstr;
 import static org.jibble.pircbot.Colors.*;
 
-import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 
-import main.Message;
-import main.NoiseBot;
-import main.NoiseModule;
+import main.*;
+import org.json.JSONException;
 
 /**
  * Help
@@ -15,42 +17,88 @@ import main.NoiseModule;
  *         Created Jun 14, 2009.
  */
 public class Help extends NoiseModule {
-	public static final String COLOR_MODULE = RED;
-	public static final String COLOR_COMMAND = BLUE;
-	public static final String COLOR_ARGUMENT = GREEN;
+	// Other modules use these styles, so we make them statically accessible
+	static void addHelpStyles(Protocol protocol, Map<String, Style> map) {
+		switch(protocol) {
+		case IRC:
+			map.put("command", Style.BLUE);
+			map.put("argument", Style.GREEN);
+			map.put("module", Style.RED);
+			break;
+		case Slack:
+			map.put("command", Style.BOLD);
+			map.put("argument", Style.ITALIC);
+			map.put("module", Style.BOLD);
+			break;
+		}
+	}
+
+	@Override protected Map<String, Style> styles() {
+		final Map<String, Style> rtn = new HashMap<>();
+		addHelpStyles(this.bot.getProtocol(), rtn);
+		return rtn;
+	}
 
 	@Command(value = "\\.help", allowPM = true)
-	public void general(Message message) {
-		this.bot.respond(message, "Use ." + COLOR_COMMAND + "help" + NORMAL + " " + COLOR_MODULE + "MODULE" + NORMAL + " to get examples for a specific module:");
-		final String[] parts = this.bot.getModules().values().stream().filter(m -> m.showInHelp()).map(m -> COLOR_MODULE + m.getFriendlyName() + NORMAL).sorted().toArray(String[]::new);
-		// This is hacktastic
-		parts[0] = "List of modules: " + parts[0];
-		this.bot.respondParts(message, ", ", parts);
+	public JSONObject general(Message message) throws JSONException {
+		final String[] modules = this.bot.getModules().values().stream().filter(m -> m.showInHelp()).map(m -> m.getFriendlyName()).sorted().toArray(String[]::new);
+		return new JSONObject().put("modules", modules);
+	}
+
+	@View(method = "general")
+	public void plainGeneralView(Message message, JSONObject data) throws JSONException {
+		message.respond("Use .#command help #module MODULE #plain to get examples for a specific module:");
+		message.respond("List of modules: #([, ] #module %s)", (Object)data.getStringArray("modules"));
 	}
 
 	@Command(value = "\\.help (.+)", allowPM = true)
-	public void specific(Message message, String moduleName) {
+	public JSONObject specific(Message message, String moduleName) throws JSONException {
 		for(NoiseModule module : this.bot.getModules().values()) {
 			if(!module.showInHelp()) {continue;}
 			if(moduleName.equalsIgnoreCase(module.getFriendlyName())) {
-				this.bot.respond(message, COLOR_MODULE + module.getFriendlyName() + NORMAL + " module -- " + module.getDescription());
-				this.bot.respond(message, "Examples:");
-				String[] examples = module.getExamples();
-				if(examples == null || examples.length == 0) {
-					this.bot.respond(message, "No examples available");
-				} else {
-					for(String example : examples) {
-						example = example.replaceAll("^\\.([^ ]+) ", "." + COLOR_COMMAND + "$1" + NORMAL + " ");
-						example = example.replaceAll(" \\|\\| \\.([^ ]+) ", " || ." + COLOR_COMMAND + "$1" + NORMAL + " ");
-						example = example.replaceAll("_([^_]*)_", COLOR_ARGUMENT + "$1" + NORMAL);
-						this.bot.respond(message, example);
-					}
-				}
-				return;
+				return new JSONObject()
+						.put("name", module.getFriendlyName())
+						.put("description", module.getDescription())
+						.put("examples", module.getExamples());
 			}
 		}
 
-		this.bot.respond(message, "Unknown module: " + moduleName);
+		return new JSONObject().put("error", "Unknown module: " + moduleName);
+	}
+
+	@View(method = "specific")
+	public void plainSpecificView(Message message, JSONObject data) throws JSONException {
+		this.specificView(message, data, false);
+	}
+
+	@View(value = Protocol.Slack, method = "specific")
+	public void slackSpecificView(Message message, JSONObject data) throws JSONException {
+		message.mergeResponses();
+		this.specificView(message, data, true);
+	}
+
+	private void specificView(Message message, JSONObject data, boolean showBullets) throws JSONException {
+		message.respond("#module %s #plain module -- %s", data.getString("name"), data.getString("description"));
+		final String[] examples = data.getStringArray("examples");
+		if(examples == null || examples.length == 0) {
+			message.respond("No examples available");
+		} else {
+			message.respond("Examples:");
+			for(String example : examples) {
+				final MessageBuilder builder = message.buildResponse();
+				builder.add(showBullets ? MessageBuilder.BULLET + " " : "  ");
+				for(String piece : example.split(" ")) {
+					if(piece.length() > 1 && piece.startsWith(".")) {
+						builder.add("#command %s ", new Object[] {piece});
+					} else if(piece.length() > 2 && piece.startsWith("_") && piece.endsWith("_")) {
+						builder.add("#argument %s ", new Object[] {piece.substring(1, piece.length() - 1)});
+					} else {
+						builder.add("%s ", new Object[] {piece});
+					}
+				}
+				builder.send();
+			}
+		}
 	}
 
 	@Override public String getFriendlyName() {return "Help";}

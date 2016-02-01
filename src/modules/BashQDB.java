@@ -1,11 +1,14 @@
 package modules;
 
-import static org.jibble.pircbot.Colors.*;
-
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 
+import main.JSONObject;
+import main.Style;
+import org.json.JSONException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -39,46 +42,39 @@ public class BashQDB extends NoiseModule {
 		}
 	}
 
-	private static class ParseException extends Exception {
-		public ParseException(String message) {super(message);}
-	}
-
 	private static final String URI = "http://bash.org";
-	private static final String COLOR_ERROR = RED;
-	private static final String COLOR_QUOTE = CYAN;
 	private static final int TIMEOUT = 5; // seconds
 
+	@Override protected Map<String, Style> styles() {
+		return new HashMap<String, Style>() {{
+			put("quote", Style.CYAN);
+		}};
+	}
+
 	@Command(".*" + URI + "/?\\?([0-9]+).*")
-	public void link(Message message, int id) {
-		this.show(message, id);
+	public JSONObject link(Message message, int id) throws JSONException {
+		return this.show(message, id);
 	}
 
 	@Command("\\.bash ([0-9]+)")
-	public void show(Message message, int id) {
-		try {
-			for(String line : getQuote(id)) {
-				this.bot.sendMessage(COLOR_QUOTE + line);
-			}
-		} catch(ParseException e) {
-			this.bot.sendMessage(COLOR_ERROR + e.getMessage());
-		} catch(IOException e) {
-			this.bot.sendMessage(COLOR_ERROR + "Unable to connect to bash.org");
-			Log.e(e);
-		}
-	}
-
-	private static Quote getQuote(int id) throws IOException, ParseException {
+	public JSONObject show(Message message, int id) throws JSONException {
 		Log.i("Getting quote %d", id);
-		final Document doc = Jsoup.connect(String.format("%s/?%d", URI, id)).timeout(TIMEOUT * 1000).get();
+		final Document doc;
+		try {
+			doc = Jsoup.connect(String.format("%s/?%d", URI, id)).timeout(TIMEOUT * 1000).get();
+		} catch(IOException e) {
+			Log.e(e);
+			return new JSONObject().put("error", "Unable to connect to bash.org: " + e.getMessage());
+		}
 
 		final Element bodytext = doc.select(".bodytext").first();
 		if(bodytext != null && bodytext.text().matches("Quote #([0-9]+) does not exist.")) {
-			throw new ParseException("Quote not found");
+			return new JSONObject().put("error", "Quote not found");
 		}
 
 		final Element qt = doc.select("p.qt").first();
 		if(qt == null) {
-			throw new ParseException("Unable to find quote block");
+			return new JSONObject().put("error", "Unable to find quote block");
 		}
 
 		int score = 0;
@@ -93,11 +89,17 @@ public class BashQDB extends NoiseModule {
 		}
 
 		final String[] lines = qt.html().replace("&nbsp;", " ").split("<br />");
-		final String[] rtn = new String[lines.length];
 		for(int i = 0; i < lines.length; i++) {
-			rtn[i] = Jsoup.parse(lines[i]).text();
+			lines[i] = Jsoup.parse(lines[i]).text();
 		}
-		return new Quote(id, rtn, score);
+		return new JSONObject().put("id", id).put("score", score).put("lines", lines);
+	}
+
+	@View
+	public void plainView(Message message, JSONObject data) throws JSONException {
+		for(String line : data.getStringArray("lines")) {
+			message.respond("#quote %s", line);
+		}
 	}
 
 	@Override public String getFriendlyName() {return "BashQDB";}
@@ -105,7 +107,7 @@ public class BashQDB extends NoiseModule {
 	@Override public String[] getExamples() {
 		return new String[] {
 				".bash _id_ -- Shows quote _id_",
-				"http://bash.org/?_id_ -- Same as .bash"
+				"http://bash.org/?id -- Same as .bash"
 		};
 	}
 }

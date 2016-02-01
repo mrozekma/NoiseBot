@@ -1,25 +1,11 @@
 package modules;
 
-import static org.jibble.pircbot.Colors.GREEN;
-import static org.jibble.pircbot.Colors.NORMAL;
-import static org.jibble.pircbot.Colors.RED;
-
 import java.io.Serializable;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.Date;
-import java.util.GregorianCalendar;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.NavigableMap;
-import java.util.TreeMap;
-import java.util.Vector;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.*;
 
+import debugging.Log;
 import main.*;
+import org.json.JSONException;
 
 /**
  * Score
@@ -28,9 +14,6 @@ import main.*;
  * @author Will Fuqua February 09, 2013.
  */
 public class Score extends NoiseModule implements Serializable {
-	private static final Style STYLE_POSITIVE = Style.GREEN;
-	private static final Style STYLE_NEGATIVE = Style.RED;
-
 	private static class ScoreChange implements Serializable {
 		public final String user;
 		public final String target;
@@ -66,9 +49,18 @@ public class Score extends NoiseModule implements Serializable {
 	@Override public void init(final NoiseBot bot) throws ModuleInitException {
 		super.init(bot);
 		// Populate 'scores' from 'diskScores'
-		for(ScoreChange score : this.diskScores) {
-			this.scores.put(score.when, score);
+		if(diskScores != null) {
+			for(ScoreChange score : this.diskScores) {
+				this.scores.put(score.when, score);
+			}
 		}
+	}
+
+	@Override protected Map<String, Style> styles() {
+		return new HashMap<String, Style>() {{
+			put("positive", Style.GREEN);
+			put("negative", Style.RED);
+		}};
 	}
 
 	@Override public boolean save() {
@@ -131,52 +123,83 @@ public class Score extends NoiseModule implements Serializable {
 	}
 
 	@Command("\\.score(?: @(day|week|month|year|ever))? (.+)")
-	public void getScore(Message message, String whenStr, String nick) {
+	public JSONObject getScore(Message message, String whenStr, String nick) throws JSONException {
 		final When when = (whenStr == null || whenStr.isEmpty()) ? When.ever : When.valueOf(whenStr);
 		final Map<String, Integer> totals = this.getTotals(nick, when);
 		final int total = totals.getOrDefault(nick, 0);
-
-		message.buildResponse().add("%s: ", nick).add(total >= 0 ? STYLE_POSITIVE : STYLE_NEGATIVE, "%s", "" + total).send();
+		return new JSONObject().put("who", nick).put("when", when.toString()).put("score", total);
 	}
 
 	@Command("\\.score(?: @(day|week|month|year|ever))?")
-	public void getSelfScore(Message message, String whenStr) {
-		this.getScore(message, whenStr, message.getSender());
+	public JSONObject getSelfScore(Message message, String whenStr) throws JSONException {
+		return this.getScore(message, whenStr, message.getSender());
 	}
 
 	@Command("\\.([dwmye])score (.+)")
-	public void getScoreWhen(Message message, String when, String nick) {
-		this.getScore(message, When.getByLetter(when.charAt(0)).toString(), nick);
+	public JSONObject getScoreWhen(Message message, String when, String nick) throws JSONException {
+		return this.getScore(message, When.getByLetter(when.charAt(0)).toString(), nick);
 	}
 
 	@Command("\\.([dwmye])score")
-	public void getSelfScoreWhen(Message message, String when) {
-		this.getSelfScore(message, When.getByLetter(when.charAt(0)).toString());
+	public JSONObject getSelfScoreWhen(Message message, String when) throws JSONException {
+		return this.getSelfScore(message, When.getByLetter(when.charAt(0)).toString());
 	}
 
-	@Command(value = "\\.(?:scores|scoreboard)(?: @(day|week|month|year|ever))?", allowPM = true)
-	public void scores(Message message, String whenStr) {
-		final List<String> nicks = Arrays.asList(this.bot.getNicks());
+	@View(method = {"getScore", "getSelfScore", "getScoreWhen", "getSelfScoreWhen"})
+	public void plainViewScore(Message message, JSONObject data) throws JSONException {
+		message.respond("%s: %#d", data.get("who"), (data.getInt("score") >= 0 ? "positive" : "negative"), data.getInt("score"));
+	}
+
+	@Command("\\.(?:scores|scoreboard)(?: @(day|week|month|year|ever))?")
+	public JSONObject scores(Message message, String whenStr) throws JSONException {
 		final When when = (whenStr == null || whenStr.isEmpty()) ? When.ever : When.valueOf(whenStr);
-		final MessageBuilder messageBuilder = message.buildResponse();
-		final MessageBuilder.PartBuilder partBuilder = messageBuilder.buildParts(", ", "%s: %s");
-
-		this.getTotals(null, when).entrySet().stream()
-			.filter(e -> Math.abs(e.getValue()) > 2 || nicks.contains(e.getKey()))
-			.sorted((e1, e2) -> Integer.compare(e2.getValue(), e1.getValue()))
-			.forEach(e -> partBuilder.addPart(new String[] {e.getKey(), "" + e.getValue()}, new Style[] {null, e.getValue() >= 0 ? STYLE_POSITIVE : STYLE_NEGATIVE}));
-
-		if(partBuilder.isEmpty()) {
-			message.respond("%s", "No scores available");
-		} else {
-			partBuilder.done();
-			messageBuilder.send();
+		final JSONObject totals = new JSONObject();
+		for(Map.Entry<String, Integer> e : this.getTotals(null, when).entrySet()) {
+			totals.put(e.getKey(), e.getValue().intValue());
 		}
+
+		return new JSONObject().put("when", when.toString()).put("scores", totals);
 	}
 
-	@Command(value = "\\.([dwmye])(?:scores|scoreboard)", allowPM = true)
-	public void scoresWhen(Message message, String when) {
-		this.scores(message, When.getByLetter(when.charAt(0)).toString());
+	@Command("\\.([dwmye])(?:scores|scoreboard)")
+	public JSONObject scoresWhen(Message message, String when) throws JSONException {
+		return this.scores(message, When.getByLetter(when.charAt(0)).toString());
+	}
+
+	@View(method = {"scores", "scoresWhen"})
+	public void plainViewScores(Message message, JSONObject data) throws JSONException {
+		final org.json.JSONObject scores = data.getJSONObject("scores");
+		if(scores.length() == 0) {
+			message.respond("No scores available");
+			return;
+		}
+
+		// Convert scores to a map
+		final Map<String, Integer> scoresMap = new HashMap<>();
+		scores.keys().forEachRemaining(key -> {
+			final String nick = (String)key;
+			try {
+				scoresMap.put(nick, scores.getInt(nick));
+			} catch(JSONException e) {
+				Log.e(e);
+				message.respond("#error JSONException: %s", e.getMessage());
+			}
+		});
+
+		// Filter out non-member scores near zero, sort, and fill the args list for MessageBuilder
+		final List<String> nicks = Arrays.asList(this.bot.getNicks());
+		final List<Object> args = new LinkedList<>();
+		scoresMap.entrySet().stream()
+				.filter(e -> Math.abs(e.getValue()) > 2 || nicks.contains(e.getKey()))
+				.sorted((e1, e2) -> Integer.compare(e2.getValue(), e1.getValue()))
+				.forEach(e -> {
+					args.add(e.getKey());
+					args.add(e.getValue() >= 0 ? "positive" : "negative");
+					args.add(e.getValue());
+				}
+		);
+
+		message.respond("#([, ] %s: %#d)", (Object)args.toArray());
 	}
 
 	@Override

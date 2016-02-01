@@ -1,9 +1,11 @@
 package modules;
 
-import static org.jibble.pircbot.Colors.*;
-
 import java.io.IOException;
 
+import debugging.Log;
+import main.JSONObject;
+import main.Protocol;
+import org.json.JSONException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -19,10 +21,8 @@ import static main.Utilities.*;
  *         Created Sweetmorn, the 22nd day of Bureaucracy in the YOLD 3178
  */
 public class BeerAdvocate extends NoiseModule {
-  private static final String COLOR_ERROR = RED + REVERSE;
-
   // Yeah, you wanna fight?
-  public static String extract(Document page, String selector)
+  private static String extract(Document page, String selector)
   {
     Element node = page.select(selector).first();
     if (node == null)
@@ -30,40 +30,60 @@ public class BeerAdvocate extends NoiseModule {
     return node.text();
   }
 
-  private Document snarf(String url)
+  private Document snarf(String url) throws IOException
   {
     final String USER_AGENT = "Mozilla/5.0 (Windows NT 6.2; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1667.0 Safari/537.36";
-    try {
-      return Jsoup.connect(url).timeout(10000).userAgent(USER_AGENT).get();
-    } catch (IOException e) {
-      e.printStackTrace();
-      this.bot.sendMessage(COLOR_ERROR + "Error retrieving BA page...");
-      return null;
-    }
+    return Jsoup.connect(url).timeout(10000).userAgent(USER_AGENT).get();
   }
 
   @Command(".*(http://(?:www\\.)?beeradvocate.com/beer/profile/[0-9]+/[0-9]+).*")
-  public void beer(Message message, String beerUrl)
+  public JSONObject beer(Message message, String beerUrl) throws JSONException
   {
-    Document page = snarf(beerUrl);
+    Document page;
+    try {
+      page = snarf(beerUrl);
+    } catch (IOException e) {
+      Log.e(e);
+      return new JSONObject().put("error", "Error retrieving BA page...");
+    }
+
     String name = extract(page, ".titleBar");
     String score = extract(page, ".BAscore_big");
     String style = extract(page, "[href^=/beer/style/]");
-
-    this.bot.sendMessage(name + " - " + style + " - " + score);
+    return new JSONObject().put("url", beerUrl).put("name", name).put("score", score).put("style", style);
   }
 
   // Runs a search in BA and returns the first search result. Searches beer only.
   @Command("\\.beer (.*)")
-  public void search(Message message, String toSearch)
+  public JSONObject search(Message message, String toSearch) throws JSONException
   {
     toSearch = toSearch.replaceAll(" ", "\\+");
-    Document searchResults = snarf("http://beeradvocate.com/search?q="+toSearch+"&qt=beer");
+    Document searchResults;
+    try {
+      searchResults = snarf("http://beeradvocate.com/search?q="+toSearch+"&qt=beer");
+    } catch (IOException e) {
+      Log.e(e);
+      return new JSONObject().put("error", "Error retrieving BA page...");
+    }
     String rel = searchResults.select("[href^=/beer/profile/]").first().attr("href");
     String url = "http://beeradvocate.com" + rel;
-    this.beer(null, url);
-    this.bot.sendMessage(url);
+    return this.beer(null, url);
   }
+
+  @View(method = "beer")
+  public void beerView(Message message, JSONObject data) throws JSONException {
+    message.respond("%s - %s - %s", data.getString("name"), data.getString("style"), data.getString("score"));
+  }
+
+  @View(method = "search")
+  public void searchView(Message message, JSONObject data) throws JSONException {
+    this.beerView(message, data);
+    message.respond("%s", data.getString("url"));
+  }
+
+  // Slack unfolds BeerAdvocate links, so no need to do anything when links are posted
+  @View(value = Protocol.Slack, method = "beer")
+  public void slackBeerView(Message message, JSONObject data) {}
 
   @Override
   public String getFriendlyName() {

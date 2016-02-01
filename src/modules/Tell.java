@@ -1,7 +1,5 @@
 package modules;
 
-import static org.jibble.pircbot.Colors.*;
-
 import java.io.Serializable;
 import java.util.Date;
 import java.util.HashMap;
@@ -30,25 +28,26 @@ public class Tell extends NoiseModule implements Serializable {
 			this.message = message;
 		}
 		
-		@Override public String toString() {return this.date + " <" + this.sender + "> " + this.message;}
+		@Override public String toString() {
+			return String.format("%s <%s> %s", this.date, this.sender, this.message);
+		}
 	}
 	
-	private static final String COLOR_ERROR = RED;
-	private static final String COLOR_SUCCESS = GREEN;
-	
-	private Map<String, LinkedList<CachedMessage>> messages = new HashMap<String, LinkedList<CachedMessage>>();
-	
-	@Command("\\.(?:tell|ask) ([^ ]+) (.+)")
+	private Map<String, LinkedList<CachedMessage>> messages = new HashMap<>();
+
+	@Command(value = "\\.(?:tell|ask) ([^ ]+) (.+)", allowPM = false)
 	public void tell(Message message, String nick, String userMessage) {
 		if(nick.equals(message.getSender())) {
-			message.respond(COLOR_ERROR + "That's you");
+			message.respond("#error That's you");
 		} else if(this.bot.isOnline(nick)) {
-			message.respond(COLOR_ERROR + "They're here now");
+			message.respond("#error They're here now");
 		} else {
-			if(!this.messages.containsKey(nick)) {this.messages.put(nick, new LinkedList<CachedMessage>());}
+			if(!this.messages.containsKey(nick)) {
+				this.messages.put(nick, new LinkedList<>());
+			}
 			this.messages.get(nick).add(new CachedMessage(message.getSender(), userMessage));
 			this.save();
-			message.respond(COLOR_SUCCESS + "Queued");
+			message.respond("#success Queued");
 		}
 	}
 	

@@ -1,11 +1,6 @@
 package modules;
 
-import static org.jibble.pircbot.Colors.*;
-
-import org.jibble.pircbot.User;
-
 import main.Message;
-import main.NoiseBot;
 import main.NoiseModule;
 import static main.Utilities.getRandom;
 
@@ -25,7 +20,7 @@ public class Cloud extends NoiseModule {
 
 	@Command("\\.(?:kill|stab) (.*)")
 	public void kill(Message message, String target) {
-		this.bot.sendMessage(getRandom(swords) + "  " + target);
+		message.respond("%s %s", getRandom(swords), target);
 	}
 
 	@Command("\\.(?:kill|stab)")
@@ -36,7 +31,7 @@ public class Cloud extends NoiseModule {
 			choice = getRandom(nicks);
 		} while(choice.equals(this.bot.getBotNick()));
 
-		kill(message, choice);
+		this.kill(message, choice);
 	}
 
 	@Override public String getFriendlyName() {return "Cloud";}

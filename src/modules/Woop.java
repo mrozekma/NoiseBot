@@ -2,9 +2,12 @@ package modules;
 
 import main.Message;
 import main.NoiseModule;
-import static main.Utilities.range;
+import main.Style;
 
-import static org.jibble.pircbot.Colors.*;
+import java.util.HashMap;
+import java.util.Map;
+
+import static main.Utilities.range;
 
 /**
  * Woop Woop Woop
@@ -16,18 +19,24 @@ public class Woop extends NoiseModule {
    private static String REGULAR_WOOP = "WOOP";
    private static String COFFEE_WOOP = "COFFEE";
 
+   @Override protected Map<String, Style> styles() {
+      return new HashMap<String, Style>() {{
+         put("woop", Style.RED);
+      }};
+   }
+
    @Command(value = "\\.woop (coffee)? ?([0-9]+\\.?[0-9]*)", caseSensitive = false)
    public void woop(Message message, String coffeeArg, String woopsArg) {
-     float requestedWoops = Float.valueOf(woopsArg);
-     String woopType = REGULAR_WOOP;
+      float requestedWoops = Float.valueOf(woopsArg);
+      String woopType = REGULAR_WOOP;
 
-     if (coffeeArg != null && coffeeArg.equals("coffee")) {
-       woopType = COFFEE_WOOP;
-     }
+      if (coffeeArg != null && coffeeArg.equals("coffee")) {
+         woopType = COFFEE_WOOP;
+      }
 
-     String woops = generateWoops(woopType, requestedWoops);
-     this.bot.sendMessage(RED + woops.trim());
-   }
+      String woops = generateWoops(woopType, requestedWoops);
+      message.respond("#woop %s", woops);
+  }
 
    @Command(value = "\\.woop ?(coffee)?", caseSensitive = false)
    public void woopDefault(Message message, String coffeeArg) {this.woop(message, coffeeArg, "10");}
@@ -39,12 +48,12 @@ public class Woop extends NoiseModule {
    public void woopLongDefault(Message message, String numOs, String coffeeArg) {this.woop(message, coffeeArg, "" + (numOs.length() + 2));}
 
    private String generateWoops(String woop, float requestedWoops) {
-     int wholeWoops = (int) Math.floor(requestedWoops);
-     int boundedWoops = range(wholeWoops, 1, 20);
-     int woopPart = Math.round((requestedWoops - wholeWoops) * woop.length());
+      int wholeWoops = (int) Math.floor(requestedWoops);
+      int boundedWoops = range(wholeWoops, 1, 20);
+      int woopPart = Math.round((requestedWoops - wholeWoops) * woop.length());
 
-     String woops = new String(new char[boundedWoops]).replace("\0", woop + " ") + woop.substring(0, woopPart);
-     return woops;
+      String woops = new String(new char[boundedWoops]).replace("\0", woop + " ") + woop.substring(0, woopPart);
+      return woops;
    }
 
    @Override public String getFriendlyName() {return "Woop";}

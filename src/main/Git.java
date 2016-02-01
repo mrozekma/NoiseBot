@@ -52,7 +52,7 @@ public class Git {
 		public String getAuthor() {return this.author;}
 		public String getDescription() {return this.description != null ? this.description : "";}
 
-		@Override public String toString() {return this.getHash() + " by "+ getAuthor() + " -- " + this.getDescription();}
+		@Override public String toString() {return this.getHash() + " by " + getAuthor() + " -- " + this.getDescription();}
 		@Override public boolean equals(Object other) {
 			return (other instanceof Revision) && (((Revision)other).getHash().equals(this.getHash()));
 		}
@@ -73,7 +73,7 @@ public class Git {
 	public static Revision[] diff(String fromRev, String toRev) {
 		final String from = fromRev != null ? fromRev : "HEAD~1";
 		final String to = toRev != null ? toRev : "";
-		final Vector<Revision> revs = new Vector<Revision>();
+		final Vector<Revision> revs = new Vector<>();
 		try {
 			final Process p = Runtime.getRuntime().exec("git log --format=format:%h:%an:%s " + from + ".." + to);
 			final Scanner s = new Scanner(p.getInputStream());
@@ -86,6 +86,15 @@ public class Git {
 		}
 
 		return revs.toArray(new Revision[0]);
+	}
+
+	public static boolean isDirty() {
+		try {
+			return Runtime.getRuntime().exec("git diff-files --quiet").waitFor() > 0;
+		} catch(IOException | InterruptedException e) {
+			Log.e(e);
+			return false;
+		}
 	}
 
 	public static boolean pull() {

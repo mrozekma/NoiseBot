@@ -4,6 +4,7 @@ import com.ullink.slack.simpleslackapi.*;
 import com.ullink.slack.simpleslackapi.events.SlackMessagePosted;
 import com.ullink.slack.simpleslackapi.impl.SlackSessionFactory;
 import com.ullink.slack.simpleslackapi.listeners.SlackMessagePostedListener;
+import com.ullink.slack.simpleslackapi.replies.SlackChannelReply;
 import com.ullink.slack.simpleslackapi.replies.SlackMessageReply;
 import debugging.Log;
 
@@ -82,13 +83,16 @@ public class SlackServer implements SlackMessagePostedListener {
 	}
 
 	@Override public void onEvent(SlackMessagePosted pack, SlackSession session) {
+		//TODO Direct messages
 		final String sender = pack.getSender().getUserName();
 		final String channel = "#" + pack.getChannel().getName();
 		final String message = pack.getMessageContent();
 		Log.in(String.format("<%s -> %s: %s", sender, channel, message));
 		this.moduleDispatch(channel, new ModuleCall() {
 			@Override public void call(NoiseBot bot, NoiseModule module) {
-				module.processMessage(new Message(bot, message, sender, false));
+				if(!sender.equals(bot.getBotNick())) {
+					module.processMessageAndDisplayResult(new Message(bot, message, sender, false));
+				}
 			}
 
 			@Override public void onException(NoiseBot bot, Exception e) {
@@ -104,6 +108,13 @@ public class SlackServer implements SlackMessagePostedListener {
 	public SlackChannel findChannelByName(String channelName) {return this.slack.findChannelByName(channelName);}
 	public SlackPersona sessionPersona() {return this.slack.sessionPersona();}
 	public SlackUser findUserByUserName(String userName) {return this.slack.findUserByUserName(userName);}
-	public SlackMessageHandle<SlackMessageReply> sendMessage(SlackChannel channel, String message, SlackAttachment attachment) {return this.slack.sendMessage(channel, message, attachment);}
+	public SlackMessageHandle<SlackChannelReply> sendMessage(SlackChannel channel, String message, SlackAttachment attachment) {return this.slack.sendMessage(channel, message, attachment);}
 	public SlackMessageHandle<SlackMessageReply> sendMessageToUser(String userName, String message, SlackAttachment attachment) {return this.slack.sendMessageToUser(userName, message, attachment);}
+	public SlackMessageHandle<SlackChannelReply> deleteMessage(String timeStamp, SlackChannel channel) {return this.slack.deleteMessage(timeStamp, channel);}
+	public SlackMessageHandle<SlackChannelReply> updateMessage(String timeStamp, SlackChannel channel, String message) {return this.slack.updateMessage(timeStamp, channel, message);}
+	// These methods aren't part of simpleslackapi by default; I added them and built my own JAR:
+	public SlackMessageHandle<SlackMessageReply> deleteMessageToUser(String timeStamp, String userName) {return this.slack.deleteMessageToUser(timeStamp, userName);}
+	public SlackMessageHandle<SlackChannelReply> updateMessage(String timeStamp, SlackChannel channel, String message, SlackAttachment attachment) {return this.slack.updateMessage(timeStamp, channel, message, attachment);}
+	public SlackMessageHandle<SlackMessageReply> updateMessageToUser(String timeStamp, String userName, String message) {return this.slack.updateMessageToUser(timeStamp, userName, message);}
+	public SlackMessageHandle<SlackMessageReply> updateMessageToUser(String timeStamp, String userName, String message, SlackAttachment attachment) {return this.slack.updateMessageToUser(timeStamp, userName, message, attachment);}
 }

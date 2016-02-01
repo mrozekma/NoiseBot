@@ -1,24 +1,18 @@
 package modules;
 
-import static org.jibble.pircbot.Colors.*;
-
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
+import java.util.stream.Collectors;
 
+import com.ullink.slack.simpleslackapi.SlackAttachment;
+import main.*;
+import org.json.JSONException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 
 import debugging.Log;
 
-import main.Message;
-import main.ModuleInitException;
-import main.NoiseBot;
-import main.NoiseModule;
 import static main.Utilities.getRandomInt;
 
 /**
@@ -28,52 +22,29 @@ import static main.Utilities.getRandomInt;
  *         Created Jul 12, 2010.
  */
 public class QDB extends NoiseModule {
-	private static class Quote implements Iterable<String> {
-		public final int id;
-		public final String[] lines;
-		public final int upvotes;
-		public final int downvotes;
-
-		public Quote(int id, String[] lines, int upvotes, int downvotes) {
-			this.id = id;
-			this.lines = lines;
-			this.upvotes = upvotes;
-			this.downvotes = downvotes;
-		}
-
-		private String getVoteString() {
-			return (this.upvotes >= 0 && this.downvotes >= 0) ? "(+" + this.upvotes + "/-" + this.downvotes + ")" : "(?/?)";
-		}
-
-		public String[] render() {
-			final String[] rtn = new String[this.lines.length];
-			if(this.lines.length == 0) return rtn;
-			rtn[0] = this.getVoteString() + " " + this.lines[0];
-			System.arraycopy(this.lines, 1, rtn, 1, this.lines.length - 1);
-			return rtn;
-		}
-
-		@Override public Iterator<String> iterator() {
-			return Arrays.asList(this.render()).iterator();
-		}
-	}
-
 	private static class ParseException extends Exception {
 		public ParseException(String message) {super(message);}
+		public ParseException(Throwable t) {super(t);}
 	}
 
-	private static final String URI = "http://rhlug.pileus.org/qdb";
-	private static final String COLOR_ERROR = RED;
-	private static final String COLOR_QUOTE = CYAN;
 	private static final int MAX_LINES = 2; // maximum lines in a random quote
 	private static final int PERIOD = 30; // seconds
 	private static final int TIMEOUT = 5; // seconds
 
+	@Configurable("base-url")
+	private String baseURL = null;
+
 	private final Timer timer = new Timer();
 	private int curID = 0;
 
-	@Override public void init(NoiseBot bot) throws ModuleInitException {
-		super.init(bot);
+	@Override protected Map<String, Style> styles() {
+		return new HashMap<String, Style>() {{
+			put("quote", Style.CYAN);
+		}};
+	}
+
+	@Override public void setConfig(Map<String, Object> config) throws ModuleInitException {
+		super.setConfig(config);
 		this.timer.scheduleAtFixedRate(new TimerTask() {
 			@Override public void run() {
 				QDB.this.checkForNewQuotes();
@@ -87,40 +58,68 @@ public class QDB extends NoiseModule {
 	}
 
 	@Command("\\.(?:qdb|quote) ([0-9]+)")
-	public void show(Message message, int id) {
+	public JSONObject show(Message message, int id) throws JSONException {
 		try {
-			for(String line : getQuote(id))
-				this.bot.sendMessage(COLOR_QUOTE + line);
+			return this.getQuote(id);
 		} catch(ParseException e) {
-			message.respond(COLOR_ERROR + e.getMessage());
 			Log.e(e);
+			return new JSONObject().put("error", e.getMessage());
 		} catch(IOException e) {
-			message.respond(COLOR_ERROR + "Unable to connect to QDB");
 			Log.e(e);
+			return new JSONObject().put("error", "Unable to connect to QDB");
 		}
 	}
 
 	@Command("\\.(?:qdb|quote)")
-	public void showRandom(Message message) {
+	public JSONObject showRandom(Message message) throws JSONException {
 		try {
-			final int maxId = getMaxID();
-
-			Quote quote = null;
+			final int maxId = this.getMaxID();
+			Optional<JSONObject> quote = Optional.empty();
 			do {
 				try {
-					quote = getQuote(getRandomInt(1, maxId));
+					quote = Optional.of(getQuote(getRandomInt(1, maxId)));
 				} catch(ParseException e) {} // Probably the particular quy
-			} while(quote == null || quote.lines.length > MAX_LINES);
-
-			for(String line : quote)
-				this.bot.sendMessage(COLOR_QUOTE + line);
+			} while(!quote.isPresent() || quote.get().getJSONArray("lines").length() > MAX_LINES);
+			return quote.get();
 		} catch(ParseException e) {
-			message.respond(COLOR_ERROR + e.getMessage());
 			Log.e(e);
+			return new JSONObject().put("error", e.getMessage());
 		} catch(IOException e) {
-			message.respond(COLOR_ERROR + "Unable to connect to QDB");
 			Log.e(e);
+			return new JSONObject().put("error", "Unable to connect to QDB");
 		}
+	}
+
+	@View
+	public void plainView(Message message, JSONObject data) throws JSONException {
+		final String[] lines = data.getStringArray("lines");
+		if(lines.length == 0) { // I don't think this is ever true
+			return;
+		}
+		final MessageBuilder builder = message.buildResponse();
+		if(data.has("upvotes") && data.has("downvotes")) {
+			builder.add("#quote (+%d/-%d) ", new Object[] {data.getInt("upvotes"), data.getInt("downvotes")});
+		}
+		builder.add("#quote %s", new Object[] {lines[0]}).send();
+		for(int i = 1; i < lines.length; i++) {
+			message.respond("#quote %s", lines[i]);
+		}
+	}
+
+	@View(Protocol.Slack)
+	public void slackView(Message message, JSONObject data) throws JSONException {
+		final SlackNoiseBot bot = (SlackNoiseBot)this.bot;
+		final String body = Arrays.stream(data.getStringArray("lines")).collect(Collectors.joining("\n"));
+		StringBuilder votes = new StringBuilder();
+		for(int i = 0; i < data.optInt("upvotes", 0); i++) {
+			votes.append(":+1:");
+		}
+		for(int i = 0; i < data.optInt("downvotes", 0); i++) {
+			votes.append(":-1:");
+		}
+		final SlackAttachment attachment = new SlackAttachment(String.format("Quote #%d", data.getInt("id")), body, body + "\n" + votes, null);
+		attachment.setTitleLink(String.format("%s/%d", this.baseURL, data.getInt("id")));
+		bot.sendAttachmentTo(message.getResponseTarget(), attachment);
 	}
 
 	private void checkForNewQuotes() {
@@ -146,17 +145,17 @@ public class QDB extends NoiseModule {
 
 		Log.v("QDB poll; old ID was %d, new ID is ", this.curID, maxID);
 		for(this.curID++; this.curID <= maxID; this.curID++) {
-			this.bot.sendMessage(String.format("%s/%d", URI, this.curID));
+			this.bot.sendMessage("%s/%d", this.baseURL, this.curID);
 		}
 
 		this.curID--; // The for loop pushes it just past maxID
 	}
 
-	private static Quote getQuote(int id) throws IOException, ParseException {
+	private JSONObject getQuote(int id) throws IOException, ParseException {
 		Log.i("Getting quote %d", id);
-		final Document doc = Jsoup.connect(String.format("%s/%d", URI, id)).timeout(TIMEOUT * 1000).get();
+		final Document doc = Jsoup.connect(String.format("%s/%d", this.baseURL, id)).timeout(TIMEOUT * 1000).get();
 
-		int upvotes = -1, downvotes = -1;
+		Optional<Integer> upvotes = Optional.empty(), downvotes = Optional.empty();
 		try {
 			final Elements scoreSpan = doc.select("span.quote-rating");
 			if(!scoreSpan.isEmpty()) {
@@ -177,8 +176,8 @@ public class QDB extends NoiseModule {
 					upvotes += diff/2;
 					downvotes += diff/2;
 					*/
-					upvotes = (total+score) / 2;
-					downvotes = (total-score) / 2;
+					upvotes = Optional.of((total + score) / 2);
+					downvotes = Optional.of((total - score) / 2);
 				}
 			}
 		} catch(NumberFormatException e) {Log.e(e);}
@@ -187,46 +186,41 @@ public class QDB extends NoiseModule {
 			throw new ParseException("Quote not found");
 		}
 
-		Elements e = doc.select("p");
-		if(e.isEmpty())
+		final Elements e = doc.select("p");
+		if(e.isEmpty()) {
 			throw new ParseException("Unable to find quote block");
-		String[] lines = e.first().html().replace("&nbsp;", " ").split("<br />");
-		String[] rtn = new String[lines.length];
-		for(int i = 0; i < lines.length; i++)
-			rtn[i] = Jsoup.parse(lines[i]).text();
-		return new Quote(id, rtn, upvotes, downvotes);
+		}
+		final String[] lines = e.first().html().replace("&nbsp;", " ").split("<br />");
+		final String[] fmtLines = Arrays.stream(lines).map(line -> Jsoup.parse(line).text()).toArray(String[]::new);
+		try {
+			final JSONObject rtn = new JSONObject().put("id", id).put("lines", fmtLines);
+			if(upvotes.isPresent()) {
+				rtn.put("upvotes", upvotes.get().intValue());
+			}
+			if(downvotes.isPresent()) {
+				rtn.put("downvotes", downvotes.get().intValue());
+			}
+			return rtn;
+		} catch(JSONException ex) {
+			throw new ParseException(ex);
+		}
 	}
 
-	private static int getMaxID() throws IOException, ParseException {
-		final Document doc = Jsoup.connect(URI + "/browse").timeout(TIMEOUT * 1000).get();
+	private int getMaxID() throws IOException, ParseException {
+		final Document doc = Jsoup.connect(String.format("%s/browse", this.baseURL)).timeout(TIMEOUT * 1000).get();
 		Elements e = doc.select("ul.quote-list > li");
-		if(e.isEmpty())
+		if(e.isEmpty()) {
 			throw new ParseException("Unable to find top quote on browse page");
+		}
 		final String id = e.first().id();
-		if(!id.startsWith("quote-"))
+		if(!id.startsWith("quote-")) {
 			throw new ParseException("Unexpected ID on top quote on browse page");
+		}
 		return Integer.parseInt(id.substring("quote-".length()));
 	}
 
-	// Old PHP method
-	/*
-	private static String[] getQuote(String id) throws IOException {
-		String url = "http://mrozekma.com/qdb.php";
-		if(id.equals("max") || Integer.parseInt(id) > 0)
-			url += "?id=" + id;
-		final URLConnection c = new URL(url).openConnection();
-		final Scanner s = new Scanner(c.getInputStream());
-		final Vector<String>  lines = new Vector<String>();
-		while(s.hasNextLine()) {
-			final String line = s.nextLine();
-			lines.add(line);
-		}
-		return lines.toArray(new String[0]);
-	}
-	*/
-
 	@Override public String getFriendlyName() {return "QDB";}
-	@Override public String getDescription() {return "Displays quotes from the RHLUG Quote Database at " + URI;}
+	@Override public String getDescription() {return "Displays quotes from the Quote Database at " + this.baseURL;}
 	@Override public String[] getExamples() {
 		return new String[] {
 				".qdb -- Shows a random short quote",

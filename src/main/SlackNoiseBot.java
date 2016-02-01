@@ -1,18 +1,19 @@
 package main;
 
 import com.google.gson.internal.StringMap;
-import com.ullink.slack.simpleslackapi.SlackAttachment;
-import com.ullink.slack.simpleslackapi.SlackChannel;
-import com.ullink.slack.simpleslackapi.SlackPersona;
-import com.ullink.slack.simpleslackapi.SlackUser;
+import com.ullink.slack.simpleslackapi.*;
+import com.ullink.slack.simpleslackapi.SlackTimestamped;
+import com.ullink.slack.simpleslackapi.replies.SlackChannelReply;
+import com.ullink.slack.simpleslackapi.replies.SlackMessageReply;
 
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Consumer;
+import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 
 import static main.Utilities.substring;
@@ -38,6 +39,9 @@ public class SlackNoiseBot extends NoiseBot {
 		final List<String> channels = (List<String>)data.get("channels");
 		for(String channel : channels) {
 			final NoiseBot bot = new SlackNoiseBot(server, channel, quiet, modules);
+			if(data.containsKey("owner")) {
+				bot.setOwner((StringMap)data.get("owner"));
+			}
 			NoiseBot.bots.put(connectionName + channel, bot);
 			server.addBot(channel, bot);
 		}
@@ -60,6 +64,7 @@ public class SlackNoiseBot extends NoiseBot {
 	}
 
 	@Override public String[] getNicks() {
+		//TODO This appears to cache old data
 		return this.slackChannel().getMembers().stream().map(SlackPersona::getUserName).toArray(String[]::new);
 	}
 
@@ -80,47 +85,172 @@ public class SlackNoiseBot extends NoiseBot {
 		handler.setHostname("slack");
 		handler.setGecos(user.getRealName());
 		handler.setServer("slack");
-		handler.setAccount(user.getUserMail());
+		handler.setAccount(user.getUserName());
 
 		// Synchronous communication -- what an idea
 		handler.notifyDone(true);
 	}
 
-	@Override public void sendMessage(MessageBuilder builder) {
-		final SlackChannel target = (builder.target.charAt(0) == '#') ? this.server.findChannelByName(builder.target.substring(1)) : null;
-		final Consumer<String> fn;
-		switch(builder.type) {
-		case MESSAGE:
-		case NOTICE:
-		default:
-			fn = (target != null)
-			   ? message -> this.server.sendMessage(target, message, null)
-			   : message -> this.server.sendMessageToUser(builder.target, message, null);
-			break;
-		case ACTION:
-			fn = (target != null)
-			   ? message -> this.server.sendMessage(target, "/me " + message, null)
-			   : message -> this.server.sendMessageToUser(builder.target, "/me " + message, null);
+	public String getUserID(String username) {
+		return this.server.findUserByUserName(username).getId();
+	}
+
+	public String escape(String text) {
+		// https://api.slack.com/docs/formatting#urls_and_escaping
+		//TODO Strip regular formatting: https://get.slack.help/hc/en-us/articles/202288908-Formatting-your-messages
+		//TODO Add regular formatting from 'style'
+		text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+
+		// There isn't a good way to escape Slack formatting characters. The following works for bold but not italics, and is ugly
+		// https://github.com/slackhq/slack-api-docs/issues/34
+//		text = text.replaceAll("([*_])([^ ])", "$1 $2").replaceAll("([^ ])([*_])", "$1 $2");
+
+		return text;
+	}
+
+	private static String emph(String text, String emph) {
+		int leading, trailing, len = text.length();
+		for(leading = 0; leading < len && text.charAt(leading) == ' '; leading++);
+		for(trailing = len; trailing > leading && text.charAt(trailing - 1) == ' '; trailing--);
+		return text.substring(0, leading) + emph + text.substring(leading, trailing) + emph + text.substring(trailing);
+	}
+
+	@Override public String format(Style style, String text) {
+		text = this.escape(text);
+
+		if(style.is(Style.Prop.bold)) {
+			text = emph(text, "*");
+		}
+		if(style.is(Style.Prop.italic)) {
+			text = emph(text, "_");
+		}
+		if(style.is(Style.Prop.mono)) {
+			text = emph(text, "`");
+		}
+		if(style.is(Style.Prop.monoblock)) {
+//			text = emph(text, "```");
+			text = String.format("```%s```", text);
 		}
 
-		for(String message : builder.getFinalMessages(Optional.empty())) {
-			fn.accept(message);
+		return text;
+	}
+
+	@Override public SentMessage[] sendMessageBuilders(MessageBuilder... builders) {
+		// As long as consecutive builders can logically be merged, we do so and separate with newlines
+		final BiPredicate<MessageBuilder, MessageBuilder> compatible = (a, b) -> a.type == b.type && a.target.equals(b.target) && a.getBlockStyle().equals(b.getBlockStyle()) && a.replacing.equals(b.replacing);
+
+		final List<SentMessage> rtn = new LinkedList<>();
+		final List<String> finalMessages = new LinkedList<>();
+		for(int i = 0; i <= builders.length; i++) {
+			// This condition is a bit complicated. It's always false on the first pass (since nothing is buffered yet),
+			// and always true on the last pass (which is after the end of the builders list, and happens just so we can output the last messages)
+			if(i == builders.length || (i > 0 && !compatible.test(builders[i], builders[i - 1]))) {
+				final MessageBuilder last = builders[i - 1];
+				// finalMessages will never be empty here
+				String text = finalMessages.stream().collect(Collectors.joining("\n"));
+				final Optional<Style> blockStyle = last.getBlockStyle();
+
+				// Special handling for [core]error block styles
+				boolean handled = false;
+				if(blockStyle.isPresent() && (last.type == MessageBuilder.Type.MESSAGE || last.type == MessageBuilder.Type.NOTICE)) {
+					final Style style = blockStyle.get();
+					if(style == Style.ERROR || style == Style.COREERROR) {
+						if(last.replacing.isPresent()) {
+							rtn.add(this.editTitled(last.replacing.get(), Style.ERROR.color, "Error", text));
+						} else {
+							rtn.add(this.sendTitledTo(last.target, Style.ERROR.color, "Error", text));
+						}
+						handled = true;
+					}
+				}
+
+				if(!handled) {
+					final SlackChannel target = (last.target.charAt(0) == '#') ? this.server.findChannelByName(last.target.substring(1)) : null;
+					switch(last.type) {
+					case ACTION:
+						// There's currently no way to send me_message events through the Slack API
+						// Instead we just italicize the whole message. Close enough?
+						text = this.format(Style.ITALIC, text);
+						// Fallthrough
+					case MESSAGE:
+					case NOTICE:
+					default:
+						final SlackMessageHandle<? extends SlackTimestamped> handle;
+						if(last.replacing.isPresent()) {
+							final SlackSentMessage sent = (SlackSentMessage)last.replacing.get();
+							if(target != null) {
+								handle = this.server.updateMessage(sent.getTimestamp(), target, text);
+							} else {
+								handle = this.server.updateMessageToUser(sent.getTimestamp(), last.target, text);
+							}
+						} else {
+							if(target != null) {
+								handle = this.server.sendMessage(target, text, null);
+							} else {
+								handle = this.server.sendMessageToUser(last.target, text, null);
+							}
+						}
+						rtn.add(new SlackSentMessage(this, last.target, last.type, handle.getReply().getTimestamp()));
+						break;
+					}
+				}
+
+				finalMessages.clear();
+				if(i == builders.length) {
+					break;
+				}
+			}
+
+			// getFinalMessages() should only return 1 element, since we don't give a max message len, but it feels dirty to rely on that
+			finalMessages.add(Arrays.stream(builders[i].getFinalMessages(Optional.empty())).collect(Collectors.joining("")));
 		}
+
+		return rtn.toArray(new SentMessage[0]);
 	}
 
-	public void sendAttachment(SlackAttachment attachment) {
-		this.server.sendMessage(this.server.findChannelByName(this.channel.substring(1)), null, attachment);
+	public SentMessage sendAttachment(SlackAttachment attachment) {
+		return this.sendAttachmentTo(this.channel, attachment);
 	}
 
-	public void sendAttachmentTo(String target, SlackAttachment attachment) {
-		this.server.sendMessageToUser(target, null, attachment);
+	public SentMessage sendAttachmentTo(String target, SlackAttachment attachment) {
+		final SlackMessageHandle<? extends SlackTimestamped> handle;
+		if(!target.isEmpty() && target.charAt(0) == '#') {
+			handle = this.server.sendMessage(this.server.findChannelByName(target.substring(1)), "\n", attachment);
+		} else {
+			handle = this.server.sendMessageToUser(target, "\n", attachment);
+		}
+		return new SlackSentMessage(this, target, MessageBuilder.Type.MESSAGE, handle.getReply().getTimestamp());
 	}
 
-	public void sendTitled(Color color, String title, String text) {
-		final SlackAttachment attachment = new SlackAttachment();
+	public SentMessage editAttachment(SentMessage replacing, SlackAttachment attachment) {
+		final SlackSentMessage sent = (SlackSentMessage)replacing;
+		final String target = replacing.target;
+		final SlackMessageHandle<? extends SlackTimestamped> handle;
+		if(!target.isEmpty() && target.charAt(0) == '#') {
+			handle = this.server.updateMessage(sent.getTimestamp(), this.server.findChannelByName(target.substring(1)), "\n", attachment);
+		} else {
+			handle = this.server.updateMessageToUser(sent.getTimestamp(), target, "\n", attachment);
+		}
+		return new SlackSentMessage(this, target, MessageBuilder.Type.MESSAGE, handle.getReply().getTimestamp());
+	}
+
+	public SentMessage sendTitledTo(String target, Color color, String title, String text) {
+		final SlackAttachment attachment = new SlackAttachment(title, text, text, null);
 		attachment.setColor(String.format("#%02x%02x%02x", color.getRed(), color.getGreen(), color.getBlue()));
-		attachment.setTitle(title);
-		attachment.setText(text);
-		this.sendAttachment(attachment);
+		return this.sendAttachmentTo(target, attachment);
+	}
+
+	public SentMessage editTitled(SentMessage replacing, Color color, String title, String text) {
+		final SlackAttachment attachment = new SlackAttachment(title, text, text, null);
+		attachment.setColor(String.format("#%02x%02x%02x", color.getRed(), color.getGreen(), color.getBlue()));
+		return this.editAttachment(replacing, attachment);
+	}
+
+	public void deleteMessage(SlackSentMessage message) {
+		if(!message.target.isEmpty() && message.target.charAt(0) == '#') {
+			this.server.deleteMessage(message.getTimestamp(), this.server.findChannelByName(message.target.substring(1)));
+		} else {
+			this.server.deleteMessageToUser(message.getTimestamp(), message.target);
+		}
 	}
 }

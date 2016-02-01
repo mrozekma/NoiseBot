@@ -1,22 +1,19 @@
 package modules;
 
-import static org.jibble.pircbot.Colors.*;
-
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
 
+import main.*;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import debugging.Log;
-import main.Message;
-import main.ModuleInitException;
-import main.NoiseBot;
-import main.NoiseModule;
+
 import static main.Utilities.bytesToFriendly;
 import static main.Utilities.pluralize;
 
@@ -29,48 +26,53 @@ import static main.Utilities.pluralize;
 public class Imgur extends NoiseModule {
 	private static final String URL_PATTERN = "https?://(?:.+\\.)?imgur.com/(?:.+/)?([a-zA-Z0-9]+)(?:\\.[a-z]{3})?";
 
-	private static final String COLOR_INFO = PURPLE;
-	private static final String COLOR_ERROR = RED + REVERSE;
-
 	@Configurable("client-id")
 	private String clientID = null;
 
+	@Override protected Map<String, Style> styles() {
+		return new HashMap<String, Style>() {{
+			put("info", Style.MAGENTA);
+		}};
+	}
+
 	@Command(".*" + URL_PATTERN + ".*")
-	public void imgur(Message message, String imgID) {
+	public JSONObject imgur(Message message, String imgID) throws JSONException {
 		try {
 			final JSONObject json = this.getJSON(imgID);
 			if(!json.getBoolean("success")) {
 				if(json.has("data")) {
 					final JSONObject data = json.getJSONObject("data");
 					if(data.has("error")) {
-						this.bot.sendMessage(COLOR_ERROR + data.get("error"));
-						return;
+						return data;
 					}
 				}
-				this.bot.sendMessage(COLOR_ERROR + "Unknown error communicating with Imgur");
-				return;
+				return new JSONObject().put("error", "Unknown error communicating with Imgur");
 			}
 
-			final JSONObject data = json.getJSONObject("data");
-			final StringBuffer buffer = new StringBuffer();
-			buffer.append((data.has("title") && !data.isNull("title")) ? data.get("title") : "Untitled");
-			if(data.has("description") && !data.isNull("description")) {
-				buffer.append(" -- ").append(data.get("description"));
-			}
-			buffer.append(" (");
-			buffer.append(String.format("%dx%d, ", data.getInt("width"), data.getInt("height")));
-			buffer.append(bytesToFriendly(data.getInt("size"), 2)).append(", ");
-			buffer.append(pluralize(data.getInt("views"), "view", "views"));
-			buffer.append(")");
-
-			this.bot.sendMessage(COLOR_INFO + buffer);
+			return json.getJSONObject("data");
 		} catch(FileNotFoundException e) {
 			Log.e(e);
-			this.bot.sendMessage(COLOR_ERROR + String.format("No image with ID %s exists", imgID));
-		} catch(Exception e) {
+			return new JSONObject().put("error", String.format("No image with ID %s exists", imgID));
+		} catch(IOException e) {
 			Log.e(e);
-			this.bot.sendMessage(COLOR_ERROR + "Problem parsing Imgur data");
+			return new JSONObject().put("error", String.format("Unable to communicate with imgur: %s", e.getMessage()));
 		}
+	}
+
+	@View
+	public void view(Message message, JSONObject data) throws JSONException {
+		message.respond("#info %s%s (%dx%d, %s, %s)",
+				(data.has("title") && !data.isNull("title")) ? data.get("title") : "Untitled",
+				(data.has("description") && !data.isNull("description")) ? " -- " + data.get("description") : "",
+				data.getInt("width"),
+				data.getInt("height"),
+				bytesToFriendly(data.getInt("size"), 2),
+				pluralize(data.getInt("views"), "view", "views"));
+	}
+
+	@View
+	public void slackView(Message message, JSONObject data) {
+		// Slack already unfolds Imgur URLs
 	}
 
 	@Override public String getFriendlyName() {return "Imgur";}

@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -45,11 +47,13 @@ public abstract class NoiseBot {
 	public static final Map<String, NoiseBot> bots = new HashMap<>();
 	public static final Map<String, Set<File>> moduleFileDeps = new HashMap<>();
 	public static Git.Revision revision = Git.head();
+	public static boolean revisionDirty = Git.isDirty();
 	private static Map config;
 
 	protected final String channel;
 	protected final boolean quiet;
 	protected final String[] fixedModules;
+	protected Optional<StringMap> owner = Optional.empty();
 	protected final Map<String, NoiseModule> modules = new HashMap<>();
 	protected final Queue<QueuedAction> rxQueue = new LinkedList<>();
 
@@ -57,6 +61,10 @@ public abstract class NoiseBot {
 		this.channel = channel;
 		this.quiet = quiet;
 		this.fixedModules = fixedModules;
+	}
+
+	protected void setOwner(StringMap owner) {
+		this.owner = Optional.of(owner);
 	}
 
 	// Note: 'exitCode' is only applicable if this is the last connection
@@ -115,7 +123,7 @@ public abstract class NoiseBot {
 			} catch(ModuleInitException e) {
 				Log.e("Failed loading module %s", moduleName);
 				Log.e(e);
-				this.sendMessage(COLOR_ERROR + String.format("Failed loading module %s: %s", moduleName, e.getMessage()));
+				this.sendMessage("#coreerror Failed loading module %s: %s", moduleName, e.getMessage());
 			}
 		}
 
@@ -125,7 +133,7 @@ public abstract class NoiseBot {
 
 			Log.i("Done loading revision %s", this.revision.getHash());
 			if(!this.quiet) {
-				this.sendNotice(String.format("NoiseBot revision %s (loaded %s watching for %s)", this.revision.getHash(), pluralize(moduleCount, "module", "modules"), pluralize(patternCount, "pattern", "patterns")));
+				this.sendNotice(String.format("NoiseBot revision %s%s (loaded %s watching for %s)", this.revision.getHash(), this.revisionDirty ? "-dirty" : "", pluralize(moduleCount, "module", "modules"), pluralize(patternCount, "pattern", "patterns")));
 			}
 		}
 	}
@@ -240,7 +248,7 @@ public abstract class NoiseBot {
 
 	private void setModuleConfig(NoiseModule module) throws ModuleInitException {
 		final String moduleName = module.getClass().getSimpleName();
-		final Map<String, Object> moduleConfig = new HashMap<String, Object>();
+		final Map<String, Object> moduleConfig = new HashMap<>();
 		if(NoiseBot.config.containsKey("modules")) {
 			final StringMap data = (StringMap)NoiseBot.config.get("modules");
 			if(data.containsKey(moduleName)) {
@@ -295,15 +303,18 @@ public abstract class NoiseBot {
 	public abstract void whois(String nick, WhoisHandler handler);
 
 	boolean isOwner(String nick, String hostname, String account) {
-		if(!config.containsKey("owner")) {
+		final StringMap owner;
+		if(this.owner.isPresent()) {
+			owner = this.owner.get();
+		} else if(config.containsKey("owner")) {
+			owner = (StringMap)config.get("owner");
+		} else {
 			return false;
 		}
 
-		final StringMap owner = (StringMap)config.get("owner");
 		if(owner.isEmpty()) {
 			return false;
 		}
-
 		if(owner.containsKey("nick") && !owner.get("nick").equals(nick)) {
 			return false;
 		}
@@ -337,8 +348,7 @@ public abstract class NoiseBot {
 				}
 			}
 			if(moduleNames.length != 0) {
-				final Stream<String> coloredNamesStream = Arrays.stream(moduleNames).map(name -> Help.COLOR_MODULE + name + NORMAL);
-				this.sendNotice("Reloaded modules: " + coloredNamesStream.collect(Collectors.joining(", ")));
+				this.sendNotice("Reloaded modules: #([, ] #module %s)", (Object)moduleNames);
 			}
 		}
 	}
@@ -380,7 +390,7 @@ public abstract class NoiseBot {
 		return text;
 	}
 
-	public abstract void sendMessage(MessageBuilder builder);
+	public abstract SentMessage[] sendMessageBuilders(MessageBuilder... builders);
 
 	public MessageBuilder buildMessage() {
 		return this.buildMessageTo(this.channel);
@@ -388,6 +398,10 @@ public abstract class NoiseBot {
 
 	public MessageBuilder buildMessageTo(String target) {
 		return new MessageBuilder(this, target, MessageBuilder.Type.MESSAGE);
+	}
+
+	public MessageBuilder editMessage(SentMessage replacing) {
+		return new MessageBuilder(this, replacing.target, replacing.type, replacing);
 	}
 
 	public MessageBuilder buildAction() {
@@ -402,25 +416,24 @@ public abstract class NoiseBot {
 		return new MessageBuilder(this, this.channel, MessageBuilder.Type.NOTICE);
 	}
 
-
-	public void sendMessage(String fmt, Object... args) {
-		this.buildMessage().add(fmt, args).send();
+	public SentMessage[] sendMessage(String fmt, Object... args) {
+		return this.buildMessage().add(fmt, args).send();
 	}
 
-	public void sendMessageTo(String target, String fmt, Object... args) {
-		this.buildMessageTo(target).add(fmt, args).send();
+	public SentMessage[] sendMessageTo(String target, String fmt, Object... args) {
+		return this.buildMessageTo(target).add(fmt, args).send();
 	}
 
-	public void sendAction(String fmt, Object... args) {
-		this.buildAction().add(fmt, args).send();
+	public SentMessage[] sendAction(String fmt, Object... args) {
+		return this.buildAction().add(fmt, args).send();
 	}
 
-	public void sendActionTo(String target, String fmt, Object... args) {
-		this.buildActionTo(target).add(fmt, args).send();
+	public SentMessage[] sendActionTo(String target, String fmt, Object... args) {
+		return this.buildActionTo(target).add(fmt, args).send();
 	}
 
-	public void sendNotice(String fmt, Object... args) {
-		this.buildNotice().add(fmt, args).send();
+	public SentMessage[] sendNotice(String fmt, Object... args) {
+		return this.buildNotice().add(fmt, args).send();
 	}
 
 	public static void broadcastMessage(String message) {
@@ -448,7 +461,7 @@ public abstract class NoiseBot {
 		final StringMap configConnections = (StringMap)NoiseBot.config.get("connections");
 		{
 			boolean bad = false;
-			final Set<String> checkSet = new HashSet<String>(args.length);
+			final Set<String> checkSet = new HashSet<>(args.length);
 			checkSet.addAll(Arrays.asList(connectionNames));
 			for(Object entry : configConnections.entrySet()) {
 				final String name = (String)((Map.Entry)entry).getKey();

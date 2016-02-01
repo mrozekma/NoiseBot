@@ -38,7 +38,7 @@ public class IRCNoiseBot extends NoiseBot {
 		put(Color.YELLOW, Colors.YELLOW);
 		put(Color.GREEN, Colors.GREEN);
 		put(Color.BLUE, Colors.BLUE);
-		put(Color.MAGENTA, Colors.MAGENTA);
+		put(Color.MAGENTA, Colors.PURPLE); // There is a magenta as well, but it's just bold purple
 		put(Color.CYAN, Colors.CYAN);
 		put(Color.WHITE, Colors.WHITE);
 	}};
@@ -77,6 +77,9 @@ public class IRCNoiseBot extends NoiseBot {
 		final List<String> channels = (List<String>)data.get("channels");
 		for(String channel : channels) {
 			final NoiseBot bot = new IRCNoiseBot(server, channel, quiet);
+			if(data.containsKey("owner")) {
+				bot.setOwner((StringMap)data.get("owner"));
+			}
 			NoiseBot.bots.put(connectionName + channel, bot);
 			server.addBot(channel, bot);
 		}
@@ -163,38 +166,56 @@ public class IRCNoiseBot extends NoiseBot {
 		if(style.color != null) {
 			before += COLORS.getOrDefault(style.color, Colors.NORMAL);
 		}
-		if(style.bold) {
+		if(style.is(Style.Prop.bold)) {
 			before += Colors.BOLD;
 		}
-		if(style.reverse) {
+		if(style.is(Style.Prop.underline)) {
+			before += Colors.UNDERLINE;
+		}
+		if(style.is(Style.Prop.reverse)) {
 			before += Colors.REVERSE;
 		}
 		final String after = before.isEmpty() ? "" : Colors.NORMAL;
 		return before + text + after;
 	}
 
-	@Override public void sendMessage(final MessageBuilder builder) {
-		int maxLen = this.server.getMaxLineLength()
-		           - this.whoisString.length()
-		           - " PRIVMSG ".length()
-		           - builder.target.length()
-		           - " :\r\n".length();
+	@Override public SentMessage[] sendMessageBuilders(final MessageBuilder... builders) {
+		final List<SentMessage> rtn = new LinkedList<>();
+		// We don't attempt to merge messages together on IRC, we just send each builder separately
+		for(MessageBuilder builder : builders) {
+			// IRC doesn't support editing messages
+			if(builder.replacing.isPresent()) {
+				throw new IllegalStateException("Unable to edit IRC messages");
+			}
 
-		final MessageSender fn;
-		switch(builder.type) {
-		case MESSAGE:
-		default:
-			fn = this.server::sendMessage;
-			break;
-		case ACTION:
-			fn = this.server::sendAction;
-			break;
-		case NOTICE:
-			fn = this.server::sendNotice;
-			break;
+			int maxLen = this.server.getMaxLineLength()
+					- this.whoisString.length()
+					- " PRIVMSG ".length()
+					- builder.target.length()
+					- " :\r\n".length();
+
+			final MessageSender fn;
+			switch(builder.type) {
+			case MESSAGE:
+			default:
+				fn = this.server::sendMessage;
+				break;
+			case ACTION:
+				fn = this.server::sendAction;
+				break;
+			case NOTICE:
+				fn = this.server::sendNotice;
+				break;
+			}
+			final Optional<Style> blockStyle = builder.getBlockStyle();
+			for(String message : builder.getFinalMessages(Optional.of(maxLen))) {
+				if(blockStyle.isPresent()) {
+					message = this.format(blockStyle.get(), message);
+				}
+				rtn.add(new SentMessage(this, builder.target, builder.type));
+				fn.send(builder.target, message);
+			}
 		}
-		for(String message : builder.getFinalMessages(Optional.of(maxLen))) {
-			fn.send(builder.target, message);
-		}
+		return rtn.toArray(new SentMessage[0]);
 	}
 }

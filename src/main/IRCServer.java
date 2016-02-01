@@ -102,12 +102,12 @@ public class IRCServer extends PircBot {
 		Log.in(String.format("<%s (%s@%s) -> %s: %s", sender, login, hostname, channel, message));
 		this.moduleDispatch(channel, new ModuleCall() {
 			@Override public void call(NoiseBot bot, NoiseModule module) {
-				module.processMessage(new Message(bot, Colors.removeFormattingAndColors(message.trim()), sender, false));
+				module.processMessageAndDisplayResult(new Message(bot, Colors.removeFormattingAndColors(message.trim()), sender, false));
             }
 
 			@Override public void onException(NoiseBot bot, Exception e) {
 				super.onException(bot, e);
-				bot.sendMessageTo(sender, "coreerror %s", e.getMessage());
+				bot.sendMessageTo(channel, "#coreerror %s: %s", e.getClass().getSimpleName(), e.getMessage());
 			}
 		});
 	}
@@ -145,12 +145,12 @@ public class IRCServer extends PircBot {
 
 		this.moduleDispatch(channel, new ModuleCall() {
 			@Override public void call(NoiseBot bot, NoiseModule module) {
-				module.processMessage(new Message(bot, Colors.removeFormattingAndColors(realMessage.trim()), sender, true));
+				module.processMessageAndDisplayResult(new Message(bot, Colors.removeFormattingAndColors(realMessage.trim()), sender, true));
             }
 
 			@Override public void onException(NoiseBot bot, Exception e) {
 				super.onException(bot, e);
-				bot.sendMessageTo(sender, "coreerror %s", e.getMessage());
+				bot.sendMessageTo(sender, "#coreerror %s: %s", e.getClass().getSimpleName(), e.getMessage());
 			}
 		});
 	}

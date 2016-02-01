@@ -3,17 +3,42 @@ package main;
 import org.json.JSONArray;
 import org.json.JSONException;
 
-import java.util.Map;
+import java.lang.reflect.Array;
+import java.util.*;
+import java.util.function.Function;
 
 /**
  * @author Michael Mrozek
  *         Created Jan 2, 2016.
  */
 public class JSONObject extends org.json.JSONObject {
-	public JSONObject put(String key, Object[] arr) throws JSONException {
-		for(Object i : arr) {
-			this.append(key, i);
+	public JSONObject() {}
+
+	public JSONObject(org.json.JSONObject wrap) throws JSONException {
+		super(wrap, getKeys(wrap.keys()));
+	}
+
+	private static String[] getKeys(Iterator iter) {
+		final List<String> rtn = new LinkedList<>();
+		iter.forEachRemaining(o -> rtn.add(o.toString()));
+		return rtn.toArray(new String[0]);
+	}
+
+	public <T> T getT(String key) throws JSONException {
+		return (T)this.get(key);
+	}
+
+	public <T> T[] getJavaArray(String key, Class<T> cls) throws JSONException {
+		final JSONArray arr = this.getJSONArray(key);
+		final T[] rtn = (T[])Array.newInstance(cls, arr.length());
+		for(int i = 0; i < rtn.length; i++) {
+			rtn[i] = (T)arr.get(i);
 		}
+		return rtn;
+	}
+
+	public JSONObject put(String key, Object[] arr) throws JSONException {
+		this.put(key, Arrays.asList(arr));
 		return this;
 	}
 
@@ -106,6 +131,17 @@ public class JSONObject extends org.json.JSONObject {
 
 	public JSONObject put(String key, Object value) throws JSONException {
 		super.put(key, value);
+		return this;
+	}
+
+	public <T> Optional<T> getOpt(String key) throws JSONException {
+		return this.has(key) ? Optional.of((T)this.get(key)) : Optional.empty();
+	}
+
+	public <T> JSONObject putOpt(String key, Optional<T> value) throws JSONException {
+		if(value.isPresent()) {
+			this.put(key, value.get());
+		}
 		return this;
 	}
 

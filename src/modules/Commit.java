@@ -3,21 +3,17 @@ package modules;
 import static org.jibble.pircbot.Colors.*;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.Map;
-import java.util.Scanner;
-import java.util.Vector;
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Paths;
 
 import debugging.Log;
 
-import main.Message;
-import main.ModuleInitException;
-import main.NoiseBot;
-import main.NoiseModule;
-import static main.Utilities.getRandom;
+import main.*;
+import org.json.JSONException;
 
-import org.jibble.pircbot.User;
+import static main.Utilities.getRandom;
 
 /**
  * Commit
@@ -36,25 +32,34 @@ public class Commit extends NoiseModule {
 
 	@Override public void init(NoiseBot bot) throws ModuleInitException {
 		super.init(bot);
-		this.messages = new String[0];
 		try {
-			final Vector<String> messages = new Vector<String>();
-			final Scanner s = new Scanner(MESSAGES_FILE);
-			while(s.hasNextLine()) {
-				messages.add(s.nextLine());
-			}
-			this.messages = messages.toArray(new String[0]);
+			this.messages = Files.lines(Paths.get(MESSAGES_FILE.toURI())).toArray(String[]::new);
 			Log.i("Loaded messages file: %d", this.messages.length);
-		} catch(FileNotFoundException e) {
+		} catch(NoSuchFileException e) {
 			this.bot.sendNotice("No commit messages file found");
+		} catch(IOException e) {
+			this.bot.sendNotice("Unable to load commit messages file: " + e.getMessage());
 		}
 	}
 
 	@Command("\\.commit")
-	public void commit(Message message) {
-		if(this.messages.length > 0) {
+	public JSONObject commit(Message message) throws JSONException {
+		if(this.messages.length == 0) {
+			return new JSONObject();
+		} else {
+			final String commitMessage = getRandom(this.messages);
 			final String nick = getRandom(this.bot.getNicks());
-			this.bot.sendMessage(getRandom(this.messages).replace("XNAMEX", nick).replace("XUPPERNAMEX", nick.toUpperCase()));
+			return new JSONObject()
+					.put("message", commitMessage)
+					.put("nick", nick)
+					.put("processed", commitMessage.replace("XNAMEX", nick).replace("XUPPERNAMEX", nick.toUpperCase()));
+		}
+	}
+
+	@View
+	public void view(Message message, JSONObject data) throws JSONException {
+		if(data.has("processed")) {
+			message.respond("%s", data.getString("processed"));
 		}
 	}
 

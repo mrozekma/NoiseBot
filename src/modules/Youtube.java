@@ -1,7 +1,5 @@
 package modules;
 
-import static org.jibble.pircbot.Colors.*;
-
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
@@ -9,13 +7,10 @@ import java.net.URLConnection;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
-import java.util.Locale;
-import java.util.Scanner;
+import java.util.*;
 import java.time.Duration;
-import java.util.TimeZone;
 
+import main.Style;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -25,6 +20,7 @@ import debugging.Log;
 import main.Message;
 import main.NoiseModule;
 import static main.Utilities.formatSeconds;
+import static main.Utilities.pluralize;
 
 /**
  * Youtube
@@ -34,16 +30,19 @@ import static main.Utilities.formatSeconds;
  */
 public class Youtube extends NoiseModule {
 	private static final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX");
-
-	private static final String COLOR_ERROR = RED;
-	private static final String COLOR_INFO = PURPLE;
-	public static final String API_URL = "https://www.googleapis.com/youtube/v3/videos?id=%s&key=%s&part=snippet,contentDetails,statistics,liveStreamingDetails";
+	private static final String API_URL = "https://www.googleapis.com/youtube/v3/videos?id=%s&key=%s&part=snippet,contentDetails,statistics,liveStreamingDetails";
 
 	@Configurable("appid")
 	private transient String appid = null;
 
+	@Override protected Map<String, Style> styles() {
+		return new HashMap<String, Style>() {{
+			put("info", Style.MAGENTA);
+		}};
+	}
+
 	@Command(".*https?://(?:www.youtube.com/(?:watch\\?v=|v/|user/.*\\#p/u/[0-9]+/)|youtu.be/)([A-Za-z0-9_-]{11}).*")
-	public void youtube(Message message, String videoID) {
+	public JSONObject youtube(Message message, String videoID) throws JSONException {
 		try {
 			JSONObject data = getJSON(videoID);
 			JSONArray videos = data.getJSONArray("items");
@@ -53,23 +52,37 @@ public class Youtube extends NoiseModule {
 			if(numResults == 0) {
 				throw new FileNotFoundException(); // Youtube's HTTP code should cause this automatically, this case should never happen
 			} else if(numResults != 1) {
-				this.bot.sendMessage(COLOR_ERROR + "Found " + numResults + " videos with ID " + videoID);
-				return;
+				return new JSONObject().put("error", String.format("Found %d videos with ID %s", numResults, videoID));
 			}
 
-			final JSONObject video = videos.getJSONObject(0);
-			final JSONObject snippet = video.getJSONObject("snippet");
+			return videos.getJSONObject(0);
+		} catch(FileNotFoundException e) {
+			Log.e(e);
+			return new JSONObject().put("error", "Unable to find Youtube video with ID " + videoID);
+		} catch(IOException e) {
+			Log.e(e);
+			return new JSONObject().put("error", "Unable to contact Youtube");
+		} catch(JSONException e) {
+			Log.e(e);
+			return new JSONObject().put("error", "Problem parsing Youtube data");
+		}
+	}
 
-			String author, title;
-			Duration duration;
-			int viewCount;
-			Calendar published;
+	@View
+	public void plainView(Message message, JSONObject video) throws JSONException {
+		final JSONObject snippet = video.getJSONObject("snippet");
 
+		String author, title;
+		Duration duration;
+		int viewCount;
+		Calendar published;
+
+		try {
 			author = snippet.getString("channelTitle");
 			title = snippet.getString("title");
 
 			duration = Duration.parse(video.getJSONObject("contentDetails").getString("duration"));
-			viewCount = (int) video.getJSONObject("statistics").getLong("viewCount");
+			viewCount = (int)video.getJSONObject("statistics").getLong("viewCount");
 
 			published = new GregorianCalendar();
 			published.setTime(dateFormat.parse(snippet.getString("publishedAt")));
@@ -86,7 +99,7 @@ public class Youtube extends NoiseModule {
 					final String pubdate = String.format("%d %s %d", startTime.get(Calendar.DAY_OF_MONTH), startTime.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.getDefault()), startTime.get(Calendar.YEAR));
 					final String pubtime = String.format("%d:%02d %s", startTime.get(Calendar.HOUR_OF_DAY), startTime.get(Calendar.MINUTE), startTime.getTimeZone().getDisplayName(false, TimeZone.SHORT));
 
-					this.bot.sendMessage(COLOR_INFO + title +" (Live, posted by " + author +", started on " + pubdate + " at " + pubtime + ", " + viewers +" viewers)");
+					message.respond("#info %s (Live, posted by %s, started on %s at %s, %s)", title, author, pubdate, pubtime, pluralize(viewers, "viewer", "viewers"));
 					return;
 				} else if(live.equals("upcoming")) {
 					Calendar startTime = new GregorianCalendar();
@@ -95,7 +108,7 @@ public class Youtube extends NoiseModule {
 					final String pubdate = String.format("%d %s %d", startTime.get(Calendar.DAY_OF_MONTH), startTime.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.getDefault()), startTime.get(Calendar.YEAR));
 					final String pubtime = String.format("%d:%02d %s", startTime.get(Calendar.HOUR_OF_DAY), startTime.get(Calendar.MINUTE), startTime.getTimeZone().getDisplayName(false, TimeZone.SHORT));
 
-					this.bot.sendMessage(COLOR_INFO + title + " (Upcoming, posted by " + author + ", starting on " + pubdate + " at " + pubtime + ")");
+					message.respond("#info %s (Upcoming, posted by %s, starting on %s at %s)", title, author, pubdate, pubtime);
 					return;
 				} else {
 					Calendar endTime = new GregorianCalendar();
@@ -103,22 +116,16 @@ public class Youtube extends NoiseModule {
 
 					final String pubdate = String.format("%d %s %d", endTime.get(Calendar.DAY_OF_MONTH), endTime.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.getDefault()), endTime.get(Calendar.YEAR));
 
-					this.bot.sendMessage(COLOR_INFO + title + " (Recorded, posted by " + author + ", ended on " + pubdate + ", " + viewCount + " views)");
+					message.respond("#info %s (Recorded, posted by %s, ended on %s, %s)", title, author, pubdate, pluralize(viewCount, "view", "views"));
 					return;
 				}
 			}
 
 			final String pubdate = String.format("%d %s %d", published.get(Calendar.DAY_OF_MONTH), published.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.getDefault()), published.get(Calendar.YEAR));
-			this.bot.sendMessage(COLOR_INFO +  title + " (posted by " + author + " on " + pubdate + ", " + formatSeconds(duration.getSeconds()) + ", " + viewCount + " views)");
-		} catch(FileNotFoundException e) {
-			this.bot.sendMessage(COLOR_ERROR + "Unable to find Youtube video with ID " + videoID);
+			message.respond("#info %s (posted by %s on %s, %s, %s)", title, author, pubdate, formatSeconds(duration.getSeconds()), pluralize(viewCount, "view", "views"));
+		} catch(ParseException e) {
 			Log.e(e);
-		} catch(IOException e) {
-			this.bot.sendMessage(COLOR_ERROR + "Unable to contact Youtube");
-			Log.e(e);
-		} catch (ParseException | JSONException e) {
-			this.bot.sendMessage(COLOR_ERROR + "Problem parsing Youtube data");
-			Log.e(e);
+			message.respond("#error Parse exception: %s", e.getMessage());
 		}
 	}
 

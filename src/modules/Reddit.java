@@ -1,13 +1,14 @@
 package modules;
 
-import static org.jibble.pircbot.Colors.*;
-
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
 
+import main.Style;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -15,7 +16,6 @@ import org.json.JSONObject;
 import debugging.Log;
 
 import main.Message;
-import main.NoiseBot;
 import main.NoiseModule;
 
 import static main.Utilities.urlEncode;
@@ -29,8 +29,11 @@ import static main.Utilities.urlEncode;
 public class Reddit extends NoiseModule {
 	private static final String REDDIT_URL_PATTERN = "http://www.reddit.com/r/[a-zA-Z0-9_-]+/comments/[a-zA-Z0-9]+";
 
-	private static final String COLOR_INFO = PURPLE;
-	private static final String COLOR_ERROR = RED + REVERSE;
+	@Override protected Map<String, Style> styles() {
+		return new HashMap<String, Style>() {{
+			put("info", Style.MAGENTA);
+		}};
+	}
 
 	private static JSONObject getJSON(String url) throws IOException, JSONException {
 		final URLConnection c = new URL(url).openConnection();
@@ -40,32 +43,65 @@ public class Reddit extends NoiseModule {
 	}
 
 	@Command(".*(" + REDDIT_URL_PATTERN + ").*")
-	public void reddit(Message message, String url) {
+	public JSONObject reddit(Message message, String url) throws JSONException {
 		try {
 			final JSONObject json = getJSON(url + "/.json");
-			final JSONObject data = json.getJSONObject("data").getJSONArray("children").getJSONObject(0).getJSONObject("data");
-			this.bot.sendMessage(COLOR_INFO + data.getString("title") + ", " + data.getString("url") + " (posted by " + data.getString("author") + " in " + data.getString("subreddit") + " at " + new Date(data.getLong("created_utc") * 1000) + ", +" + data.getInt("ups") + "/-" + data.getInt("downs") + ", " + data.getInt("num_comments") + " comment" + (data.getInt("num_comments") == 1 ? "" : "s") + ")");
+			final JSONObject rtn = json.getJSONObject("data").getJSONArray("children").getJSONObject(0).getJSONObject("data");
+			return rtn;
 		} catch(IOException e) {
-			this.bot.sendMessage(COLOR_ERROR + "Unable to connect to Reddit");
 			Log.e(e);
-		} catch(JSONException e) {}
+			return new JSONObject().put("error", "Unable to connect to Reddit");
+		}
 	}
 
 	@Command(".*((?:ftp|http|https):\\/\\/(?:\\w+:{0,1}\\w*@)?(?:\\S+)(?::[0-9]+)?(?:\\/|\\/(?:[\\w#!:.?+=&%@!\\-\\/]))?).*")
-	public void url(Message message, String url) {
-		if(url.matches(REDDIT_URL_PATTERN + ".*")) {return;}
+	public JSONObject url(Message message, String url) throws JSONException {
+		if(url.matches(REDDIT_URL_PATTERN + ".*")) {return new JSONObject();}
 
 		try {
 			final JSONObject json = getJSON("http://www.reddit.com/api/info.json?count=1&url=" + urlEncode(url));
 			final JSONArray children = json.getJSONObject("data").getJSONArray("children");
 			if(children.length() > 0) {
-				JSONObject data = children.getJSONObject(0).getJSONObject("data");
-				this.bot.sendMessage(COLOR_INFO + data.getString("title") + ", http://www.reddit.com/r/" + data.getString("subreddit") + "/comments/" + data.getString("id") + " (posted by " + data.getString("author") + " in " + data.getString("subreddit") + " at " + new Date(data.getLong("created_utc") * 1000) + ", +" + data.getInt("ups") + "/-" + data.getInt("downs") + ", " + data.getInt("num_comments") + " comment" + (data.getInt("num_comments") == 1 ? "" : "s") + ")");
+				final JSONObject rtn = children.getJSONObject(0).getJSONObject("data");
+				rtn.put("linked_url", url);
+				return rtn;
+			} else {
+				return new JSONObject();
 			}
 		} catch(IOException e) {
-			this.bot.sendMessage(COLOR_ERROR + "Unable to connect to Reddit");
 			Log.e(e);
-		} catch(JSONException e) {}
+			return new JSONObject().put("error", "Unable to connect to Reddit");
+		}
+	}
+
+	@View
+	public void plainView(Message message, JSONObject data) throws JSONException {
+		if(data.length() == 0) {
+			return;
+		} else if(data.has("linked_url")) {
+			this.bot.sendMessage("#info %s, http://www.reddit.com/r/%s/comments/%s (posted by %s in %s at %s, +%d/-%d, %d %s)",
+					data.getString("title"),
+					data.getString("subreddit"),
+					data.getString("id"),
+					data.getString("author"),
+					data.getString("subreddit"),
+					new Date(data.getLong("created_utc") * 1000),
+					data.getInt("ups"),
+					data.getInt("downs"),
+					data.getInt("num_comments"),
+					(data.getInt("num_comments") == 1) ? "comment" : "comments");
+		} else {
+			this.bot.sendMessage("#info %s, %s (posted by %s in %s at %s, +%d/-%d, %d %s)",
+					data.getString("title"),
+					data.getString("url"),
+					data.getString("author"),
+					data.getString("subreddit"),
+					new Date(data.getLong("created_utc") * 1000),
+					data.getInt("ups"),
+					data.getInt("downs"),
+					data.getInt("num_comments"),
+					(data.getInt("num_comments") == 1) ? "comment" : "comments");
+		}
 	}
 
 	@Override public String getFriendlyName() {return "Reddit";}

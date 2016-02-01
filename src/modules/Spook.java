@@ -1,26 +1,17 @@
 package modules;
 
 import java.io.File;
-import java.io.FileWriter;
-import java.io.FileNotFoundException;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Scanner;
-import java.util.Set;
-import java.util.Vector;
-import java.util.stream.Collectors;
+import java.io.IOException;
+import java.io.Serializable;
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Paths;
+import java.util.*;
 
-import main.Message;
-import main.ModuleInitException;
-import main.NoiseBot;
-import main.NoiseModule;
+import main.*;
+import org.json.JSONException;
 
-import static main.Utilities.getRandom;
-import static main.Utilities.range;
-import static main.Utilities.substring;
-import static modules.Slap.slapUser;
-import static org.jibble.pircbot.Colors.*;
-
+import static main.Utilities.*;
 
 /**
  * Spook
@@ -28,63 +19,126 @@ import static org.jibble.pircbot.Colors.*;
  * @author Michael Mrozek
  *         Created Jun 16, 2009.
  */
-public class Spook extends NoiseModule {
-	private static final String COLOR_ERROR = RED;
+public class Spook extends NoiseModule implements Serializable {
+	private static class Entry {
+		public final String entry;
+
+		public Entry(String entry) {
+			this.entry = entry;
+		}
+
+		public JSONObject pack() throws JSONException {
+			return new JSONObject().put("entry", this.entry);
+		}
+
+		public static Entry unpack(JSONObject json) throws JSONException {
+			if(json.has("who") && json.has("when")) {
+				return new CustomEntry(json.getString("who"), (Date)json.get("what"), json.getString("entry"));
+			} else {
+				return new Entry(json.getString("entry"));
+			}
+		}
+
+		@Override public boolean equals(Object o) {
+			if(!(o instanceof Entry)) {
+				return false;
+			}
+			final Entry other = (Entry)o;
+			return this.entry.equalsIgnoreCase(other.entry);
+		}
+
+		@Override public String toString() {
+			return this.entry;
+		}
+	}
+
+	private static class CustomEntry extends Entry {
+		public final String who;
+		public final Date when;
+
+		public CustomEntry(String who, Date when, String entry) {
+			super(entry);
+			this.who = who;
+			this.when = when;
+		}
+
+		public CustomEntry(String who, String entry) {
+			this(who, new Date(), entry);
+		}
+
+		public JSONObject pack() throws JSONException {
+			return super.pack().put("who", this.who).put("when", this.when);
+		}
+
+		// Intentionally not overriding equals(); entry text should be unique
+	}
 
 	private static File SPOOK_FILE = NoiseBot.getDataFile("spook.lines");
 
-	private Vector<String> lines;
+	private transient Entry[] emacsLines;
+	private List<CustomEntry> customLines = new Vector<>();
 
 	@Override public void init(NoiseBot bot) throws ModuleInitException {
 		super.init(bot);
+		this.emacsLines = new Entry[0];
 		try {
-			this.lines = new Vector<String>();
-			final Scanner s = new Scanner(SPOOK_FILE);
-			while(s.hasNextLine()) {
-				lines.add(substring(s.nextLine(), 0, -1));
-			}
-		} catch(FileNotFoundException e) {
+			this.emacsLines = Files.lines(Paths.get(SPOOK_FILE.toURI())).map(line -> new Entry(substring(line, 0, -1))).toArray(Entry[]::new);
+		} catch(NoSuchFileException e) {
 			this.bot.sendNotice("No spook lines file found");
+		} catch(IOException e) {
+			this.bot.sendNotice("Unable to load spook file");
 		}
 	}
 
 	@Command("\\.spook ([0-9]+)")
-	public void spook(Message message, int num) {
-		num = range(num, 1, 20);
-		if(num <= this.lines.size()) {
-			final Set<String> choices = new LinkedHashSet<String>();
-			while(choices.size() < num) {
-				// Yuck..
-				choices.add(getRandom(this.lines.toArray(new String[0])));
-			}
-			this.bot.sendMessage(choices.stream().collect(Collectors.joining(" ")));
-		} else {
-			this.bot.sendMessage("There are only " + this.lines.size() + " entries in the spook lines file");
+	public JSONObject spook(Message message, int num) throws JSONException {
+		final int totalLines = this.emacsLines.length + this.customLines.size();
+		num = range(num, 1, Math.min(totalLines, 20));
+		final Set<Entry> choices = new LinkedHashSet<>();
+		while(choices.size() < num) {
+			final int i = getRandomInt(0, totalLines - 1);
+			choices.add(i < this.emacsLines.length ? this.emacsLines[i] : this.customLines.get(i - this.emacsLines.length));
 		}
-	}
-
-	@Command("\\.spookadd (.*)")
-	public void spookadd(Message message, String spook) {
-		spook = spook.trim();
-		if (!spook.matches("^[a-zA-Z0-9][a-zA-Z0-9 _.-]+")) {
-			this.bot.sendAction(slapUser(message.getSender()));
-		} else if (this.lines.contains(spook)) {
-			message.respond(COLOR_ERROR + "Message already exists");
-		} else {
-			try {
-				FileWriter writer = new FileWriter(SPOOK_FILE, true);
-				writer.append(spook + '\u0000' + '\n');
-				writer.close();
-				this.lines.add(spook);
-				message.respond("Added");
-			} catch (Exception e) {
-				message.respond(COLOR_ERROR + "Error adding to spook file");
-			}
-		}
+		final JSONObject[] packedChoices = choices.stream().map(e -> RuntimeJSONException.wrap(e::pack)).toArray(JSONObject[]::new);
+		return new JSONObject().put("spook", packedChoices);
 	}
 
 	@Command("\\.spook")
-	public void spookDefault(Message message) {this.spook(message, 10);}
+	public JSONObject spookDefault(Message message) throws JSONException {
+		return this.spook(message, 10);
+	}
+
+	@Command("\\.spookadd (.+)")
+	public void spookadd(Message message, String spook_) {
+		final String spook = spook_.trim();
+		if(!spook.matches("^[a-zA-Z0-9][a-zA-Z0-9 _.-]+")) {
+			Slap.slap(this.bot, message);
+		} else if(Arrays.stream(this.emacsLines).map(entry -> entry.entry).anyMatch(spook::equalsIgnoreCase)) {
+			message.respond("#error Entry already exists");
+		} else if(this.customLines.stream().anyMatch(entry -> entry.entry.equalsIgnoreCase(spook))) {
+			final CustomEntry entry = this.customLines.stream().filter(e -> e.entry.equalsIgnoreCase(spook)).findAny().get();
+			message.respond("#error Entry already exists (added by %s, %s)", entry.who, entry.when);
+		} else {
+			this.customLines.add(new CustomEntry(message.getSender(), spook));
+			this.save();
+			message.respond("Added");
+		}
+	}
+
+	@Command("\\.spookrm (.+)")
+	public void spookrm(Message message, String spook_) {
+		final String spook = spook_.trim();
+		for(ListIterator<CustomEntry> iter = this.customLines.listIterator(); iter.hasNext();) {
+			final CustomEntry entry = iter.next();
+			if(entry.entry.equalsIgnoreCase(spook)) {
+				iter.remove();
+				this.save();
+				message.respond("Removed entry added by %s, %s", entry.who, entry.when);
+				return;
+			}
+		}
+		message.respond("#error Entry does not exist");
+	}
 
 	@Override public String getFriendlyName() {return "Spook";}
 	@Override public String getDescription() {return "Displays a random line from the Emacs spook file";}
@@ -92,7 +146,8 @@ public class Spook extends NoiseModule {
 		return new String[] {
 				".spook",
 				".spook 15",
-				".spookadd _phrase_ -- Add new spook entry"
+				".spookadd _phrase_ -- Add custom spook entry",
+				".spookrm _phrase_ -- Remove custom spook entry",
 		};
 	}
 }

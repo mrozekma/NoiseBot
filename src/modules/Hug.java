@@ -10,12 +10,12 @@ import main.NoiseModule;
  *         Created Jun 14, 2009.
  */
 public class Hug extends NoiseModule {
-	@Command("\\.hug (.*)")
+	@Command(value = "\\.hug (.*)", allowPM = false)
 	public void hug(Message message, String target) {
 		this.bot.sendAction("hugs " + target);
 	}
 	
-	@Command("\\.hug")
+	@Command(value = "\\.hug", allowPM = false)
 	public void hugSelf(Message message) {
 		this.hug(message, message.getSender());
 	}

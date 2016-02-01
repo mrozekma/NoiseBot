@@ -2,16 +2,17 @@ package modules;
 
 import static main.Utilities.getJSON;
 import static main.Utilities.urlEncode;
-import static org.jibble.pircbot.Colors.*;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
+import main.Style;
 import migbase64.Base64;
 
 import org.json.JSONArray;
@@ -24,10 +25,7 @@ import debugging.Log;
 
 import main.Message;
 import main.ModuleInitException;
-import main.NoiseBot;
 import main.NoiseModule;
-
-import static main.Utilities.urlEncode;
 
 /**
  * Twitter
@@ -49,8 +47,12 @@ public class Twitter extends NoiseModule {
 	private long sinceID = 0;
 	private Timer timer = null;
 
-	private static final String COLOR_ERROR = RED;
-	private static final String COLOR_INFO = PURPLE;
+	@Override protected Map<String, Style> styles() {
+		return new HashMap<String, Style>() {{
+			put("info", Style.MAGENTA);
+			put("username", get("info").update("underline"));
+		}};
+	}
 
 	@Override public void setConfig(final Map<String, Object> config) throws ModuleInitException {
 		super.setConfig(config);
@@ -66,13 +68,11 @@ public class Twitter extends NoiseModule {
 
 		this.timer = new Timer();
 		this.token = this.authenticate();
-		if(this.token != null) {
-			this.timer.scheduleAtFixedRate(new TimerTask() {
-				@Override public void run() {
-					Twitter.this.poll();
-				}
-			}, 0, PERIOD * 1000);
-		}
+		this.timer.scheduleAtFixedRate(new TimerTask() {
+			@Override public void run() {
+				Twitter.this.poll();
+			}
+		}, 0, PERIOD * 1000);
 	}
 
 	@Override public void unload() {
@@ -82,7 +82,7 @@ public class Twitter extends NoiseModule {
 		}
 	}
 
-	private String authenticate() {
+	private String authenticate() throws ModuleInitException {
 		final String auth = Base64.encodeToString(String.format("%s:%s", urlEncode(this.key), urlEncode(this.secret)).getBytes(), false);
 		try {
 			final URL url = new URL("https://api.twitter.com/oauth2/token");
@@ -99,27 +99,20 @@ public class Twitter extends NoiseModule {
 			final JSONObject json = getJSON(conn);
 			if(!json.getString("token_type").equals("bearer")) {
 				Log.d("%s", json.toString());
-				this.bot.sendMessage(COLOR_ERROR + "Unexpected token type: " + json.getString("token_type"));
-				return null;
+				throw new ModuleInitException("Unexpected token type: " + json.getString("token_type"));
 			}
 
 			return json.getString("access_token");
 		} catch(IOException e) {
 			Log.e(e);
-			this.bot.sendMessage(COLOR_ERROR + "Unable to authenticate with Twitter: " + e.getMessage());
-			return null;
+			throw new ModuleInitException("Unable to authenticate with Twitter: " + e.getMessage());
 		} catch(JSONException e) {
 			Log.e(e);
-			this.bot.sendMessage(COLOR_ERROR + "Unable to interpret Twitter response: " + e.getMessage());
-			return null;
+			throw new ModuleInitException("Unable to interpret Twitter response: " + e.getMessage());
 		}
 	}
 
 	private JSONObject api(String route) throws IOException, JSONException {
-		if(this.token == null) {
-			return null;
-		}
-
 		final URL url = new URL("https://api.twitter.com/1.1" + route);
 		final HttpURLConnection conn = (HttpURLConnection)url.openConnection();
 		conn.setRequestProperty("Authorization", "Bearer " + this.token);
@@ -127,27 +120,34 @@ public class Twitter extends NoiseModule {
 	}
 
 	@Command(".*" + TWITTER_URL_PATTERN + ".*")
-	public void tweet(Message message, String id) {
+	public JSONObject tweet(Message message, String id) throws JSONException {
 		try {
 			final JSONObject json = api("/statuses/show/" + id + ".json");
 			if(json.has("user") && json.has("text")) {
-				this.emitTweet(json.getJSONObject("user").getString("screen_name"), json.getString("text"));
+				return json;
 			} else if(json.has("error")) {
-				this.bot.sendMessage(COLOR_ERROR + "Twitter error: " + json.getString("error"));
+				return new JSONObject().put("error", "Twitter error: " + json.getString("error"));
 			} else {
-				this.bot.sendMessage(COLOR_ERROR + "Unknown Twitter error");
+				return new JSONObject().put("error", "Unknown Twitter error");
 			}
 		} catch(IOException e) {
 			Log.e(e);
 			if(e.getMessage().contains("IRCServer returned HTTP response code: 403")) {
-				this.bot.sendMessage(COLOR_ERROR + "Tweet is protected");
+				return new JSONObject().put("error", "Tweet is protected");
 			} else {
-				this.bot.sendMessage(COLOR_ERROR + "Unable to connect to Twitter");
+				return new JSONObject().put("error", "Unable to connect to Twitter");
 			}
 		} catch(JSONException e) {
 			Log.e(e);
-			this.bot.sendMessage(COLOR_ERROR + "Problem parsing Twitter response");
+			return new JSONObject().put("error", "Problem parsing Twitter response");
 		}
+	}
+
+	@View
+	public void plainView(Message message, JSONObject json) throws JSONException {
+		final String username = json.getJSONObject("user").getString("screen_name");
+		final String text = Jsoup.parse(json.getString("text")).text();
+		message.respond("#username @%s#info : %s", username, text);
 	}
 
 	public void poll() {
@@ -168,7 +168,8 @@ public class Twitter extends NoiseModule {
 				for(int i = results.length() - 1; i >= 0; i--) {
 					final JSONObject tweet = results.getJSONObject(i);
 					Log.i("Emitting tweet ID %ld", tweet.getLong("id"));
-					this.emitTweet(tweet.getJSONObject("user").getString("name"), tweet.getString("text"));
+					// Not sure what the right thing to do is here; I really want to displayMessage(), but the interface is pretty awkward
+					this.plainView(new Message(this.bot, null, null, false), tweet);
 					this.sinceID = tweet.getLong("id");
 				}
 			}
@@ -177,41 +178,7 @@ public class Twitter extends NoiseModule {
 		}
 	}
 
-	private void emitTweet(String username, String text) {
-		text = Jsoup.parse(text).text();
-		this.bot.sendMessage(COLOR_INFO + UNDERLINE + "@" + username + NORMAL + COLOR_INFO + ": " + text.replace("\n", " "));
-	}
-
 	@Override public String getFriendlyName() {return "Twitter";}
 	@Override public String getDescription() {return "Outputs information about any Twitter URLs posted, and any tweets containing the #rhnoise hashtag";}
-	@Override public String[] getExamples() {
-		return new String[] {};
-	}
-
-	/*
-	private static final int LENGTH = 140;
-
-	private static final String COLOR_POST = YELLOW;
-	private static final String COLOR_ERROR = RED + REVERSE;
-
-	@Override public void onTopic(String topic, String setBy, long date, boolean changed) {
-		if(!changed) return;
-		if(topic.length() > LENGTH)
-			topic = topic.substring(0, 137) + "...";
-		try {
-			final Status s = new TwitterFactory().getInstance(NoiseBot.NICK, NoiseBot.PASSWORD).updateStatus(topic);
-			this.bot.sendMessage(COLOR_POST + "http://twitter.com/" + NoiseBot.NICK +"/status/" + s.getId());
-		} catch(TwitterException e) {
-			e.printStackTrace();
-			this.bot.sendMessage(COLOR_ERROR + e.getMessage());
-		}
-	}
-
-	@Override public String getFriendlyName() {return "Twitter";}
-	@Override public String getDescription() {return "Posts topics to Twitter";}
-	@Override public String[] getExamples() {
-		return new String[] {};
-	}
-	@Override public String getOwner() {return "Morasique";}
-	*/
+	@Override public String[] getExamples() {return new String[0];}
 }

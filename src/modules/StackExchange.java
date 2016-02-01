@@ -1,17 +1,13 @@
 package modules;
 
-import static org.jibble.pircbot.Colors.*;
-
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLConnection;
-import java.net.URLDecoder;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.GregorianCalendar;
-import java.util.Locale;
+import java.util.*;
 import java.util.zip.GZIPInputStream;
 
+import main.MessageBuilder;
+import main.Style;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -38,8 +34,11 @@ public class StackExchange extends NoiseModule {
 	private static final String API_QUESTION = "http://api.stackexchange.com/2.2/questions/%s?site=%s&filter=!bGqd94P8N)GqQF";
 	private static final String API_ANSWER = "http://api.stackexchange.com/2.2/answers/%s?site=%s&filter=!-*f(6t9MJHcA";
 
-	private static final String COLOR_INFO = PURPLE;
-	private static final String COLOR_ERROR = RED + REVERSE;
+	@Override protected Map<String, Style> styles() {
+		return new HashMap<String, Style>() {{
+			put("info", Style.MAGENTA);
+		}};
+	}
 
 	private static JSONObject getJSON(String url) throws IOException, JSONException {
 		Log.i("Loading from API: %s", url);
@@ -56,54 +55,64 @@ public class StackExchange extends NoiseModule {
 		return new JSONObject(b.toString());
 	}
 
-	@Command(".*" + QUESTION_URL_PATTERN + ".*")
-	public void question(Message message, String site, String id) {this.se(message, site, false, id);}
-
 	@Command(".*" + ANSWER_URL_PATTERN + ".*")
-	public void answer(Message message, String site, String id) {this.se(message, site, true, id);}
+	public JSONObject answer(Message message, String site, String id) throws JSONException {
+		return this.se(message, site, true, id);
+	}
 
 	@Command(".*" + ANSWER_SHORT_URL_PATTERN + ".*")
-	public void answer_short(Message message, String site, String id) {this.se(message, site, true, id);}
+	public JSONObject answer_short(Message message, String site, String id) throws JSONException {
+		return this.se(message, site, true, id);
+	}
 
-	private void se(Message message, String site, boolean isAnswer, String id) {
+	// QUESTION_URL_PATTERN is a prefix of ANSWER_URL_PATTERN, so this has to go later
+	@Command(".*" + QUESTION_URL_PATTERN + ".*")
+	public JSONObject question(Message message, String site, String id) throws JSONException {
+		return this.se(message, site, false, id);
+	}
+
+	private JSONObject se(Message message, String site, boolean isAnswer, String id) throws JSONException {
 		try {
 			final JSONObject json = getJSON(String.format(isAnswer ? API_ANSWER : API_QUESTION, id, site));
 			if(json.has("error_id")) {
-				this.bot.sendMessage(String.format(COLOR_ERROR + "Error %d: %s: %s", json.getInt("error_id"), json.has("error_name") ? json.getString("error_name") : "???", json.has("error_message") ? json.getString("error_message") : "???"));
-				return;
+				return json.put("error", String.format("Code %d: %s: %s", json.getInt("error_id"), json.optString("error_name", "???"), json.optString("error_message", "???")));
 			}
 
 			final JSONArray items = json.getJSONArray("items");
 			if(items.length() == 0) {
-				this.bot.sendMessage(COLOR_ERROR + "No post with ID " + id);
-				return;
+				return new JSONObject().put("error", "No post with ID " + id);
 			}
 
-			final JSONObject post = items.getJSONObject(0);
-			final String created;
-			{
-				final Calendar c = new GregorianCalendar();
-				c.setTime(new Date(post.getInt("creation_date") * 1000L));
-				created = c.get(Calendar.DAY_OF_MONTH) + " " + c.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.US) + " " + c.get(Calendar.YEAR);
-			}
-
-			final StringBuilder out = new StringBuilder();
-			out.append(StringEscapeUtils.unescapeHtml4(post.getString("title")))
-			   .append(" (")
-			   .append(isAnswer ? "answered" : "asked").append(" by ").append(post.getJSONObject("owner").getString("display_name"))
-			   .append(" on ").append(created).append(", ")
-			   .append("+").append(post.getInt("up_vote_count")).append("/-").append(post.getInt("down_vote_count"));
-			if(!isAnswer) {
-				out.append(", ").append(pluralize(post.getInt("view_count"), "view", "views"))
-				   .append(", ").append(pluralize(post.getInt("answer_count"), "answer", "answers"));
-			}
-			out.append(")");
-
-			this.bot.sendMessage(COLOR_INFO + out.toString());
+			return items.getJSONObject(0);
 		} catch(Exception e) {
 			Log.e(e);
-			this.bot.sendMessage(COLOR_ERROR + "Problem parsing SE data");
+			return new JSONObject().put("error", "Problem parsing SE data");
 		}
+	}
+
+	@View
+	public void plainView(Message message, JSONObject post) throws JSONException {
+		final Calendar c = new GregorianCalendar();
+		c.setTime(new Date(post.getInt("creation_date") * 1000L));
+		final String created = String.format("%d %s %d", c.get(Calendar.DAY_OF_MONTH), c.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.US), c.get(Calendar.YEAR));
+		final boolean isAnswer = post.has("answer_id");
+
+		final MessageBuilder builder = message.buildResponse();
+		builder.add("#info %s (%s by %s on %s, +%d/-%d", new Object[] {
+				StringEscapeUtils.unescapeHtml4(post.getString("title")),
+				isAnswer ? "answered" : "asked",
+				post.getJSONObject("owner").getString("display_name"),
+				created,
+				post.getInt("up_vote_count"),
+				post.getInt("down_vote_count")
+		});
+		if(!isAnswer) {
+			builder.add("#info , %s, %s", new Object[] {
+					pluralize(post.getInt("view_count"), "view", "views"),
+					pluralize(post.getInt("answer_count"), "answer", "answers")
+			});
+		}
+		builder.add("#info )").send();
 	}
 
 	@Override public String getFriendlyName() {return "StackExchange";}

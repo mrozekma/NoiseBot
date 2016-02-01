@@ -5,18 +5,14 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.Map;
 import java.util.Vector;
 
 import debugging.Log;
-import main.Message;
-import main.ModuleInitException;
-import main.NoiseBot;
-import main.NoiseModule;
+import main.*;
+import org.json.JSONException;
+
 import static main.Utilities.getRandom;
 import static main.Utilities.getRandomMatch;
-
-import static org.jibble.pircbot.Colors.*;
 
 /**
  * Fortune
@@ -26,7 +22,6 @@ import static org.jibble.pircbot.Colors.*;
  */
 public class Fortune extends NoiseModule {
 	private static File FORTUNE_FILE = NoiseBot.getDataFile("fortunes");
-	private static final String COLOR_ERROR = RED;
 
 	private String[] fortunes;
 
@@ -49,17 +44,26 @@ public class Fortune extends NoiseModule {
 	}
 
 	@Command("\\.fortune")
-	public void fortune(Message message) {
-		this.bot.sendMessage(getRandom(this.fortunes));
+	public JSONObject fortune(Message message) throws JSONException {
+		return new JSONObject().put("fortune", getRandom(this.fortunes));
 	}
 
 	@Command("\\.fortune (.*)")
-	public void fortune(Message message, String keyword) {
+	public JSONObject fortune(Message message, String keyword) throws JSONException {
+		final JSONObject rtn = new JSONObject().put("keyword", keyword);
 		final String match = getRandomMatch(this.fortunes, ".*" + keyword + ".*");
 		if(match != null) {
-			this.bot.sendMessage(match);
+			rtn.put("fortune", match);
+		}
+		return rtn;
+	}
+
+	@View
+	public void view(Message message, JSONObject data) throws JSONException {
+		if(data.has("fortune")) {
+			message.respond("%s", data.get("fortune"));
 		} else {
-			message.respond(COLOR_ERROR + "No matches");
+			message.respond("#error No matches");
 		}
 	}
 

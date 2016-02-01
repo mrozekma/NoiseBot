@@ -1,21 +1,16 @@
 package modules;
 
 import static org.jibble.pircbot.Colors.*;
-import org.jibble.pircbot.PircBot;
-import org.jibble.pircbot.Queue;
 
-import debugging.Log;
-
-import java.lang.reflect.Field;
-import java.util.Map;
-import java.util.Set;
-
-import main.Message;
-import main.ModuleInitException;
-import main.NoiseBot;
-import main.NoiseModule;
+import main.*;
 
 public class Die extends NoiseModule {
+	@Override public void init(NoiseBot bot) throws ModuleInitException {
+		if(bot.getProtocol() != Protocol.IRC) {
+			throw new ModuleInitException("This module is IRC-specific");
+		}
+	}
+
 	@Command("\\.die(?:diedie)?") public void die(Message message) {
 		if(this.bot.clearPendingSends()) {
 			this.bot.sendMessage(RED + "Aaaarrrggghhhh..");

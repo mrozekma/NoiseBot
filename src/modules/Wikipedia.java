@@ -1,13 +1,14 @@
 package modules;
 
-import static org.jibble.pircbot.Colors.*;
-
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 
+import main.JSONObject;
+import org.json.JSONException;
+import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Document;
@@ -25,29 +26,43 @@ import static main.Utilities.*;
  *         Created Jun 16, 2009.
  */
 public class Wikipedia extends NoiseModule {
-	private static final int MAXIMUM_MESSAGE_LENGTH = 400; // Approximately (512 bytes including IRC data)
-	private static final String COLOR_WARNING = YELLOW;
-	private static final String COLOR_ERROR = RED + REVERSE;
-	
+	private static final int MAXIMUM_MESSAGE_LENGTH = 400; // Approximately (512 bytes including IRC data), although we truncate on all protocols
+
 	@Command("\\.(?:wik|wp) (.+)")
-	public void wikipedia(Message message, String term) {
-		this.sendEntry(term, "http://en.wikipedia.org/wiki/" + urlEncode(fixTitle(term)), true, true);
+	public JSONObject wikipedia(Message message, String term) throws JSONException {
+		return this.getEntry(term, "http://en.wikipedia.org/wiki/" + urlEncode(fixTitle(term)));
+	}
+
+	@View(method = "wikipedia")
+	public void plainWikipediaView(Message message, JSONObject data) throws JSONException {
+		this.plainView(message, data, true, true);
 	}
 	
 	@Command(".*((?:https?:\\/\\/en\\.wikipedia\\.org|https:\\/\\/secure\\.wikimedia\\.org\\/wikipedia(?:\\/commons|\\/en))\\/wiki\\/((?:\\S+)(?::[0-9]+)?(?:\\/|\\/(?:[\\w#!:.?+=&%@!\\-\\/]))?)).*")
-	public void wikipediaLink(Message message, String url, String term) {
-		this.sendEntry(urlDecode(term).replace("_", " "), url, true, false);
+	public JSONObject wikipediaLink(Message message, String url, String term) throws JSONException {
+		return this.getEntry(urlDecode(term).replace("_", " "), url);
 	}
-	
+
+	@View(method = "wikipediaLink")
+	public void plainWikipediaLinkView(Message message, JSONObject data) throws JSONException {
+		this.plainView(message, data, true, false);
+	}
+
 	@Command(".*\\[\\[([^\\]]+)]].*")
-	public void wikipediaInline(Message message, String term) {
-		this.sendEntry(term, "http://en.wikipedia.org/wiki/" + urlEncode(fixTitle(term)), false, true);
+	public JSONObject wikipediaInline(Message message, String term) throws JSONException {
+		return this.getEntry(term, "http://en.wikipedia.org/wiki/" + urlEncode(fixTitle(term)));
 	}
-	
+
+	@View(method = "wikipediaInline")
+	public void plainWikipediaInlineView(Message message, JSONObject data) throws JSONException {
+		this.plainView(message, data, false, true);
+	}
+
 	private static String fixTitle(String term) {
 		String fixedTerm = term.replace(" ", "_");
-		if(Character.isLowerCase(fixedTerm.charAt(0)))
+		if(Character.isLowerCase(fixedTerm.charAt(0))) {
 			fixedTerm = Character.toUpperCase(fixedTerm.charAt(0)) + fixedTerm.substring(1);
+		}
 		return fixedTerm;
 	}
 
@@ -89,37 +104,47 @@ public class Wikipedia extends NoiseModule {
 		return el == null ? null : el.text();
 	}
 	
-	private void sendEntry(final String term, final String url, boolean showErrors, boolean includeLink) {
+	private JSONObject getEntry(final String term, final String url) throws JSONException {
 		final Document doc;
 		try {
 			doc = Jsoup.connect(url).get();
-		} catch(IOException e) {
-			if(showErrors) {
-				if(e.getMessage().contains("404 error loading URL")) {
-					this.bot.sendMessage(COLOR_WARNING + "No entry for " + term);
-				} else {
-					this.bot.sendMessage(COLOR_ERROR + "Unable to connect to Wikipedia: " + e.getMessage());
-				}
+		} catch(HttpStatusException e) {
+			if(e.getStatusCode() == 404) {
+				return new JSONObject().put("warning", "No entry for " + term);
+			} else {
+				Log.e(e);
+				return new JSONObject().put("warning", "Unable to connect to Wikipedia: " + e.getMessage());
 			}
-			return;
+		} catch(IOException e) {
+			Log.e(e);
+			return new JSONObject().put("warning", "Unable to connect to Wikipedia: " + e.getMessage());
 		}
 		
 		String text = selectEntryText(term, url, doc);
 		if(text == null) {
+			return new JSONObject().put("warning", "Unable to find post body");
+		}
+
+		return new JSONObject().put("term", term).put("url", url).put("text", text);
+	}
+
+	private void plainView(Message message, JSONObject data, boolean showErrors, boolean includeLink) throws JSONException {
+		if(data.has("warning")) {
 			if(showErrors) {
-				this.bot.sendMessage(COLOR_WARNING + "Unable to find post body");
+				message.respond("#error %s", data.get("warning"));
 			}
 			return;
 		}
-		text = truncateOnWord(text, MAXIMUM_MESSAGE_LENGTH - (includeLink ? (1 + utf8Size(url)) : 0));
+		final String url = data.getString("url");
+		String text = truncateOnWord(data.getString("text"), MAXIMUM_MESSAGE_LENGTH - (includeLink ? (1 + utf8Size(url)) : 0));
 		if(includeLink) {
 			text += " " + url;
 		}
-		this.bot.sendMessage(text);
+		message.respond("%s", text);
 	}
 	
 	@Command("\\.featured")
-	public void featured(Message message) {
+	public JSONObject featured(Message message) throws JSONException {
 		// From http://en.wikipedia.org/w/api.php?action=query&prop=revisions&action=featuredfeed&feed=featured; not going to bother parsing unless it changes
 		final Calendar now = new GregorianCalendar();
 		final String url = String.format("http://en.wikipedia.org/wiki/Special:FeedItem/featured/%04d%02d%02d000000/en", now.get(Calendar.YEAR), now.get(Calendar.MONTH) + 1, now.get(Calendar.DAY_OF_MONTH));
@@ -129,8 +154,8 @@ public class Wikipedia extends NoiseModule {
 			Log.v("Loading from %s", url);
 			doc = Jsoup.connect(url).get();
 		} catch(IOException e) {
-			this.bot.sendMessage(COLOR_ERROR + "Unable to connect to Wikipedia: " + e.getMessage());
-			return;
+			Log.e(e);
+			return new JSONObject().put("error", "Unable to connect to Wikipedia: " + e.getMessage());
 		}
 
 		final Element e = doc.select("b:matchesOwn(Full.article)").first();
@@ -140,13 +165,17 @@ public class Wikipedia extends NoiseModule {
 				final String articleURL = a.attr("href");
 				if(articleURL.startsWith("/wiki/")) {
 					final String term = articleURL.substring("/wiki/".length());
-					this.wikipedia(message, urlDecode(term).replace("_", " "));
-					return;
+					return this.wikipedia(message, urlDecode(term).replace("_", " "));
 				}
 			}
 		}
 
-		this.bot.sendMessage(COLOR_ERROR + "No title found");
+		return new JSONObject().put("error", "No title found");
+	}
+
+	@View(method = "featured")
+	public void plainFeaturedView(Message message, JSONObject data) throws JSONException {
+		this.plainView(message, data, true, true);
 	}
 
 	@Override public String getFriendlyName() {return "Wikipedia";}

@@ -1,7 +1,8 @@
 package modules;
 
-import static org.jibble.pircbot.Colors.*;
-
+import main.*;
+import org.json.JSONArray;
+import org.json.JSONException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -13,11 +14,6 @@ import java.util.*;
 import java.io.Serializable;
 import java.net.URL;
 import java.net.URLEncoder;
-
-import main.Message;
-import main.ModuleInitException;
-import main.NoiseBot;
-import main.NoiseModule;
 
 /**
  * Weather
@@ -64,6 +60,14 @@ public class Weather extends NoiseModule implements Serializable
 			}
 		}
 
+		public JSONObject pack() throws JSONException {
+			return new JSONObject().put("woeid", this.woeid).put("city", this.city).put("state", this.state);
+		}
+
+		public static Location unpack(org.json.JSONObject data) throws JSONException {
+			return new Location(data.getInt("woeid"), data.getString("city"), data.getString("state"));
+		}
+
 		@Override public boolean equals(Object o) {
 			return (o instanceof Location) && ((Location)o).woeid == this.woeid;
 		}
@@ -78,7 +82,7 @@ public class Weather extends NoiseModule implements Serializable
 		}
 	}
 
-	private static class Condition {
+	private static class Condition implements Comparable<Condition> {
 		public final Location loc;
 		public final int temp;
 		public final String text;
@@ -89,44 +93,23 @@ public class Weather extends NoiseModule implements Serializable
 			this.text = text;
 		}
 
-		public String getString(boolean shortForm) {
-			return shortForm ? this.getShortString() : this.getLongString();
+		public JSONObject pack() throws JSONException {
+			return new JSONObject().put("location", this.loc.pack()).put("temp", this.temp).put("condition", this.text);
 		}
 
-		public String getShortString() {
-			String txt = this.text;
-			for(Map.Entry<String, String> entry : shortNames.entrySet()) {
-				txt = txt.replace(entry.getKey(), entry.getValue());
-			}
-
-			return COLOR_LOC + this.loc.city + " " +
-			        COLOR_TEMP + this.temp + " " +
-			        COLOR_TEXT + txt.toLowerCase() + COLOR_NORMAL;
+		public static Condition unpack(org.json.JSONObject data) throws JSONException {
+			return new Condition(Location.unpack(data.getJSONObject("location")), data.getInt("temp"), data.getString("condition"));
 		}
 
-		public String getLongString() {
-			return COLOR_INFO + "[" +
-			        COLOR_LOC + this.loc +
-			        COLOR_INFO + ": " +
-			        COLOR_TEXT + this.text +
-			        COLOR_INFO + ", " +
-			        COLOR_TEMP + this.temp + "F" +
-			        COLOR_INFO + "]";
+		@Override public int compareTo(Condition o) {
+			return this.loc.compareTo(o.loc);
 		}
-	};
+	}
 
 	private static final String WEATHER_URL = "http://weather.yahooapis.com/forecastrss?w=";
 	private static final String PLACE_TO_WOEID_URL = "http://where.yahooapis.com/v1/places.q('%s')?appid=%s";
 	private static final String WOEID_TO_PLACE_URL = "http://where.yahooapis.com/v1/place/%d?appid=%s";
 	private static final int TIMEOUT = 5; // seconds
-
-	private static final String COLOR_INFO = PURPLE;
-	private static final String COLOR_SUCCESS = GREEN;
-	private static final String COLOR_LOC = CYAN;
-	private static final String COLOR_TEXT = YELLOW;
-	private static final String COLOR_TEMP = MAGENTA;
-	private static final String COLOR_ERROR = RED + REVERSE;
-	private static final String COLOR_NORMAL = NORMAL;
 
 	private static final Map<String, String> shortNames = new HashMap<String, String>() {{
 		put("Partly Cloudy", "cloudy-");
@@ -138,7 +121,16 @@ public class Weather extends NoiseModule implements Serializable
 	private transient String appid = null;
 
 	// nick -> user's location. Perfect for NSA surveillance teams
-	private final Map<String, Location> locations = new HashMap<String, Location>();
+	private final Map<String, Location> locations = new HashMap<>();
+
+	@Override protected Map<String, Style> styles() {
+		return new HashMap<String, Style>() {{
+			put("info", Style.MAGENTA);
+			put("loc", Style.CYAN);
+			put("text", Style.YELLOW);
+			put("temp", Style.MAGENTA.update("bold"));
+		}};
+	}
 
 	private static Document getXML(String url) throws Exception {
 		return Jsoup.parse(new URL(url), TIMEOUT * 1000);
@@ -183,7 +175,7 @@ public class Weather extends NoiseModule implements Serializable
 
 	private Map<Location, Condition> getWeather(boolean all) {
 		final List<String> nicks = Arrays.asList(this.bot.getNicks());
-		final Set<Location> locations = new TreeSet<Location>();
+		final Set<Location> locations = new HashSet<>();
 
 		if(all) {
 			locations.addAll(this.locations.values());
@@ -195,7 +187,7 @@ public class Weather extends NoiseModule implements Serializable
 			}
 		}
 
-		final Map<Location, Condition> rtn = new LinkedHashMap<Location, Condition>();
+		final Map<Location, Condition> rtn = new LinkedHashMap<>();
 		for(Location location : locations) {
 			rtn.put(location, this.getWeather(location));
 		}
@@ -223,13 +215,13 @@ public class Weather extends NoiseModule implements Serializable
 		}
 
 		if(loc == null) {
-			this.bot.sendMessage(COLOR_ERROR + "Unable to determine location");
+			message.respond("#error Unable to determine location");
 			return;
 		}
 
 		this.locations.put(nick, loc);
 		this.save();
-		this.bot.sendMessage(COLOR_SUCCESS + String.format("Added location %d (%s) for %s", loc.woeid, loc, nick));
+		message.respond("#success Added location %d (%s) for %s", loc.woeid, loc, nick);
 	}
 
 	@Command("\\.weatherrm ([^ :]+)")
@@ -237,40 +229,78 @@ public class Weather extends NoiseModule implements Serializable
 		if(this.locations.containsKey(nick)) {
 			final Location loc = this.locations.remove(nick);
 			this.save();
-			this.bot.sendMessage(COLOR_SUCCESS + String.format("Removed %s (%s) from weather listings", nick, loc));
+			message.respond("#success Removed %s (%s) from weather listings", nick, loc);
 		} else {
-			this.bot.sendMessage(COLOR_ERROR + "No location known for " + nick);
+			message.respond("#error No location known for %s", nick);
 		}
 	}
 
 	@Command("\\.weatherls")
-	public void weatherList(Message message) {
-		final List<String> send = new Vector<String>(this.locations.size());
+	public JSONObject weatherList(Message message) throws JSONException {
+		final JSONObject rtn = new JSONObject();
 		for(Map.Entry<String, Location> entry : this.locations.entrySet()) {
-			send.add(COLOR_INFO + String.format("%s - %s", entry.getKey(), entry.getValue()));
+			rtn.put(entry.getKey(), entry.getValue().pack());
 		}
-		this.bot.sendMessageParts("; ", send.toArray(new String[0]));
+		return rtn;
+	}
+
+	@View(method = "weatherList")
+	public void plainWeatherListView(Message message, JSONObject data) throws JSONException {
+		final List<Object> args = new LinkedList<>();
+		for(Iterator<String> iter = data.keys(); iter.hasNext();) {
+			final String nick = iter.next();
+			args.add(nick);
+			args.add(Location.unpack(data.getJSONObject(nick)));
+		}
+		message.respond("#([; ] #info %s - %s)", (Object)args.toArray());
 	}
 
 	@Command("\\.(weather|wx)(?: ([.*]))?")
-	public void weather(Message message, String type, String filter) {
+	public JSONObject weather(Message message, String type, String filter) throws JSONException {
 		final boolean shortForm = type.equals("wx");
+		final JSONObject rtn = new JSONObject().put("short_form", shortForm).put("weather", new Object[0]);
 		if(".".equals(filter)) { // Show only the sender's weather
-			if(!this.locations.containsKey(message.getSender())) {
-				this.bot.sendMessage(COLOR_ERROR + "Your location is unknown");
+			rtn.put("filter", "sender");
+			if(this.locations.containsKey(message.getSender())) {
+				rtn.append("weather", this.getWeather(this.locations.get(message.getSender())).pack());
 			}
-			this.bot.sendMessage(this.getWeather(this.locations.get(message.getSender())).getString(shortForm));
 		} else {
 			final boolean includeOfflineUsers = "*".equals(filter);
-			List<String> send = new Vector<String>();
+			rtn.put("filter", includeOfflineUsers ? "all" : "online");
+			List<String> send = new Vector<>();
 			for(Map.Entry<Location, Condition> wx : this.getWeather(includeOfflineUsers).entrySet()) {
 				if(wx.getValue() == null) {
-					this.bot.sendMessage(COLOR_ERROR + "Problem parsing Weather data");
-					return;
+					return new JSONObject().put("error", "Problem parsing Weather data");
 				}
-				send.add(wx.getValue().getString(shortForm));
+				rtn.append("weather", wx.getValue().pack());
 			}
-			this.bot.sendMessageParts(shortForm ? "  |  " : " ", send.toArray(new String[0]));
+		}
+		return rtn;
+	}
+
+	@View(method = "weather")
+	public void plainWeatherView(Message message, JSONObject data) throws JSONException {
+		final JSONArray entries = data.getJSONArray("weather");
+		final Set<Condition> sortedConditions = new TreeSet<>();
+		for(int i = 0; i < entries.length(); i++) {
+			sortedConditions.add(Condition.unpack(entries.getJSONObject(i)));
+		}
+		final List<Object> args = new LinkedList<>();
+		if(data.getBoolean("short_form")) {
+			for(Condition cond : sortedConditions) {
+				final String txt = shortNames.entrySet().stream().reduce(cond.text, (text, entry) -> text.replace(entry.getKey(), entry.getValue()), (before, after) -> after);
+				args.add(cond.loc.city);
+				args.add(cond.temp);
+				args.add(txt.toLowerCase());
+			}
+			message.respond("#([  |  ] %(#loc)s %(#temp)s %(#text)s)", (Object)args.toArray());
+		} else {
+			for(Condition cond : sortedConditions) {
+				args.add(cond.loc);
+				args.add(cond.text);
+				args.add(cond.temp + "F");
+			}
+			message.respond("#([ ] #info [%(#loc)s: %(#text)s, %(#temp)s])", (Object)args.toArray());
 		}
 	}
 

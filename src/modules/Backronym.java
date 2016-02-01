@@ -1,12 +1,9 @@
 package modules;
 
-import java.awt.*;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.*;
-import java.util.stream.Collectors;
 
-import com.ullink.slack.simpleslackapi.SlackAttachment;
 import debugging.Log;
 import au.com.bytecode.opencsv.CSVParser;
 import main.*;
@@ -22,7 +19,6 @@ import static main.Utilities.getRandom;
  *         Created Sep 11, 2010.
  */
 public class Backronym extends NoiseModule {
-	private static final Style STYLE_RESPONSE = Style.GREEN;
 	private static final int MAX_LENGTH = 16;
 
 	private final CSVParser parser = new CSVParser(' ');
@@ -127,10 +123,6 @@ public class Backronym extends NoiseModule {
 
 	@View
 	public void plainView(Message message, JSONObject data) throws JSONException {
-		if(data.has("error")) {
-			message.respond("#error %s", data.getString("error"));
-			return;
-		}
 		message.respond("#(%s)", (Object)data.getStringArray("choices"));
 	}
 

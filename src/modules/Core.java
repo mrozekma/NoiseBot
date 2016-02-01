@@ -1,16 +1,11 @@
 package modules;
 
-import static org.jibble.pircbot.Colors.*;
 import debugging.Log;
 
-import main.Git;
-import main.Message;
-import main.ModuleInitException;
-import main.ModuleSaveException;
-import main.ModuleUnloadException;
-import main.NoiseBot;
-import main.NoiseModule;
-import main.Git.SyncException;
+import main.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Core
@@ -21,12 +16,17 @@ import main.Git.SyncException;
 public class Core extends NoiseModule {
 	private static final String MODULE_REGEX = "[a-zA-Z0-9_ -]+";
 
-	private static final String COLOR_ERROR = RED + REVERSE;
-	private static final String COLOR_HASH = BLUE;
-	private static final String COLOR_AUTHOR = BLUE;
-	private static final String COLOR_DESCRIPTION = RED;
+	@Override protected Map<String, Style> styles() {
+		final Map<String, Style> rtn = new HashMap<String, Style>() {{
+			put("hash", Style.BLUE.update("bold"));
+			put("author", Style.BLUE.update("bold"));
+			put("description", Style.RED.update("bold"));
+		}};
+		Help.addHelpStyles(this.bot.getProtocol(), rtn); // Needed for 'module'
+		return rtn;
+	}
 
-	@Command("\\.load(\\??) (" + MODULE_REGEX + ")")
+	@Command(value = "\\.load(\\??) (" + MODULE_REGEX + ")", allowPM = false)
 	public void loadModules(Message message, String qm, String moduleNames) {
 		final boolean showErrors = qm.isEmpty();
 		for(String moduleName : moduleNames.split(" ")) {
@@ -38,22 +38,23 @@ public class Core extends NoiseModule {
 					Log.e(e);
 				}
 
-				this.bot.sendNotice("Module " + Help.COLOR_MODULE + moduleName + NORMAL + " loaded");
+				this.bot.sendNotice("Module %(#module)s loaded", moduleName);
 			} catch(ModuleInitException e) {
 				Log.e(e);
 				if(showErrors) {
-					this.bot.sendNotice(COLOR_ERROR + e.getMessage());
+					this.bot.sendNotice("#error %s", e.getMessage());
 				}
 			}
 		}
 	}
 
-	@Command("\\.unload(\\??) (" + MODULE_REGEX + ")")
+	@Command(value = "\\.unload(\\??) (" + MODULE_REGEX + ")", allowPM = false)
 	public void unloadModules(Message message, String qm, String moduleNames) {
 		final boolean showErrors = qm.isEmpty();
 		for(String moduleName : moduleNames.split(" ")) {
+			// Don't allow unloading Core
 			if(moduleName.equals(this.getClass().getSimpleName())) {
-				this.bot.sendNotice(COLOR_ERROR + ".unload cannot unload the " + this.getFriendlyName() + " module");
+				this.bot.sendNotice("#error .unload cannot unload the %(#module)s module", this.getFriendlyName());
 				continue;
 			}
 
@@ -65,32 +66,32 @@ public class Core extends NoiseModule {
 					Log.e(e);
 				}
 
-				this.bot.sendNotice("Module " + Help.COLOR_MODULE + moduleName + NORMAL + " unloaded");
+				this.bot.sendNotice("Module %(#module)s unloaded", moduleName);
 			} catch(ModuleUnloadException e) {
 				Log.e(e);
 				if(showErrors) {
-					this.bot.sendNotice(COLOR_ERROR + e.getMessage());
+					this.bot.sendNotice("#error %s", e.getMessage());
 				}
 			}
 		}
 	}
 
-	@Command("\\.reload(\\??) (" + MODULE_REGEX + ")")
+	@Command(value = "\\.reload(\\??) (" + MODULE_REGEX + ")", allowPM = false)
 	public void reloadModules(Message message, String qm, String moduleNames) {
 		final boolean showErrors = qm.isEmpty();
 		for(String moduleName : moduleNames.split(" ")) {
 			try {
 				if(this.bot.getModules().containsKey(moduleName)) {
 					this.bot.reloadModule(moduleName);
-					this.bot.sendNotice("Module " + Help.COLOR_MODULE + moduleName + NORMAL + " reloaded");
+					this.bot.sendNotice("Module %(#module)s reloaded", moduleName);
 				} else {
 					this.bot.loadModule(moduleName);
-					this.bot.sendNotice("Module " + Help.COLOR_MODULE + moduleName + NORMAL + " loaded");
+					this.bot.sendNotice("Module %(#module)s loaded", moduleName);
 				}
 			} catch(ModuleInitException | ModuleUnloadException e) {
 				Log.e(e);
 				if(showErrors) {
-					this.bot.sendNotice(COLOR_ERROR + e.getMessage());
+					this.bot.sendNotice("#error %s", e.getMessage());
 				}
 			}
 		}
@@ -99,8 +100,13 @@ public class Core extends NoiseModule {
 	@Command("\\.rev")
 	public void rev(Message message) {
 		final Git.Revision rev = this.bot.revision;
-		message.respond("Currently on revision " + COLOR_HASH + rev.getHash() + NORMAL + " by " + COLOR_AUTHOR + rev.getAuthor() + NORMAL + " -- " + COLOR_DESCRIPTION + rev.getDescription() + NORMAL);
-		message.respond(Git.revisionLink(rev));
+		message.respond("Currently on revision %(#hash)s by %(#author)s -- %(#description)s", rev.getHash(), rev.getAuthor(), rev.getDescription());
+		message.respond("%s", Git.revisionLink(rev));
+	}
+
+	@Command("\\.owner\\?")
+	public void isOwner(Message message) {
+		this.triggerIfOwner(message, () -> message.respond("#success You own this NoiseBot"), true);
 	}
 
 	@Command("\\.sync")
@@ -109,18 +115,16 @@ public class Core extends NoiseModule {
 			Git.attemptUpdate();
 			// attemptUpdate() will call NoiseBot.syncAll(), which handles outputting sync info to all channels
 		} catch(Git.SyncException e) {
-			// Only output the error in the channel that requested the sync
-			this.bot.sendMessage(COLOR_ERROR + e.getMessage());
+			// Only output the error to the channel/user that requested the sync
+			message.respond("#error %s", e.getMessage());
 		}
 	}
 
 	@Command("\\.rehash")
 	public void rehash(Message message) {
-		this.triggerIfOwner(message, new Runnable() {
-			@Override public void run() {
-				NoiseBot.broadcastNotice("Reloading configuration");
-				NoiseBot.rehash();
-			}
+		this.triggerIfOwner(message, () -> {
+			NoiseBot.broadcastNotice("Reloading configuration");
+			NoiseBot.rehash();
 		}, true);
 	}
 

@@ -1,10 +1,12 @@
 package modules;
 
 import static main.Utilities.getJSON;
-import static org.jibble.pircbot.Colors.*;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
+import main.Style;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -20,27 +22,25 @@ import main.NoiseModule;
  *         Created Feb 19, 2011.
  */
 public class Clip extends NoiseModule {
-	private static final String COLOR_ERROR = RED;
-	private static final String COLOR_INFO = PURPLE;
-	
+	@Override protected Map<String, Style> styles() {
+		return new HashMap<String, Style>() {{
+			put("info", Style.MAGENTA);
+		}};
+	}
+
 	@Command(".*(http://clip.mrozekma.com/[0-9a-fA-F-]{36}).*")
-	public void clip(Message message, String url) {
+	public JSONObject clip(Message message, String url) throws JSONException {
 		try {
-			final JSONObject json = getJSON(url + "?info");
-			if(json.has("id") && json.has("title") && json.has("source") && json.has("start") && json.has("end")) {
-				this.bot.sendMessage(COLOR_INFO + (json.isNull("title") ? "Untitled" : json.get("title")) + " (from " + json.get("source") + ", " + json.get("start") + "-" + json.get("end") + ")");
-			} else if(json.has("error")) {
-				this.bot.sendMessage(COLOR_ERROR + json.get("error"));
-			} else {
-				this.bot.sendMessage(COLOR_ERROR + "Unknown error");
-			}
+			return getJSON(url + "?info");
 		} catch(IOException e) {
-			Log.w(e);
-			this.bot.sendMessage(COLOR_ERROR + "Unable to connect to mrozekma server");
-		} catch(JSONException e) {
-			Log.w(e);
-			this.bot.sendMessage(COLOR_ERROR + "Problem parsing response");
+			Log.e(e);
+			return new JSONObject().put("error", "Unable to connect to mrozekma server");
 		}
+	}
+
+	@View
+	public void view(Message message, JSONObject data) throws JSONException {
+		message.respond("#info %s (from %s, %s-%s)", data.isNull("title") ? "Untitled" : data.get("title"), data.get("source"), data.get("start"), data.get("end"));
 	}
 	
 	@Override public String getFriendlyName() {return "Clip";}

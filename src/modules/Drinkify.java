@@ -6,12 +6,13 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
+import main.JSONObject;
+import org.json.JSONException;
 import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-import java.net.URI;
 
 import debugging.Log;
 import main.Message;
@@ -29,41 +30,38 @@ public class Drinkify extends NoiseModule {
   private static final String COLOR_ERROR = RED;
 
   @Command("\\.drinkify (.+)")
-  public void drinkify(Message message, String band)
+  public JSONObject drinkify(Message message, String band) throws JSONException
   {
+    final JSONObject rtn = new JSONObject();
     Document page = null;
     try {
       page = Jsoup.connect(new URI("http", "drinkify.org", "/" + band, null).toASCIIString()).timeout(10000).get();
     } catch (HttpStatusException e) {
       Log.e(e);
-      if (e.getStatusCode() == 500) { // 500? Really, Drinkify?
-        this.bot.sendMessage(COLOR_ERROR + "Drinkify page does not exist");
-      } else {
-        this.bot.sendMessage(COLOR_ERROR + "Error retrieving drinkify page...");
-      }
-      return;
-    } catch (IOException e) {
+      return rtn.put("code", e.getStatusCode()).put("error", (e.getStatusCode() == 500) ? "Drinkify page does not exist" : "Error retrieving drinkify page...");
+    } catch (IOException | URISyntaxException e) {
       Log.e(e);
-      this.bot.sendMessage(COLOR_ERROR + "Error retrieving drinkify page...");
-      return;
-    } catch (URISyntaxException e) {
-      Log.e(e);
-      return;
+      return rtn.put("error", "Error retrieving drinkify page...");
     }
 
     Element recipe = page.select("#recipeContent").first();
 
     band = recipe.select("h2").first().text().toUpperCase();
     band = band.substring(0, band.length()-1).substring(1);
+    rtn.put("band", band);
 
-    String output = band + ": ";
     Elements ingredients = recipe.select(".recipe").first().select("li");
-    for (Element ingredient : ingredients)
-        output += ingredient.text() + (ingredient == ingredients.last() ? ". " : ", ");
+    for(Element ingredient : ingredients) {
+      rtn.append("ingredients", ingredient.text());
+    }
 
-    output += recipe.select(".instructions").first().text();
+    rtn.put("instructions", recipe.select(".instructions").first().text());
+    return rtn;
+  }
 
-    this.bot.sendMessage(output);
+  @View
+  public void view(Message message, JSONObject data) throws JSONException {
+    message.respond("%(#bold)s: #([, ] %s). %s", data.get("band"), data.getStringArray("ingredients"), data.get("instructions"));
   }
 
   @Override

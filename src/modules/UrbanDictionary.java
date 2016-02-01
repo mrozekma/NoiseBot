@@ -1,9 +1,10 @@
 package modules;
 
-import static org.jibble.pircbot.Colors.*;
-
 import java.io.IOException;
 
+import debugging.Log;
+import main.JSONObject;
+import org.json.JSONException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -19,24 +20,12 @@ import static main.Utilities.*;
  *         Created Nov 5, 2011
  */
 public class UrbanDictionary extends NoiseModule {
-  private static final int MAXIMUM_MESSAGE_LENGTH = 400; // Approximately (512 bytes including IRC data)
-  private static final String COLOR_WARNING = RED;
-  private static final String COLOR_ERROR = RED + REVERSE;
+  private static final int MAXIMUM_MESSAGE_LENGTH = 400; // Approximately (512 bytes including IRC data), although we truncate on all protocols
   private static final String URBAN_URL = "http://www.urbandictionary.com/define.php?term=";
   private static final String DEFINITION_SELECTOR = ".meaning";
 
   @Command("\\.(?:ud|urban) (.+)")
-  public void urban(Message message, String term) {
-    if (term.isEmpty()) { // Should be impossible
-      this.bot.sendMessage(COLOR_ERROR + "Missing term");
-      return;
-    }
-
-    sendDefinition(term);
-  }
-
-  private void sendDefinition(String term) {
-
+  public JSONObject urban(Message message, String term) throws JSONException {
     // fetch webpage
     Document page = null;
     try {
@@ -44,15 +33,14 @@ public class UrbanDictionary extends NoiseModule {
           .timeout(10000) // 10 seems like a nice number
           .get(); 
     } catch (IOException e) {
-      e.printStackTrace();
-      this.bot.sendMessage(COLOR_ERROR + "Error retrieving urban dictionary page");
+      Log.e(e);
+      return new JSONObject().put("error", "Error retrieving urban dictionary page");
     }
 
     // search page for definition
     Element node = page.select(DEFINITION_SELECTOR).first();
     if (node == null) {
-      this.bot.sendMessage(COLOR_WARNING + "Not found");
-      return;
+      return new JSONObject().put("warning", "Not found");
     }
     String definition = node.text();
 
@@ -60,7 +48,16 @@ public class UrbanDictionary extends NoiseModule {
     if (definition.length() > MAXIMUM_MESSAGE_LENGTH)
       definition = definition.substring(0, MAXIMUM_MESSAGE_LENGTH);
 
-    this.bot.sendMessage(definition);
+    return new JSONObject().put("definition", definition);
+  }
+
+  @View
+  public void plainView(Message message, JSONObject data) throws JSONException {
+    if(data.has("warning")) {
+      message.respond("#warning %s", data.get("warning"));
+      return;
+    }
+    message.respond("%s", data.get("definition"));
   }
 
   @Override

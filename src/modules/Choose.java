@@ -4,16 +4,21 @@ import static org.jibble.pircbot.Colors.*;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import debugging.Log;
 
 import au.com.bytecode.opencsv.CSVParser;
 
+import main.JSONObject;
 import main.Message;
 import main.NoiseModule;
+import main.Style;
+import org.json.JSONException;
+
 import static main.Utilities.getRandom;
 
 /**
@@ -23,39 +28,44 @@ import static main.Utilities.getRandom;
  *         Created Jun 17, 2009.
  */
 public class Choose extends NoiseModule {
-	private static final String COLOR_ERROR = RED;
-	private static final String COLOR_CHOICE = BLUE;
-
 	private final CSVParser parser = new CSVParser(' ');
 	private String lastOpts = null;
 
+	@Override protected Map<String, Style> styles() {
+		return new HashMap<String, Style>() {{
+			put("choice", Style.BLUE);
+		}};
+	}
+
 	@Command("\\.(?:choose|choice) (.*)")
-	public void choose(Message message, String optsLine) {
+	public JSONObject choose(Message message, String optsLine) throws JSONException {
 		this.lastOpts = optsLine;
-		final String[] opts;
+		String[] opts;
 		try {
 			opts = this.parser.parseLine(optsLine);
 		} catch(IOException e) {
-			this.bot.sendMessage(COLOR_ERROR + "Exception attempting to parse choose options");
 			Log.e(e);
-			return;
+			return new JSONObject().put("error", "Exception attempting to parse choose options");
 		}
-
-		final Set<String> options = Arrays.stream(opts).map(s -> s.trim()).collect(Collectors.toSet());
-		if(options.size() > 1) {
-			message.respond(COLOR_CHOICE + getRandom(options.toArray(new String[0])));
-		} else {
-			message.respond("You're having me choose from a set of one...fine, " + COLOR_CHOICE + options.iterator().next());
-		}
+		opts = Arrays.stream(opts).map(s -> s.trim()).toArray(String[]::new);
+		final String choice = getRandom(opts);
+		return new JSONObject().put("options", opts).put("choice", choice);
 	}
 
 	@Command("\\.rechoose")
-	public void rechoose(Message message) {
+	public JSONObject rechoose(Message message) throws JSONException {
 		if(this.lastOpts == null) {
-			this.bot.sendMessage("Perhaps you should have me make a choice first");
+			message.respond("Perhaps you should have me make a choice first");
+			return null;
 		} else {
-			this.choose(message, this.lastOpts);
+			return this.choose(message, this.lastOpts);
 		}
+	}
+
+	@View
+	public void view(Message message, JSONObject data) throws JSONException {
+		final boolean realChoice = data.getStringArray("options").length > 1;
+		message.respond("%s#choice %s", realChoice ? "" : "You're having me choose from a set of one...fine, ", data.getString("choice"));
 	}
 
 	@Override public String getFriendlyName() {return "Choose";}

@@ -1,26 +1,14 @@
 package modules;
 
-import static org.jibble.pircbot.Colors.*;
-
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-
+import main.JSONObject;
+import org.json.JSONException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Document;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
-
-import debugging.Log;
 
 import main.Message;
 import main.NoiseModule;
@@ -33,18 +21,26 @@ import static main.Utilities.*;
  *         Created Jun 28, 2014.
  */
 public class TVTropes extends NoiseModule {
-	private static final int MAXIMUM_MESSAGE_LENGTH = 400; // Approximately (512 bytes including IRC data)
-	private static final String COLOR_WARNING = YELLOW;
-	private static final String COLOR_ERROR = RED + REVERSE;
+	private static final int MAXIMUM_MESSAGE_LENGTH = 400; // Approximately (512 bytes including IRC data), although we truncate on all protocols
 
-	@Command("\\.(?:trope) (.+)")
-	public void tvtrope(Message message, String term) {
-		this.sendEntry(term, "http://tvtropes.org/pmwiki/pmwiki.php/Main/" + urlEncode(fixTitle(term)), true);
+	@Command("\\.trope (.+)")
+	public JSONObject tvtrope(Message message, String term) throws JSONException {
+		return this.getEntry(term, "http://tvtropes.org/pmwiki/pmwiki.php/Main/" + urlEncode(fixTitle(term)));
+	}
+
+	@View(method = "tvtrope")
+	public void plainTvtropeView(Message message, JSONObject data) throws JSONException {
+		this.plainView(message, data, true);
 	}
 
 	@Command(".*(http://tvtropes.org/pmwiki/pmwiki.php/Main/(.+)).*")
-	public void tvtropeLink(Message message, String url, String term) {
-		this.sendEntry(urlDecode(term).replace("_", " "), url, false);
+	public JSONObject tvtropeLink(Message message, String url, String term) throws JSONException {
+		return this.getEntry(urlDecode(term).replace("_", " "), url);
+	}
+
+	@View(method = "tvtropeLink")
+	public void plainTvtropeLinkView(Message message, JSONObject data) throws JSONException {
+		this.plainView(message, data, false);
 	}
 
 	private static String fixTitle(String term) {
@@ -59,32 +55,40 @@ public class TVTropes extends NoiseModule {
 		return Arrays.stream(words).collect(Collectors.joining());
 	}
 
-	private void sendEntry(final String term, final String url, boolean includeLink) {
+	private JSONObject getEntry(final String term, final String url) throws JSONException {
 		final Document doc;
 		try {
 			doc = Jsoup.connect(url).get();
 		} catch(IOException e) {
-			this.bot.sendMessage(COLOR_ERROR + "Unable to connect to TVTropes: " + e.getMessage());
-			return;
+			return new JSONObject().put("error", "Unable to connect to TVTropes: " + e.getMessage());
 		}
 
 		final Element el = doc.select("#wikitext").first();
 		if(el.text().startsWith("We don't have an article named")) {
-			this.bot.sendMessage(COLOR_WARNING + "No entry for " + term);
-			return;
+			return new JSONObject().put("warning", "No entry for " + term);
 		}
 		el.select("div,span").remove();
 		String text = el.text();
 		if(text == null) {
-			this.bot.sendMessage(COLOR_WARNING + "Unable to find post body");
+			return new JSONObject().put("warning", "Unable to find post body");
+		}
+
+		return new JSONObject().put("term", term).put("url", url).put("text", text);
+	}
+
+	public void plainView(Message message, JSONObject data, boolean includeLink) throws JSONException {
+		if(data.has("warning")) {
+			message.respond("#warning %s", data.get("warning"));
 			return;
 		}
 
+		String text = data.getString("text");
+		final String url = data.getString("url");
 		text = truncateOnWord(text, MAXIMUM_MESSAGE_LENGTH - (includeLink ? (1 + utf8Size(url)) : 0));
 		if(includeLink) {
 			text += " " + url;
 		}
-		this.bot.sendMessage(text);
+		message.respond("%s", text);
 	}
 
 	@Override public String getFriendlyName() {return "TVTropes";}
