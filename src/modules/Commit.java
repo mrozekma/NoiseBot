@@ -1,12 +1,12 @@
 package modules;
 
-import static org.jibble.pircbot.Colors.*;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
 
 import debugging.Log;
 
@@ -25,9 +25,6 @@ public class Commit extends NoiseModule {
 	// https://raw.github.com/ngerakines/commitment/master/commit_messages.txt
 	private static File MESSAGES_FILE = NoiseBot.getDataFile("commit_messages.txt");
 
-	private static final String COLOR_QUOTE = CYAN;
-	private static final String COLOR_ERROR = RED;
-
 	private String[] messages;
 
 	@Override public void init(NoiseBot bot) throws ModuleInitException {
@@ -40,6 +37,12 @@ public class Commit extends NoiseModule {
 		} catch(IOException e) {
 			this.bot.sendNotice("Unable to load commit messages file: " + e.getMessage());
 		}
+	}
+
+	@Override protected Map<String, Style> styles() {
+		return new HashMap<String, Style>() {{
+			put("quote", Style.CYAN);
+		}};
 	}
 
 	@Command("\\.commit")
@@ -59,7 +62,7 @@ public class Commit extends NoiseModule {
 	@View
 	public void view(Message message, JSONObject data) throws JSONException {
 		if(data.has("processed")) {
-			message.respond("%s", data.getString("processed"));
+			message.respond("#quote %s", data.getString("processed"));
 		}
 	}
 

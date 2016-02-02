@@ -99,7 +99,10 @@ public class Spook extends NoiseModule implements Serializable {
 			final int i = getRandomInt(0, totalLines - 1);
 			choices.add(i < this.emacsLines.length ? this.emacsLines[i] : this.customLines.get(i - this.emacsLines.length));
 		}
-		final JSONObject[] packedChoices = choices.stream().map(e -> RuntimeJSONException.wrap(e::pack)).toArray(JSONObject[]::new);
+		final List<JSONObject> packedChoices = new LinkedList<>();
+		for(Entry e : choices) {
+			packedChoices.add(e.pack());
+		}
 		return new JSONObject().put("spook", packedChoices);
 	}
 

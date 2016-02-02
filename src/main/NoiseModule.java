@@ -21,11 +21,8 @@ import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.text.StrSubstitutor;
 import org.jibble.pircbot.User;
 
-import static org.jibble.pircbot.Colors.*;
-
 import debugging.Log;
 import org.json.JSONException;
-
 
 /**
  * NoiseModule
@@ -34,8 +31,6 @@ import org.json.JSONException;
  *         Created Jun 13, 2009.
  */
 public abstract class NoiseModule implements Comparable<NoiseModule> {
-	private static final String COLOR_ERROR = RED;
-
 	public static class MessageResult {
 		public final Message message;
 		public final Optional<Method> handler;
@@ -276,11 +271,6 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 						}
 						return new MessageResult(message, method, (JSONObject)o);
 					} catch(InvocationTargetException e) {
-						// Unwrap RuntimeJSONException
-						if(e.getTargetException() instanceof RuntimeJSONException) {
-							e = new InvocationTargetException(((RuntimeJSONException)e.getTargetException()).getException());
-						}
-
 						Log.e(e);
 						throw e;
 					} catch(Exception e) {

@@ -4,21 +4,14 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import static org.jibble.pircbot.Colors.*;
 
 import debugging.Log;
 
 import static main.Utilities.pluralize;
 import static main.Utilities.reverse;
-
-import modules.Help;
 
 import com.google.gson.internal.StringMap;
 
@@ -42,7 +35,6 @@ public abstract class NoiseBot {
 	private static final String CONFIG_FILENAME = "config";
 	private static final String DATA_DIRECTORY = "data";
 	public static final String STORE_DIRECTORY = "store";
-	protected static final String COLOR_ERROR = RED + REVERSE;
 
 	public static final Map<String, NoiseBot> bots = new HashMap<>();
 	public static final Map<String, Set<File>> moduleFileDeps = new HashMap<>();
@@ -280,7 +272,7 @@ public abstract class NoiseBot {
 				try {
 					bot.setModuleConfig(module);
 				} catch(ModuleInitException e) {
-					bot.sendMessage(COLOR_ERROR + e.getMessage());
+					bot.sendMessage("#coreerror %s", e.getMessage());
 				}
 			}
 		}
@@ -335,7 +327,7 @@ public abstract class NoiseBot {
 		}
 
 		if(coreChanged) {
-			this.sendNotice(YELLOW + "Core files changed; NoiseBot will restart" + NORMAL);
+			this.sendNotice("#yellow Core files changed; NoiseBot will restart");
 		} else {
 			final String[] moduleNames = Git.affectedModules(this, from, to);
 			for(String moduleName : moduleNames) {

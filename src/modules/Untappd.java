@@ -164,11 +164,6 @@ public class Untappd extends NoiseModule {
 				final String value = stats.get(i).select(".stat").text();
 				rtn.append("stats", new JSONObject().put("title", title).put("value", value));
 			}
-//			for (int i = 0; i < titles.size(); i++) {
-//				s += titles.get(i).text() + ": " + stats.get(i).text();
-//				if ((i + 1) != titles.size())
-//					s += ", ";
-//			}
 			return rtn;
 		} catch(IOException e) {
 			return new JSONObject().put("error", "Unable to retrieve page");

@@ -55,7 +55,7 @@ public class SlackServer implements SlackMessagePostedListener {
 			this.slack.connect();
 			for(Map.Entry<String, NoiseBot> e : this.bots.entrySet()) {
 				System.out.printf("Joining %s\n", e.getKey());
-				this.slack.joinChannel(e.getKey());
+				this.slack.joinChannel(e.getKey().substring(1));
 				e.getValue().onChannelJoin();
 			}
 			return true;

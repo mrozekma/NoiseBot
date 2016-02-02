@@ -1,11 +1,7 @@
 package modules;
 
-import static main.Utilities.strstr;
-import static org.jibble.pircbot.Colors.*;
-
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 import main.*;
 import org.json.JSONException;

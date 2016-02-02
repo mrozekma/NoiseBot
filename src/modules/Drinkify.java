@@ -1,7 +1,5 @@
 package modules;
 
-import static org.jibble.pircbot.Colors.*;
-
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -17,7 +15,6 @@ import org.jsoup.select.Elements;
 import debugging.Log;
 import main.Message;
 import main.NoiseModule;
-import static main.Utilities.*;
 
 /**
  * Drinkify module
@@ -27,13 +24,11 @@ import static main.Utilities.*;
  *         in the YOLD 3178
  */
 public class Drinkify extends NoiseModule {
-  private static final String COLOR_ERROR = RED;
-
   @Command("\\.drinkify (.+)")
   public JSONObject drinkify(Message message, String band) throws JSONException
   {
     final JSONObject rtn = new JSONObject();
-    Document page = null;
+    Document page;
     try {
       page = Jsoup.connect(new URI("http", "drinkify.org", "/" + band, null).toASCIIString()).timeout(10000).get();
     } catch (HttpStatusException e) {
