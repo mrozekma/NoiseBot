@@ -1,7 +1,5 @@
 package modules;
 
-import static org.jibble.pircbot.Colors.*;
-
 import main.*;
 
 public class Die extends NoiseModule {
@@ -13,9 +11,9 @@ public class Die extends NoiseModule {
 
 	@Command("\\.die(?:diedie)?") public void die(Message message) {
 		if(this.bot.clearPendingSends()) {
-			this.bot.sendMessage(RED + "Aaaarrrggghhhh..");
+			this.bot.sendMessage("#red Aaaarrrggghhhh..");
 		} else {
-			this.bot.sendMessage(RED + "Unable to modify outqueue");
+			this.bot.sendMessage("#red Unable to modify outqueue");
 		}
 	}
 

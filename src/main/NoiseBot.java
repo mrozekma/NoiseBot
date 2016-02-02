@@ -430,13 +430,13 @@ public abstract class NoiseBot {
 
 	public static void broadcastMessage(String message) {
 		for(NoiseBot bot : bots.values()) {
-			bot.sendMessage(message);
+			bot.sendMessage("%s", message);
 		}
 	}
 
 	public static void broadcastNotice(String notice) {
 		for(NoiseBot bot : bots.values()) {
-			bot.sendNotice(notice);
+			bot.sendNotice("%s", notice);
 		}
 	}
 

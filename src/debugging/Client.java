@@ -8,8 +8,6 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
 
-import org.jibble.pircbot.Colors;
-
 import main.NoiseBot;
 
 /**
@@ -96,7 +94,7 @@ public class Client {
 			this.send("Invalid authentication code");
 		} else {
 			this.authentication = "";
-			this.bot.sendMessage("Debugger connected by " + Colors.BLUE + this.nick);
+			this.bot.sendMessage("Debugger connected by %(#blue)s", this.nick);
 			this.send("Authentication complete");
 		}
 	}

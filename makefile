@@ -1,5 +1,6 @@
 # Suck on it ant.  Suck it hard.
 
+SHELL = /bin/bash
 SOURCES := $(shell find src -name '*.java')
 OBJECTS := $(subst .java,.class,$(SOURCES))
 OBJECTS := $(subst src/,bin/,$(OBJECTS))

@@ -97,7 +97,7 @@ public class SlackServer implements SlackMessagePostedListener {
 
 			@Override public void onException(NoiseBot bot, Exception e) {
 				super.onException(bot, e);
-				bot.sendMessage("coreerror %s", e.getMessage());
+				bot.sendMessage("#coreerror %s", e.getMessage());
 			}
 		});
 	}
