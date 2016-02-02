@@ -2,9 +2,10 @@
 // Copy this to 'config' to use
 
 {
-	// Potential IRC connections. The key is the name of the connection, used
+	// Potential connections. The key is the name of the connection, used
 	// on the command-line. The value is a map of settings. If no names are
-	// specified on the command-line, 'default' will be used
+	// specified on the command-line, 'default' will be used. The possible keys
+	// vary by protocol
 	connections: {
 		default: {
 			server: 'irc.freenode.net',
@@ -13,9 +14,26 @@
 			// password: '',
 			// modules: ['Help'],   // Lock the module list to just these modules
                                     // Otherwise modules can be dynamically controlled with .load/.unload
-			channels: ['#freenode']
+			channels: ['#freenode'],
+			owner: {
+				// See the owner section below for a list of valid fields
+				// A connection-specific owner block overrides the global settings
+			}
+		},
+
+		slack: {
+			type: 'slack', // The default type is 'irc'
+			token: 'Slack API token',
+			// modules: [],
+			channels: ['#general'],
+			owner: {
+				// ...
+			}
 		}
 	},
+
+	// Secret used when receiving events from Github. See README.md for more information
+	github-webhook-secret: '',
 
 	// The owner/maintainer of the bot. Some commands can only be run by the bot owner
 	// All specified fields must match, but you can choose any combination to require
@@ -31,15 +49,5 @@
 		Backronym: {
 			dictionary-file: '/usr/share/dict/words'
 		},
-		Imgur: {
-			// client-id: ''
-		},
-		Translate: {
-			// key: ''
-		},
-		Twitter: {
-			// key: '',
-			// secret: ''
-		}
 	}
 }
