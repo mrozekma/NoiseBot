@@ -9,6 +9,7 @@ import com.ullink.slack.simpleslackapi.replies.SlackMessageReply;
 import debugging.Log;
 
 import java.io.IOException;
+import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -91,7 +92,7 @@ public class SlackServer implements SlackMessagePostedListener {
 		this.moduleDispatch(channel, new ModuleCall() {
 			@Override public void call(NoiseBot bot, NoiseModule module) {
 				if(!sender.equals(bot.getBotNick())) {
-					module.processMessageAndDisplayResult(new Message(bot, message, sender, false));
+					module.processMessageAndDisplayResult(new Message(bot, ((SlackNoiseBot)bot).unescape(message), sender, false));
 				}
 			}
 
@@ -106,8 +107,10 @@ public class SlackServer implements SlackMessagePostedListener {
 	// Instead we shallowly wrap every needed method and pass through to this.slack
 
 	public SlackChannel findChannelByName(String channelName) {return this.slack.findChannelByName(channelName);}
+	public SlackChannel findChannelById(String channelId) {return this.slack.findChannelById(channelId);}
 	public SlackPersona sessionPersona() {return this.slack.sessionPersona();}
 	public SlackUser findUserByUserName(String userName) {return this.slack.findUserByUserName(userName);}
+	public SlackUser findUserById(String userId) {return this.slack.findUserById(userId);}
 	public SlackMessageHandle<SlackChannelReply> sendMessage(SlackChannel channel, String message, SlackAttachment attachment) {return this.slack.sendMessage(channel, message, attachment);}
 	public SlackMessageHandle<SlackMessageReply> sendMessageToUser(String userName, String message, SlackAttachment attachment) {return this.slack.sendMessageToUser(userName, message, attachment);}
 	public SlackMessageHandle<SlackChannelReply> deleteMessage(String timeStamp, SlackChannel channel) {return this.slack.deleteMessage(timeStamp, channel);}
@@ -118,3 +121,4 @@ public class SlackServer implements SlackMessagePostedListener {
 	public SlackMessageHandle<SlackMessageReply> updateMessageToUser(String timeStamp, String userName, String message) {return this.slack.updateMessageToUser(timeStamp, userName, message);}
 	public SlackMessageHandle<SlackMessageReply> updateMessageToUser(String timeStamp, String userName, String message, SlackAttachment attachment) {return this.slack.updateMessageToUser(timeStamp, userName, message, attachment);}
 }
+

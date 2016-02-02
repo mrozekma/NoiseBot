@@ -3,8 +3,6 @@ package main;
 import com.google.gson.internal.StringMap;
 import com.ullink.slack.simpleslackapi.*;
 import com.ullink.slack.simpleslackapi.SlackTimestamped;
-import com.ullink.slack.simpleslackapi.replies.SlackChannelReply;
-import com.ullink.slack.simpleslackapi.replies.SlackMessageReply;
 
 import java.awt.*;
 import java.io.File;
@@ -14,6 +12,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiPredicate;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static main.Utilities.substring;
@@ -106,6 +106,38 @@ public class SlackNoiseBot extends NoiseBot {
 //		text = text.replaceAll("([*_])([^ ])", "$1 $2").replaceAll("([^ ])([*_])", "$1 $2");
 
 		return text;
+	}
+
+	private static final Pattern UNESCAPE_PATTERN = Pattern.compile("<([^|>]+)(?:|([^>]+))?>");
+	public String unescape(String text) {
+		final Matcher matcher = UNESCAPE_PATTERN.matcher(text);
+		final StringBuffer rtn = new StringBuffer();
+		while(matcher.find()) {
+			final String what = matcher.group(1);
+			final Optional<String> display = Optional.ofNullable(matcher.group(2));
+			if(what.startsWith("@") || what.startsWith("#")) {
+				// For users and channels, use the display string if available
+				if(display.isPresent()) {
+					matcher.appendReplacement(rtn, display.get());
+				} else {
+					switch(what.charAt(0)) {
+					case '@':
+						// Strip the '@'
+						matcher.appendReplacement(rtn, this.server.findUserById(what.substring(1)).getUserName());
+						break;
+					case '#':
+						// Include the '#'
+						matcher.appendReplacement(rtn, "#" + this.server.findChannelById(what.substring(1)).getName());
+						break;
+					}
+				}
+			} else {
+				// For URLs, use the canonical version
+				matcher.appendReplacement(rtn, what);
+			}
+		}
+		matcher.appendTail(rtn);
+		return rtn.toString().replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&");
 	}
 
 	private static String emph(String text, String emph) {
