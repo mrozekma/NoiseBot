@@ -34,29 +34,14 @@ public class Wikipedia extends NoiseModule {
 		return this.getEntry(term, "http://en.wikipedia.org/wiki/" + urlEncode(fixTitle(term)));
 	}
 
-	@View(method = "wikipedia")
-	public void plainWikipediaView(ViewContext ctx, JSONObject data) throws JSONException {
-		this.plainView(ctx, data, true, true);
-	}
-	
 	@Command(".*((?:https?:\\/\\/en\\.wikipedia\\.org|https:\\/\\/secure\\.wikimedia\\.org\\/wikipedia(?:\\/commons|\\/en))\\/wiki\\/((?:\\S+)(?::[0-9]+)?(?:\\/|\\/(?:[\\w#!:.?+=&%@!\\-\\/]))?)).*")
 	public JSONObject wikipediaLink(CommandContext ctx, String url, String term) throws JSONException {
 		return this.getEntry(urlDecode(term).replace("_", " "), url);
 	}
 
-	@View(method = "wikipediaLink")
-	public void plainWikipediaLinkView(ViewContext ctx, JSONObject data) throws JSONException {
-		this.plainView(ctx, data, true, false);
-	}
-
 	@Command(".*\\[\\[([^\\]]+)]].*")
 	public JSONObject wikipediaInline(CommandContext ctx, String term) throws JSONException {
 		return this.getEntry(term, "http://en.wikipedia.org/wiki/" + urlEncode(fixTitle(term)));
-	}
-
-	@View(method = "wikipediaInline")
-	public void plainWikipediaInlineView(ViewContext ctx, JSONObject data) throws JSONException {
-		this.plainView(ctx, data, false, true);
 	}
 
 	private static String fixTitle(String term) {
@@ -104,7 +89,7 @@ public class Wikipedia extends NoiseModule {
 		}
 		return el == null ? null : el.text();
 	}
-	
+
 	private JSONObject getEntry(final String term, final String url) throws JSONException {
 		final Document doc;
 		try {
@@ -120,7 +105,7 @@ public class Wikipedia extends NoiseModule {
 			Log.e(e);
 			return new JSONObject().put("warning", "Unable to connect to Wikipedia: " + e.getMessage());
 		}
-		
+
 		String text = selectEntryText(term, url, doc);
 		if(text == null) {
 			return new JSONObject().put("warning", "Unable to find post body");
@@ -129,7 +114,29 @@ public class Wikipedia extends NoiseModule {
 		return new JSONObject().put("term", term).put("url", url).put("text", text);
 	}
 
-	private void plainView(ViewContext ctx, JSONObject data, boolean showErrors, boolean includeLink) throws JSONException {
+	@View
+	public void plainView(ViewContext ctx, JSONObject data) throws JSONException {
+		// Determine these flags from the command that triggered this
+		final boolean showErrors, includeLink;
+		{
+			final String command = ctx.getCommandMethod().getName();
+			if(command.equals("wikipedia")) {
+				showErrors = true;
+				includeLink = true;
+			} else if(command.equals("wikipediaLink")) {
+				showErrors = true;
+				includeLink = false;
+			} else if(command.equals("wikipediaInline")) {
+				showErrors = false;
+				includeLink = true;
+			} else if(command.equals("featured")) {
+				showErrors = true;
+				includeLink = true;
+			} else {
+				throw new IllegalArgumentException(String.format("Unrecognized command: %s", command));
+			}
+		}
+
 		if(data.has("warning")) {
 			if(showErrors) {
 				ctx.respond("#error %s", data.get("warning"));
@@ -143,7 +150,7 @@ public class Wikipedia extends NoiseModule {
 		}
 		ctx.respond("%s", text);
 	}
-	
+
 	@Command("\\.featured")
 	public JSONObject featured(CommandContext ctx) throws JSONException {
 		// From http://en.wikipedia.org/w/api.php?action=query&prop=revisions&action=featuredfeed&feed=featured; not going to bother parsing unless it changes
@@ -172,11 +179,6 @@ public class Wikipedia extends NoiseModule {
 		}
 
 		return new JSONObject().put("error", "No title found");
-	}
-
-	@View(method = "featured")
-	public void plainFeaturedView(ViewContext ctx, JSONObject data) throws JSONException {
-		this.plainView(ctx, data, true, true);
 	}
 
 	@Override public String getFriendlyName() {return "Wikipedia";}

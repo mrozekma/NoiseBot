@@ -1,18 +1,36 @@
 package main;
 
+import java.lang.reflect.Method;
+import java.util.Optional;
+
 /**
  * @author Michael Mrozek
  *         Created Feb 3, 2016.
  */
 public class ViewContext {
 	private final Message message;
+	private final Optional<Method> commandMethod;
 
 	ViewContext(Message message) {
 		this.message = message;
+		this.commandMethod = Optional.empty();
+	}
+
+	ViewContext(Message message, Method commandMethod) {
+		this.message = message;
+		this.commandMethod = Optional.of(commandMethod);
 	}
 
 	public Message getMessage() {
 		return this.message;
+	}
+
+	public boolean wasCommandTriggered() {
+		return this.commandMethod.isPresent();
+	}
+
+	public Method getCommandMethod() {
+		return this.commandMethod.get();
 	}
 
 	// Shortcuts for getMessage().xxx()

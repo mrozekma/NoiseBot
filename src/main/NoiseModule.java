@@ -305,7 +305,7 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 
 			Style.pushOverrideMap(this.styles());
 			try {
-				view.get().invoke(this, new ViewContext(result.message), data);
+				view.get().invoke(this, new ViewContext(result.message, method), data);
 			} finally {
 				Style.popOverrideMap();
 				// Make sure any buffered responses are flushed
