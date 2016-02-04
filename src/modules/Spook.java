@@ -91,7 +91,7 @@ public class Spook extends NoiseModule implements Serializable {
 	}
 
 	@Command("\\.spook ([0-9]+)")
-	public JSONObject spook(Message message, int num) throws JSONException {
+	public JSONObject spook(CommandContext ctx, int num) throws JSONException {
 		final int totalLines = this.emacsLines.length + this.customLines.size();
 		num = range(num, 1, Math.min(totalLines, 20));
 		final Set<Entry> choices = new LinkedHashSet<>();
@@ -107,40 +107,40 @@ public class Spook extends NoiseModule implements Serializable {
 	}
 
 	@Command("\\.spook")
-	public JSONObject spookDefault(Message message) throws JSONException {
-		return this.spook(message, 10);
+	public JSONObject spookDefault(CommandContext ctx) throws JSONException {
+		return this.spook(ctx, 10);
 	}
 
 	@Command("\\.spookadd (.+)")
-	public void spookadd(Message message, String spook_) {
+	public void spookadd(CommandContext ctx, String spook_) {
 		final String spook = spook_.trim();
 		if(!spook.matches("^[a-zA-Z0-9][a-zA-Z0-9 _.-]+")) {
-			Slap.slap(this.bot, message);
+			Slap.slap(this.bot, ctx);
 		} else if(Arrays.stream(this.emacsLines).map(entry -> entry.entry).anyMatch(spook::equalsIgnoreCase)) {
-			message.respond("#error Entry already exists");
+			ctx.respond("#error Entry already exists");
 		} else if(this.customLines.stream().anyMatch(entry -> entry.entry.equalsIgnoreCase(spook))) {
 			final CustomEntry entry = this.customLines.stream().filter(e -> e.entry.equalsIgnoreCase(spook)).findAny().get();
-			message.respond("#error Entry already exists (added by %s, %s)", entry.who, entry.when);
+			ctx.respond("#error Entry already exists (added by %s, %s)", entry.who, entry.when);
 		} else {
-			this.customLines.add(new CustomEntry(message.getSender(), spook));
+			this.customLines.add(new CustomEntry(ctx.getMessageSender(), spook));
 			this.save();
-			message.respond("Added");
+			ctx.respond("Added");
 		}
 	}
 
 	@Command("\\.spookrm (.+)")
-	public void spookrm(Message message, String spook_) {
+	public void spookrm(CommandContext ctx, String spook_) {
 		final String spook = spook_.trim();
 		for(ListIterator<CustomEntry> iter = this.customLines.listIterator(); iter.hasNext();) {
 			final CustomEntry entry = iter.next();
 			if(entry.entry.equalsIgnoreCase(spook)) {
 				iter.remove();
 				this.save();
-				message.respond("Removed entry added by %s, %s", entry.who, entry.when);
+				ctx.respond("Removed entry added by %s, %s", entry.who, entry.when);
 				return;
 			}
 		}
-		message.respond("#error Entry does not exist");
+		ctx.respond("#error Entry does not exist");
 	}
 
 	@Override public String getFriendlyName() {return "Spook";}

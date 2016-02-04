@@ -1,8 +1,9 @@
 package modules;
 
+import main.CommandContext;
 import main.JSONObject;
-import main.Message;
 import main.NoiseModule;
+import main.ViewContext;
 import org.json.JSONException;
 
 import static main.Utilities.getRandom;
@@ -20,17 +21,17 @@ public class Title extends NoiseModule {
 	                              suffixes = {"Surgeon", "Scientist", "Engineer", "Technologist", "Neurosurgeon", "Pilot", "Astronaut", "Archeologist", "Aviator", "Specialist", "Psychologist", "Composer", "Fighter", "Professional", "Geographer", "Architect", "Astronomer", "Cytogeneticist", "Dentist", "Interpreter", "Phlebotomist", "Physician", "Meteorologist", "Philosopher", "Garbologist"};
 
 	@Command("\\.title (.*)")
-	public JSONObject title(Message message, String target) throws JSONException {
+	public JSONObject title(CommandContext ctx, String target) throws JSONException {
 		return new JSONObject().put("target", target).put("prefix", getRandom(prefixes)).put("middle", getRandom(middles)).put("suffix", getRandom(suffixes));
 	}
 	
-	@Command("\\.title") public JSONObject titleSelf(Message message) throws JSONException {
-		return this.title(message, message.getSender());
+	@Command("\\.title") public JSONObject titleSelf(CommandContext ctx) throws JSONException {
+		return this.title(ctx, ctx.getMessageSender());
 	}
 
 	@View
-	public void plainView(Message message, JSONObject data) throws JSONException {
-		message.respond("%s: %s %s %s", data.get("target"), data.get("prefix"), data.get("middle"), data.get("suffix"));
+	public void plainView(ViewContext ctx, JSONObject data) throws JSONException {
+		ctx.respond("%s: %s %s %s", data.get("target"), data.get("prefix"), data.get("middle"), data.get("suffix"));
 	}
 	
 	@Override public String getFriendlyName() {return "Title";}

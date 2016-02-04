@@ -9,8 +9,9 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
-import main.Message;
+import main.CommandContext;
 import main.NoiseModule;
+import main.ViewContext;
 import static main.Utilities.*;
 
 /**
@@ -25,7 +26,7 @@ public class UrbanDictionary extends NoiseModule {
   private static final String DEFINITION_SELECTOR = ".meaning";
 
   @Command("\\.(?:ud|urban) (.+)")
-  public JSONObject urban(Message message, String term) throws JSONException {
+  public JSONObject urban(CommandContext ctx, String term) throws JSONException {
     // fetch webpage
     Document page = null;
     try {
@@ -52,12 +53,12 @@ public class UrbanDictionary extends NoiseModule {
   }
 
   @View
-  public void plainView(Message message, JSONObject data) throws JSONException {
+  public void plainView(ViewContext ctx, JSONObject data) throws JSONException {
     if(data.has("warning")) {
-      message.respond("#warning %s", data.get("warning"));
+      ctx.respond("#warning %s", data.get("warning"));
       return;
     }
-    message.respond("%s", data.get("definition"));
+    ctx.respond("%s", data.get("definition"));
   }
 
   @Override

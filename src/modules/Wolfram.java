@@ -2,8 +2,9 @@ package modules;
 
 import debugging.Log;
 import main.JSONObject;
-import main.Message;
+import main.CommandContext;
 import main.NoiseModule;
+import main.ViewContext;
 
 import com.wolfram.alpha.WAEngine;
 import com.wolfram.alpha.WAException;
@@ -42,7 +43,7 @@ public class Wolfram extends NoiseModule {
 	}
 
 	@Command("\\.(?:wolfram|wolf) (.+)")
-	public JSONObject wolfram(Message message, String term) throws JSONException {
+	public JSONObject wolfram(CommandContext ctx, String term) throws JSONException {
 		// this will be our returned object
 		String resultText = null;
 		
@@ -104,13 +105,13 @@ public class Wolfram extends NoiseModule {
 	}
 
 	@View
-	public void plainView(Message message, JSONObject data) throws JSONException {
+	public void plainView(ViewContext ctx, JSONObject data) throws JSONException {
 		if(data.has("warning")) {
-			message.respond("#warning %s", data.get("warning"));
+			ctx.respond("#warning %s", data.get("warning"));
 			return;
 		}
 
-		message.respond("%s: #([ ] #bracket [#text %s#bracket ])", data.get("title"), data.getStringArray("results"));
+		ctx.respond("%s: #([ ] #bracket [#text %s#bracket ])", data.get("title"), data.getStringArray("results"));
 	}
 
 	@Override

@@ -16,8 +16,9 @@ import org.jsoup.nodes.TextNode;
 
 import debugging.Log;
 
-import main.Message;
+import main.CommandContext;
 import main.NoiseModule;
+import main.ViewContext;
 
 /**
  * BashQDB
@@ -52,12 +53,12 @@ public class BashQDB extends NoiseModule {
 	}
 
 	@Command(".*" + URI + "/?\\?([0-9]+).*")
-	public JSONObject link(Message message, int id) throws JSONException {
-		return this.show(message, id);
+	public JSONObject link(CommandContext ctx, int id) throws JSONException {
+		return this.show(ctx, id);
 	}
 
 	@Command("\\.bash ([0-9]+)")
-	public JSONObject show(Message message, int id) throws JSONException {
+	public JSONObject show(CommandContext ctx, int id) throws JSONException {
 		Log.i("Getting quote %d", id);
 		final Document doc;
 		try {
@@ -96,9 +97,9 @@ public class BashQDB extends NoiseModule {
 	}
 
 	@View
-	public void plainView(Message message, JSONObject data) throws JSONException {
+	public void plainView(ViewContext ctx, JSONObject data) throws JSONException {
 		for(String line : data.getStringArray("lines")) {
-			message.respond("#quote %s", line);
+			ctx.respond("#quote %s", line);
 		}
 	}
 

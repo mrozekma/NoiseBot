@@ -4,14 +4,15 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
-import main.JSONObject;
 import org.json.JSONException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Document;
 
-import main.Message;
+import main.CommandContext;
+import main.JSONObject;
 import main.NoiseModule;
+import main.ViewContext;
 import static main.Utilities.*;
 
 /**
@@ -24,23 +25,23 @@ public class TVTropes extends NoiseModule {
 	private static final int MAXIMUM_MESSAGE_LENGTH = 400; // Approximately (512 bytes including IRC data), although we truncate on all protocols
 
 	@Command("\\.trope (.+)")
-	public JSONObject tvtrope(Message message, String term) throws JSONException {
+	public JSONObject tvtrope(CommandContext ctx, String term) throws JSONException {
 		return this.getEntry(term, "http://tvtropes.org/pmwiki/pmwiki.php/Main/" + urlEncode(fixTitle(term)));
 	}
 
 	@View(method = "tvtrope")
-	public void plainTvtropeView(Message message, JSONObject data) throws JSONException {
-		this.plainView(message, data, true);
+	public void plainTvtropeView(ViewContext ctx, JSONObject data) throws JSONException {
+		this.plainView(ctx, data, true);
 	}
 
 	@Command(".*(http://tvtropes.org/pmwiki/pmwiki.php/Main/(.+)).*")
-	public JSONObject tvtropeLink(Message message, String url, String term) throws JSONException {
+	public JSONObject tvtropeLink(CommandContext ctx, String url, String term) throws JSONException {
 		return this.getEntry(urlDecode(term).replace("_", " "), url);
 	}
 
 	@View(method = "tvtropeLink")
-	public void plainTvtropeLinkView(Message message, JSONObject data) throws JSONException {
-		this.plainView(message, data, false);
+	public void plainTvtropeLinkView(ViewContext ctx, JSONObject data) throws JSONException {
+		this.plainView(ctx, data, false);
 	}
 
 	private static String fixTitle(String term) {
@@ -76,9 +77,9 @@ public class TVTropes extends NoiseModule {
 		return new JSONObject().put("term", term).put("url", url).put("text", text);
 	}
 
-	public void plainView(Message message, JSONObject data, boolean includeLink) throws JSONException {
+	private void plainView(ViewContext ctx, JSONObject data, boolean includeLink) throws JSONException {
 		if(data.has("warning")) {
-			message.respond("#warning %s", data.get("warning"));
+			ctx.respond("#warning %s", data.get("warning"));
 			return;
 		}
 
@@ -88,7 +89,7 @@ public class TVTropes extends NoiseModule {
 		if(includeLink) {
 			text += " " + url;
 		}
-		message.respond("%s", text);
+		ctx.respond("%s", text);
 	}
 
 	@Override public String getFriendlyName() {return "TVTropes";}

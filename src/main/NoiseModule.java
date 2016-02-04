@@ -106,7 +106,7 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 	}
 
 	public void setConfig(final Map<String, Object> config) throws ModuleInitException {
-		final List<String> errors = new LinkedList<String>();
+		final List<String> errors = new LinkedList<>();
 		for(Field field : this.getClass().getDeclaredFields()) {
 			final Configurable configurable = field.getAnnotation(Configurable.class);
 			if(configurable != null) {
@@ -245,7 +245,7 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 				final Class[] params = method.getParameterTypes();
 				if(matcher.groupCount() == params.length - 1) {
 					Object[] args = new Object[params.length];
-					args[0] = message;
+					args[0] = new CommandContext(message);
 					for(int i = 1; i < args.length; i++) {
 						if(params[i] == int.class) {
 							try {
@@ -280,7 +280,7 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 						Style.popOverrideMap();
 					}
 				} else {
-					throw new ArgumentMismatchException(params.length == 0 ? "Method doesn't take the mandatory Message instance" : "Expected " + (params.length - 1) + " argument" + (params.length - 1 == 1 ? "" : "s") + "; found " + matcher.groupCount());
+					throw new ArgumentMismatchException(params.length == 0 ? "Command doesn't take the mandatory CommandContext instance" : "Expected " + (params.length - 1) + " argument" + (params.length - 1 == 1 ? "" : "s") + "; found " + matcher.groupCount());
 				}
 			}
 		}
@@ -305,7 +305,7 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 
 			Style.pushOverrideMap(this.styles());
 			try {
-				view.get().invoke(this, result.message, data);
+				view.get().invoke(this, new ViewContext(result.message), data);
 			} finally {
 				Style.popOverrideMap();
 				// Make sure any buffered responses are flushed
@@ -356,17 +356,17 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 	}
 
 	@View
-	public void defaultView(Message message, JSONObject data) throws JSONException {
+	public void defaultView(ViewContext ctx, JSONObject data) throws JSONException {
 		if(data.has("error")) {
-			message.respond("#error %s", data.getString("error"));
+			ctx.respond("#error %s", data.getString("error"));
 			return;
 		}
-		message.respond("#mono %s", data);
+		ctx.respond("#mono %s", data);
 	}
 
 	// No custom Slack changes needed yet for the default view (the error block styling is handled by SlackNoiseBot)
 //	@View(Protocol.Slack)
-//	public void defaultSlackView(Message message, JSONObject data) throws JSONException {}
+//	public void defaultSlackView(ViewContext ctx, JSONObject data) throws JSONException {}
 
 	public static <T extends NoiseModule> T load(NoiseBot bot, Class<T> moduleType) {
 		Log.v("%s - Loading", moduleType.getSimpleName());
@@ -397,19 +397,19 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 	@Override public int compareTo(NoiseModule other) {return this.getFriendlyName().compareTo(other.getFriendlyName());}
 	@Override public String toString() {return this.getFriendlyName();}
 
-	protected void triggerIfOwner(final Message message, final Runnable fn, final boolean errorOnFail) {
-		this.bot.whois(message.getSender(), new WhoisHandler() {
+	protected void triggerIfOwner(final CommandContext ctx, final Runnable fn, final boolean errorOnFail) {
+		this.bot.whois(ctx.getMessageSender(), new WhoisHandler() {
 			@Override public void onResponse() {
 				if(NoiseModule.this.bot.isOwner(this.nick, this.hostname, this.account)) {
 					fn.run();
 				} else if(errorOnFail) {
-					message.respond("#error Operation not permitted");
+					ctx.respond("#error Operation not permitted");
 				}
 			}
 
 			@Override public void onTimeout() {
 				if(errorOnFail) {
-					message.respond("#error Unable to whois %s", message.getSender());
+					ctx.respond("#error Unable to whois %s", ctx.getMessageSender());
 				}
 			}
 		});

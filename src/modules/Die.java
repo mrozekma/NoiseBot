@@ -9,7 +9,8 @@ public class Die extends NoiseModule {
 		}
 	}
 
-	@Command("\\.die(?:diedie)?") public void die(Message message) {
+	@Command("\\.die(?:diedie)?")
+	public void die(CommandContext ctx) {
 		if(this.bot.clearPendingSends()) {
 			this.bot.sendMessage("#red Aaaarrrggghhhh..");
 		} else {

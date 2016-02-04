@@ -48,13 +48,13 @@ public class Poll extends NoiseModule {
 	//@Command("\\.poll \\[((?:" + VOTE_CLASS_REGEX + "+,?)+)\\] ?(.*)")
 	//@Command("\\.poll \\[(" + VOTE_CLASS_REGEX + "+)\\] ?(.*)")
 	@Command(value = "\\.poll (.*)", allowPM = false)
-	public void poll(Message message, String argLine) {
+	public void poll(CommandContext ctx, String argLine) {
 		if(this.pollTimer != null) {
-			message.respond("#error A poll is in progress");
+			ctx.respond("#error A poll is in progress");
 			return;
 		}
 
-		this.pollOwner = message.getSender();
+		this.pollOwner = ctx.getMessageSender();
 		this.votes = new HashMap<>();
 
 		try {
@@ -73,13 +73,13 @@ public class Poll extends NoiseModule {
 				this.validVotes.addAll(Arrays.asList(new String[] {"yes", "no"}));
 			}
 		} catch(IOException e) {
-			message.respond("#error Exception attempting to parse vote options");
+			ctx.respond("#error Exception attempting to parse vote options");
 			Log.e(e);
 			return;
 		}
 		
 		if(this.validVotes.size() < 2) {
-			message.respond("#error Polls need at least two options");
+			ctx.respond("#error Polls need at least two options");
 			return;
 		}
 		
@@ -99,7 +99,7 @@ public class Poll extends NoiseModule {
 		if(!this.updateInPlace()) {
 			this.bot.sendMessage(
 					"%s has started a poll (vote with .%(#command)s {#([|] #argument %s)} in the next %d minutes): %s",
-					message.getSender(),
+					ctx.getMessageSender(),
 					"vote",
 					this.validVotes.stream().toArray(String[]::new),
 					WAIT_TIME,
@@ -108,38 +108,38 @@ public class Poll extends NoiseModule {
 	}
 
 	@Command("\\.vote  *\\$([1-9][0-9]*) *")
-	public void vote(Message message, int vote) {
-		this.vote(message, this.validVotes != null ? this.validVotes.get(vote-1) : null);
+	public void vote(CommandContext ctx, int vote) {
+		this.vote(ctx, this.validVotes != null ? this.validVotes.get(vote-1) : null);
 	}
 
 	@Command("\\.vote  *(.+) *")
-	public void vote(Message message, String vote) {
+	public void vote(CommandContext ctx, String vote) {
 		// This checks pollText instead of pollTimer because we want to allow votes after the poll ended
 		if(this.pollText.isEmpty()) {
-			message.respond("#error There is no poll to vote on");
+			ctx.respond("#error There is no poll to vote on");
 			return;
 		}
 
 		vote = vote.replaceAll("\\\\\\$", "\\$");
 		if(!this.validVotes.contains(vote)) {
-			message.respond("#error Invalid vote");
+			ctx.respond("#error Invalid vote");
 			return;
 		}
 		
-		this.votes.put(message.getSender(), vote);
+		this.votes.put(ctx.getMessageSender(), vote);
 
 		if(!this.updateInPlace()) {
 			if(this.pollTimer == null) {
-				Slap.slap(this.bot, message);
+				Slap.slap(this.bot, ctx);
 			}
-			MessageBuilder builder = message.buildResponse();
+			MessageBuilder builder = ctx.buildResponse();
 			builder.add("#success Vote recorded#plain . Current standing: ");
 			this.tabulate(builder);
 			builder.send();
 
-			if(message.isPM()) {
+			if(ctx.getMessage().isPM()) {
 				builder = this.bot.buildMessage();
-				builder.add("%s voted %#(vote)s. Current standing: ", new Object[] {message.getSender(), vote});
+				builder.add("%s voted %#(vote)s. Current standing: ", new Object[] {ctx.getMessageSender(), vote});
 				this.tabulate(builder);
 				builder.send();
 			}
@@ -147,12 +147,12 @@ public class Poll extends NoiseModule {
 	}
 	
 	@Command("\\.pollstats")
-	public void stats(Message message) {
+	public void stats(CommandContext ctx) {
 		if(this.pollTimer == null) {
-			message.respond("#error There is no poll in progress to check");
+			ctx.respond("#error There is no poll in progress to check");
 		} else {
 			final int timeLeft = WAIT_TIME * 60 + (int)(this.startTime - System.currentTimeMillis()) / 1000;
-			final MessageBuilder builder = message.buildResponse();
+			final MessageBuilder builder = ctx.buildResponse();
 			builder.add("(%ds %s): ", new Object[] {timeLeft, (timeLeft == 1 ? "remains" : "remain")});
 			this.tabulate(builder);
 			builder.send();
@@ -160,19 +160,19 @@ public class Poll extends NoiseModule {
 	}
 	
 	@Command(value = "\\.cancelpoll", allowPM = false)
-	public void cancel(Message message) {
+	public void cancel(CommandContext ctx) {
 		if(this.pollTimer == null) {
-			message.respond("#error There is no poll in progress to cancel");
-		} else if(!this.pollOwner.equals(message.getSender())) {
-			message.respond("#error Only %s can cancel the poll", this.pollOwner);
+			ctx.respond("#error There is no poll in progress to cancel");
+		} else if(!this.pollOwner.equals(ctx.getMessageSender())) {
+			ctx.respond("#error Only %s can cancel the poll", this.pollOwner);
 		} else if(!this.votes.isEmpty()) {
-			message.respond("#error You can't cancel a poll once votes are in");
+			ctx.respond("#error You can't cancel a poll once votes are in");
 		} else {
 			this.pollTimer.cancel();
 			this.pollTimer = null;
 			this.pollText = "";
 			if(!this.updateInPlace()) {
-				message.respond("#success Poll canceled");
+				ctx.respond("#success Poll canceled");
 			}
 		}
 	}

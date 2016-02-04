@@ -25,13 +25,13 @@ public class Eliza extends NoiseModule {
 	}
 
 	@Command("${bot.nick}: (.*)")
-	public JSONObject eliza(Message message, String userMessage) throws JSONException {
+	public JSONObject eliza(CommandContext ctx, String userMessage) throws JSONException {
 		return new JSONObject().put("message", userMessage).put("response", this.eliza.processInput(userMessage));
 	}
 
 	@View
-	public void view(Message message, JSONObject data) throws JSONException {
-		message.respond("%s: %s", message.getSender(), data.get("response"));
+	public void view(ViewContext ctx, JSONObject data) throws JSONException {
+		ctx.respond("%s: %s", ctx.getMessageSender(), data.get("response"));
 	}
 
 	@Override public String getFriendlyName() {return "Eliza";}

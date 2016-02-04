@@ -19,7 +19,7 @@ public class Discordianism extends NoiseModule {
 	private static String[] HOLYDAYS = {"Mungday", "Chaoflux", "Mojoday", "Discoflux", "Syaday", "Confuflux", "Zaraday", "Bureflux", "Maladay", "Afflux"};
 
 	@Command("\\.ddate")
-	public JSONObject ddate(Message message) throws JSONException {
+	public JSONObject ddate(CommandContext ctx) throws JSONException {
 		final JSONObject rtn = new JSONObject();
 		final GregorianCalendar now = new GregorianCalendar();
 		rtn.put("gregorian", new JSONObject()
@@ -67,7 +67,7 @@ public class Discordianism extends NoiseModule {
 	}
 
 	@View
-	public void view(Message message, JSONObject data) throws JSONException {
+	public void view(ViewContext ctx, JSONObject data) throws JSONException {
 		// It's sad that this is the most complicated part
 		final org.json.JSONObject disco = data.getJSONObject("discordian");
 		final int dayOfSeason = disco.getInt("day");
@@ -91,7 +91,7 @@ public class Discordianism extends NoiseModule {
 			}
 		}
 
-		final MessageBuilder builder = message.buildResponse();
+		final MessageBuilder builder = ctx.buildResponse();
 		builder.add("Today is ");
 		if(disco.has("holyday")) {
 			builder.add("%s, ", new Object[] {disco.get("holyday")});

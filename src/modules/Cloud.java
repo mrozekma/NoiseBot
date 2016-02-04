@@ -1,6 +1,6 @@
 package modules;
 
-import main.Message;
+import main.CommandContext;
 import main.NoiseModule;
 import static main.Utilities.getRandom;
 
@@ -19,19 +19,19 @@ public class Cloud extends NoiseModule {
 	};
 
 	@Command("\\.(?:kill|stab) (.*)")
-	public void kill(Message message, String target) {
-		message.respond("%s %s", getRandom(swords), target);
+	public void kill(CommandContext ctx, String target) {
+		ctx.respond("%s %s", getRandom(swords), target);
 	}
 
 	@Command("\\.(?:kill|stab)")
-	public void killRandom(Message message) {
+	public void killRandom(CommandContext ctx) {
 		final String[] nicks = this.bot.getNicks();
 		String choice;
 		do {
 			choice = getRandom(nicks);
 		} while(choice.equals(this.bot.getBotNick()));
 
-		this.kill(message, choice);
+		this.kill(ctx, choice);
 	}
 
 	@Override public String getFriendlyName() {return "Cloud";}

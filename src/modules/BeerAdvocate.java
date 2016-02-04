@@ -10,8 +10,9 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
-import main.Message;
+import main.CommandContext;
 import main.NoiseModule;
+import main.ViewContext;
 import static main.Utilities.*;
 
 /**
@@ -37,7 +38,7 @@ public class BeerAdvocate extends NoiseModule {
   }
 
   @Command(".*(http://(?:www\\.)?beeradvocate.com/beer/profile/[0-9]+/[0-9]+).*")
-  public JSONObject beer(Message message, String beerUrl) throws JSONException
+  public JSONObject beer(CommandContext ctx, String beerUrl) throws JSONException
   {
     Document page;
     try {
@@ -55,7 +56,7 @@ public class BeerAdvocate extends NoiseModule {
 
   // Runs a search in BA and returns the first search result. Searches beer only.
   @Command("\\.beer (.*)")
-  public JSONObject search(Message message, String toSearch) throws JSONException
+  public JSONObject search(CommandContext ctx, String toSearch) throws JSONException
   {
     toSearch = toSearch.replaceAll(" ", "\\+");
     Document searchResults;
@@ -71,19 +72,19 @@ public class BeerAdvocate extends NoiseModule {
   }
 
   @View(method = "beer")
-  public void beerView(Message message, JSONObject data) throws JSONException {
-    message.respond("%s - %s - %s", data.getString("name"), data.getString("style"), data.getString("score"));
+  public void beerView(ViewContext ctx, JSONObject data) throws JSONException {
+    ctx.respond("%s - %s - %s", data.getString("name"), data.getString("style"), data.getString("score"));
   }
 
   @View(method = "search")
-  public void searchView(Message message, JSONObject data) throws JSONException {
-    this.beerView(message, data);
-    message.respond("%s", data.getString("url"));
+  public void searchView(ViewContext ctx, JSONObject data) throws JSONException {
+    this.beerView(ctx, data);
+    ctx.respond("%s", data.getString("url"));
   }
 
   // Slack unfolds BeerAdvocate links, so no need to do anything when links are posted
   @View(value = Protocol.Slack, method = "beer")
-  public void slackBeerView(Message message, JSONObject data) {}
+  public void slackBeerView(ViewContext ctx, JSONObject data) {}
 
   @Override
   public String getFriendlyName() {

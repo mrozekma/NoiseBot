@@ -13,8 +13,9 @@ import org.json.JSONException;
 
 import debugging.Log;
 
-import main.Message;
+import main.CommandContext;
 import main.NoiseModule;
+import main.ViewContext;
 
 /**
  * Bitcoin
@@ -35,7 +36,7 @@ public class Bitcoin extends NoiseModule {
 	private final Map<String, Price> exchanges = new HashMap<>();
 
 	@Command("\\.bitcoin ([a-zA-Z]+)")
-	public JSONObject bitcoin(Message message, String exchange) throws JSONException {
+	public JSONObject bitcoin(CommandContext ctx, String exchange) throws JSONException {
 		exchange = exchange.toLowerCase();
 		try {
 			this.refresh();
@@ -60,7 +61,7 @@ public class Bitcoin extends NoiseModule {
 	}
 
 	@Command("\\.bitcoin")
-	public JSONObject bitcoinAvg(Message message) throws JSONException {
+	public JSONObject bitcoinAvg(CommandContext ctx) throws JSONException {
 		try {
 			this.refresh();
 			if(this.exchanges.isEmpty()) {
@@ -76,14 +77,14 @@ public class Bitcoin extends NoiseModule {
 	}
 
 	@View(method = "bitcoin")
-	public void plainBitcoinView(Message message, JSONObject data) throws JSONException {
+	public void plainBitcoinView(ViewContext ctx, JSONObject data) throws JSONException {
 		final Price price = data.getT("price");
-		message.respond("$%.2f / $%.2f", price.ask, price.bid);
+		ctx.respond("$%.2f / $%.2f", price.ask, price.bid);
 	}
 
 	@View(method = "bitcoinAvg")
-	public void plainBitcoinAvgView(Message message, JSONObject data) throws JSONException {
-		message.respond("$%.2f", data.getDouble("average"));
+	public void plainBitcoinAvgView(ViewContext ctx, JSONObject data) throws JSONException {
+		ctx.respond("$%.2f", data.getDouble("average"));
 	}
 
 	@Override public String getFriendlyName() {return "Bitcoin";}

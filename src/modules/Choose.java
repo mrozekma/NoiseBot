@@ -9,10 +9,11 @@ import debugging.Log;
 
 import au.com.bytecode.opencsv.CSVParser;
 
+import main.CommandContext;
 import main.JSONObject;
-import main.Message;
 import main.NoiseModule;
 import main.Style;
+import main.ViewContext;
 import org.json.JSONException;
 
 import static main.Utilities.getRandom;
@@ -34,7 +35,7 @@ public class Choose extends NoiseModule {
 	}
 
 	@Command("\\.(?:choose|choice) (.*)")
-	public JSONObject choose(Message message, String optsLine) throws JSONException {
+	public JSONObject choose(CommandContext ctx, String optsLine) throws JSONException {
 		this.lastOpts = optsLine;
 		String[] opts;
 		try {
@@ -49,19 +50,19 @@ public class Choose extends NoiseModule {
 	}
 
 	@Command("\\.rechoose")
-	public JSONObject rechoose(Message message) throws JSONException {
+	public JSONObject rechoose(CommandContext ctx) throws JSONException {
 		if(this.lastOpts == null) {
-			message.respond("Perhaps you should have me make a choice first");
+			ctx.respond("Perhaps you should have me make a choice first");
 			return null;
 		} else {
-			return this.choose(message, this.lastOpts);
+			return this.choose(ctx, this.lastOpts);
 		}
 	}
 
 	@View
-	public void view(Message message, JSONObject data) throws JSONException {
+	public void view(ViewContext ctx, JSONObject data) throws JSONException {
 		final boolean realChoice = data.getStringArray("options").length > 1;
-		message.respond("%s#choice %s", realChoice ? "" : "You're having me choose from a set of one...fine, ", data.getString("choice"));
+		ctx.respond("%s#choice %s", realChoice ? "" : "You're having me choose from a set of one...fine, ", data.getString("choice"));
 	}
 
 	@Override public String getFriendlyName() {return "Choose";}

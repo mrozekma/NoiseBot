@@ -70,13 +70,13 @@ public class Score extends NoiseModule implements Serializable {
 	}
 
 	@Command(".*\\b([a-zA-Z0-9_]{3,16})\\+\\+.*")
-	public void incrementScore(Message message, String target) {
-		this.changeScore(message.getSender(), target, 1);
+	public void incrementScore(CommandContext ctx, String target) {
+		this.changeScore(ctx.getMessageSender(), target, 1);
 	}
 
 	@Command(".*\\b([a-zA-Z0-9_]{3,16})\\-\\-.*")
-	public void decrementScore(Message message, String target) {
-		this.changeScore(message.getSender(), target, -1);
+	public void decrementScore(CommandContext ctx, String target) {
+		this.changeScore(ctx.getMessageSender(), target, -1);
 	}
 
 	private void changeScore(String sender, String target, int amount) {
@@ -111,7 +111,7 @@ public class Score extends NoiseModule implements Serializable {
 		}
 
 		final Date sinceDate = (since == null) ? null : since.getTime();
-		final Map<String, Integer> totals = new TreeMap<String, Integer>();
+		final Map<String, Integer> totals = new TreeMap<>();
 		for(Map.Entry<Date, ScoreChange> e : this.scores.entrySet()) {
 			final String user = e.getValue().target;
 			if((forUser == null || forUser.equals(user)) && (sinceDate == null || sinceDate.before(e.getKey()))) {
@@ -123,7 +123,7 @@ public class Score extends NoiseModule implements Serializable {
 	}
 
 	@Command("\\.score(?: @(day|week|month|year|ever))? (.+)")
-	public JSONObject getScore(Message message, String whenStr, String nick) throws JSONException {
+	public JSONObject getScore(CommandContext ctx, String whenStr, String nick) throws JSONException {
 		final When when = (whenStr == null || whenStr.isEmpty()) ? When.ever : When.valueOf(whenStr);
 		final Map<String, Integer> totals = this.getTotals(nick, when);
 		final int total = totals.getOrDefault(nick, 0);
@@ -131,27 +131,27 @@ public class Score extends NoiseModule implements Serializable {
 	}
 
 	@Command("\\.score(?: @(day|week|month|year|ever))?")
-	public JSONObject getSelfScore(Message message, String whenStr) throws JSONException {
-		return this.getScore(message, whenStr, message.getSender());
+	public JSONObject getSelfScore(CommandContext ctx, String whenStr) throws JSONException {
+		return this.getScore(ctx, whenStr, ctx.getMessageSender());
 	}
 
 	@Command("\\.([dwmye])score (.+)")
-	public JSONObject getScoreWhen(Message message, String when, String nick) throws JSONException {
-		return this.getScore(message, When.getByLetter(when.charAt(0)).toString(), nick);
+	public JSONObject getScoreWhen(CommandContext ctx, String when, String nick) throws JSONException {
+		return this.getScore(ctx, When.getByLetter(when.charAt(0)).toString(), nick);
 	}
 
 	@Command("\\.([dwmye])score")
-	public JSONObject getSelfScoreWhen(Message message, String when) throws JSONException {
-		return this.getSelfScore(message, When.getByLetter(when.charAt(0)).toString());
+	public JSONObject getSelfScoreWhen(CommandContext ctx, String when) throws JSONException {
+		return this.getSelfScore(ctx, When.getByLetter(when.charAt(0)).toString());
 	}
 
 	@View(method = {"getScore", "getSelfScore", "getScoreWhen", "getSelfScoreWhen"})
-	public void plainViewScore(Message message, JSONObject data) throws JSONException {
-		message.respond("%s: %#d", data.get("who"), (data.getInt("score") >= 0 ? "positive" : "negative"), data.getInt("score"));
+	public void plainViewScore(ViewContext ctx, JSONObject data) throws JSONException {
+		ctx.respond("%s: %#d", data.get("who"), (data.getInt("score") >= 0 ? "positive" : "negative"), data.getInt("score"));
 	}
 
 	@Command("\\.(?:scores|scoreboard)(?: @(day|week|month|year|ever))?")
-	public JSONObject scores(Message message, String whenStr) throws JSONException {
+	public JSONObject scores(CommandContext ctx, String whenStr) throws JSONException {
 		final When when = (whenStr == null || whenStr.isEmpty()) ? When.ever : When.valueOf(whenStr);
 		final JSONObject totals = new JSONObject();
 		for(Map.Entry<String, Integer> e : this.getTotals(null, when).entrySet()) {
@@ -162,15 +162,15 @@ public class Score extends NoiseModule implements Serializable {
 	}
 
 	@Command("\\.([dwmye])(?:scores|scoreboard)")
-	public JSONObject scoresWhen(Message message, String when) throws JSONException {
-		return this.scores(message, When.getByLetter(when.charAt(0)).toString());
+	public JSONObject scoresWhen(CommandContext ctx, String when) throws JSONException {
+		return this.scores(ctx, When.getByLetter(when.charAt(0)).toString());
 	}
 
 	@View(method = {"scores", "scoresWhen"})
-	public void plainViewScores(Message message, JSONObject data) throws JSONException {
+	public void plainViewScores(ViewContext ctx, JSONObject data) throws JSONException {
 		final org.json.JSONObject scores = data.getJSONObject("scores");
 		if(scores.length() == 0) {
-			message.respond("No scores available");
+			ctx.respond("No scores available");
 			return;
 		}
 
@@ -182,7 +182,7 @@ public class Score extends NoiseModule implements Serializable {
 				scoresMap.put(nick, scores.getInt(nick));
 			} catch(JSONException e) {
 				Log.e(e);
-				message.respond("#error JSONException: %s", e.getMessage());
+				ctx.respond("#error JSONException: %s", e.getMessage());
 			}
 		});
 
@@ -199,7 +199,7 @@ public class Score extends NoiseModule implements Serializable {
 				}
 		);
 
-		message.respond("#([, ] %s: %#d)", (Object)args.toArray());
+		ctx.respond("#([, ] %s: %#d)", (Object)args.toArray());
 	}
 
 	@Override

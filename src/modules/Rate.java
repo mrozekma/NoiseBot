@@ -41,13 +41,13 @@ public class Rate extends NoiseModule {
 	}
 
 	@Command("\\.rate")
-	public JSONObject general(Message message) throws JSONException {
+	public JSONObject general(CommandContext ctx) throws JSONException {
 		final int numMessages = this.counter.values().stream().mapToInt(i -> i).sum();
 		return this.findRate(numMessages);
 	}
 
 	@Command("\\.rate (.+)")
-	public JSONObject specific(Message message, String nick) throws JSONException {
+	public JSONObject specific(CommandContext ctx, String nick) throws JSONException {
 		if(nick.equals(this.bot.getBotNick())) {
 			return new JSONObject().put("who", nick).put("error", "I do not record my own messages");
 		}
@@ -57,8 +57,8 @@ public class Rate extends NoiseModule {
 	}
 
 	@View
-	public void plainView(Message message, JSONObject data) throws JSONException {
-		message.respond("%s sent %d %s in %s = %s messages per minute",
+	public void plainView(ViewContext ctx, JSONObject data) throws JSONException {
+		ctx.respond("%s sent %d %s in %s = %s messages per minute",
 				data.optString("who", "All users"),
 				data.getInt("num_messages"),
 				(data.getInt("num_messages") == 1) ? "message" : "messages",

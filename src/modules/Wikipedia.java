@@ -15,8 +15,9 @@ import org.jsoup.nodes.Document;
 
 import debugging.Log;
 
-import main.Message;
+import main.CommandContext;
 import main.NoiseModule;
+import main.ViewContext;
 import static main.Utilities.*;
 
 /**
@@ -29,33 +30,33 @@ public class Wikipedia extends NoiseModule {
 	private static final int MAXIMUM_MESSAGE_LENGTH = 400; // Approximately (512 bytes including IRC data), although we truncate on all protocols
 
 	@Command("\\.(?:wik|wp) (.+)")
-	public JSONObject wikipedia(Message message, String term) throws JSONException {
+	public JSONObject wikipedia(CommandContext ctx, String term) throws JSONException {
 		return this.getEntry(term, "http://en.wikipedia.org/wiki/" + urlEncode(fixTitle(term)));
 	}
 
 	@View(method = "wikipedia")
-	public void plainWikipediaView(Message message, JSONObject data) throws JSONException {
-		this.plainView(message, data, true, true);
+	public void plainWikipediaView(ViewContext ctx, JSONObject data) throws JSONException {
+		this.plainView(ctx, data, true, true);
 	}
 	
 	@Command(".*((?:https?:\\/\\/en\\.wikipedia\\.org|https:\\/\\/secure\\.wikimedia\\.org\\/wikipedia(?:\\/commons|\\/en))\\/wiki\\/((?:\\S+)(?::[0-9]+)?(?:\\/|\\/(?:[\\w#!:.?+=&%@!\\-\\/]))?)).*")
-	public JSONObject wikipediaLink(Message message, String url, String term) throws JSONException {
+	public JSONObject wikipediaLink(CommandContext ctx, String url, String term) throws JSONException {
 		return this.getEntry(urlDecode(term).replace("_", " "), url);
 	}
 
 	@View(method = "wikipediaLink")
-	public void plainWikipediaLinkView(Message message, JSONObject data) throws JSONException {
-		this.plainView(message, data, true, false);
+	public void plainWikipediaLinkView(ViewContext ctx, JSONObject data) throws JSONException {
+		this.plainView(ctx, data, true, false);
 	}
 
 	@Command(".*\\[\\[([^\\]]+)]].*")
-	public JSONObject wikipediaInline(Message message, String term) throws JSONException {
+	public JSONObject wikipediaInline(CommandContext ctx, String term) throws JSONException {
 		return this.getEntry(term, "http://en.wikipedia.org/wiki/" + urlEncode(fixTitle(term)));
 	}
 
 	@View(method = "wikipediaInline")
-	public void plainWikipediaInlineView(Message message, JSONObject data) throws JSONException {
-		this.plainView(message, data, false, true);
+	public void plainWikipediaInlineView(ViewContext ctx, JSONObject data) throws JSONException {
+		this.plainView(ctx, data, false, true);
 	}
 
 	private static String fixTitle(String term) {
@@ -128,10 +129,10 @@ public class Wikipedia extends NoiseModule {
 		return new JSONObject().put("term", term).put("url", url).put("text", text);
 	}
 
-	private void plainView(Message message, JSONObject data, boolean showErrors, boolean includeLink) throws JSONException {
+	private void plainView(ViewContext ctx, JSONObject data, boolean showErrors, boolean includeLink) throws JSONException {
 		if(data.has("warning")) {
 			if(showErrors) {
-				message.respond("#error %s", data.get("warning"));
+				ctx.respond("#error %s", data.get("warning"));
 			}
 			return;
 		}
@@ -140,11 +141,11 @@ public class Wikipedia extends NoiseModule {
 		if(includeLink) {
 			text += " " + url;
 		}
-		message.respond("%s", text);
+		ctx.respond("%s", text);
 	}
 	
 	@Command("\\.featured")
-	public JSONObject featured(Message message) throws JSONException {
+	public JSONObject featured(CommandContext ctx) throws JSONException {
 		// From http://en.wikipedia.org/w/api.php?action=query&prop=revisions&action=featuredfeed&feed=featured; not going to bother parsing unless it changes
 		final Calendar now = new GregorianCalendar();
 		final String url = String.format("http://en.wikipedia.org/wiki/Special:FeedItem/featured/%04d%02d%02d000000/en", now.get(Calendar.YEAR), now.get(Calendar.MONTH) + 1, now.get(Calendar.DAY_OF_MONTH));
@@ -165,7 +166,7 @@ public class Wikipedia extends NoiseModule {
 				final String articleURL = a.attr("href");
 				if(articleURL.startsWith("/wiki/")) {
 					final String term = articleURL.substring("/wiki/".length());
-					return this.wikipedia(message, urlDecode(term).replace("_", " "));
+					return this.wikipedia(ctx, urlDecode(term).replace("_", " "));
 				}
 			}
 		}
@@ -174,8 +175,8 @@ public class Wikipedia extends NoiseModule {
 	}
 
 	@View(method = "featured")
-	public void plainFeaturedView(Message message, JSONObject data) throws JSONException {
-		this.plainView(message, data, true, true);
+	public void plainFeaturedView(ViewContext ctx, JSONObject data) throws JSONException {
+		this.plainView(ctx, data, true, true);
 	}
 
 	@Override public String getFriendlyName() {return "Wikipedia";}

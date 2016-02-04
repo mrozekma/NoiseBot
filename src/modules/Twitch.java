@@ -13,9 +13,11 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-import main.Message;
+import main.CommandContext;
 import main.MessageBuilder;
 import main.NoiseModule;
+import main.ViewContext;
+
 import static main.Utilities.formatSeconds;
 import static main.Utilities.pluralize;
 
@@ -39,7 +41,7 @@ public class Twitch extends NoiseModule {
 	}
 
 	@Command(".*https?://(?:www\\.)?twitch.tv/([^/]+)/([bc])/([0-9]+).*")
-	public JSONObject twitch(Message message, String username, String type, String videoID) throws JSONException {
+	public JSONObject twitch(CommandContext ctx, String username, String type, String videoID) throws JSONException {
 		try {
 			// I can't figure out where the video ID prefix is documented, but it seems to be this
 			final JSONObject json = apiCall(String.format("/videos/%c%s", type.equals("b") ? 'a' : 'c', videoID));
@@ -64,17 +66,17 @@ public class Twitch extends NoiseModule {
 	}
 
 	@View
-	public void plainView(Message message, JSONObject json) throws JSONException {
+	public void plainView(ViewContext ctx, JSONObject json) throws JSONException {
 		final Calendar date = new GregorianCalendar();
 		try {
 			date.setTime(dateFormat.parse(json.getString("recorded_at")));
 		} catch(ParseException e) {
 			Log.e(e);
-			message.respond("#error %s", e.getMessage());
+			ctx.respond("#error %s", e.getMessage());
 			return;
 		}
 
-		final MessageBuilder builder = message.buildResponse();
+		final MessageBuilder builder = ctx.buildResponse();
 		builder.add("#info %s (%s, recorded %d %s %d", new Object[] {json.get("title"), formatSeconds(json.getInt("length")), date.get(Calendar.DAY_OF_MONTH), date.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.getDefault()), date.get(Calendar.YEAR)});
 
 		if(json.has("user")) {

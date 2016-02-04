@@ -195,12 +195,12 @@ public class Weather extends NoiseModule implements Serializable
 	}
 
 	@Command("\\.weatheradd ([^:]+)")
-	public void weatherAdd(Message message, String loc) {
-		this.weatherAdd(message, message.getSender(), loc);
+	public void weatherAdd(CommandContext ctx, String loc) {
+		this.weatherAdd(ctx, ctx.getMessageSender(), loc);
 	}
 
 	@Command("\\.weatheradd ([^ :]+): (.+)")
-	public void weatherAdd(Message message, String nick, String locDesc) {
+	public void weatherAdd(CommandContext ctx, String nick, String locDesc) {
 		Location loc = null;
 		try {
 			// I'm just hoping WOEIDs are never 5 digits, since they'll be indistinguishable from zipcodes
@@ -215,28 +215,28 @@ public class Weather extends NoiseModule implements Serializable
 		}
 
 		if(loc == null) {
-			message.respond("#error Unable to determine location");
+			ctx.respond("#error Unable to determine location");
 			return;
 		}
 
 		this.locations.put(nick, loc);
 		this.save();
-		message.respond("#success Added location %d (%s) for %s", loc.woeid, loc, nick);
+		ctx.respond("#success Added location %d (%s) for %s", loc.woeid, loc, nick);
 	}
 
 	@Command("\\.weatherrm ([^ :]+)")
-	public void weatherRemove(Message message, String nick) {
+	public void weatherRemove(CommandContext ctx, String nick) {
 		if(this.locations.containsKey(nick)) {
 			final Location loc = this.locations.remove(nick);
 			this.save();
-			message.respond("#success Removed %s (%s) from weather listings", nick, loc);
+			ctx.respond("#success Removed %s (%s) from weather listings", nick, loc);
 		} else {
-			message.respond("#error No location known for %s", nick);
+			ctx.respond("#error No location known for %s", nick);
 		}
 	}
 
 	@Command("\\.weatherls")
-	public JSONObject weatherList(Message message) throws JSONException {
+	public JSONObject weatherList(CommandContext ctx) throws JSONException {
 		final JSONObject rtn = new JSONObject();
 		for(Map.Entry<String, Location> entry : this.locations.entrySet()) {
 			rtn.put(entry.getKey(), entry.getValue().pack());
@@ -245,24 +245,24 @@ public class Weather extends NoiseModule implements Serializable
 	}
 
 	@View(method = "weatherList")
-	public void plainWeatherListView(Message message, JSONObject data) throws JSONException {
+	public void plainWeatherListView(ViewContext ctx, JSONObject data) throws JSONException {
 		final List<Object> args = new LinkedList<>();
 		for(Iterator<String> iter = data.keys(); iter.hasNext();) {
 			final String nick = iter.next();
 			args.add(nick);
 			args.add(Location.unpack(data.getJSONObject(nick)));
 		}
-		message.respond("#([; ] #info %s - %s)", (Object)args.toArray());
+		ctx.respond("#([; ] #info %s - %s)", (Object)args.toArray());
 	}
 
 	@Command("\\.(weather|wx)(?: ([.*]))?")
-	public JSONObject weather(Message message, String type, String filter) throws JSONException {
+	public JSONObject weather(CommandContext ctx, String type, String filter) throws JSONException {
 		final boolean shortForm = type.equals("wx");
 		final JSONObject rtn = new JSONObject().put("short_form", shortForm).put("weather", new Object[0]);
 		if(".".equals(filter)) { // Show only the sender's weather
 			rtn.put("filter", "sender");
-			if(this.locations.containsKey(message.getSender())) {
-				rtn.append("weather", this.getWeather(this.locations.get(message.getSender())).pack());
+			if(this.locations.containsKey(ctx.getMessageSender())) {
+				rtn.append("weather", this.getWeather(this.locations.get(ctx.getMessageSender())).pack());
 			}
 		} else {
 			final boolean includeOfflineUsers = "*".equals(filter);
@@ -279,7 +279,7 @@ public class Weather extends NoiseModule implements Serializable
 	}
 
 	@View(method = "weather")
-	public void plainWeatherView(Message message, JSONObject data) throws JSONException {
+	public void plainWeatherView(ViewContext ctx, JSONObject data) throws JSONException {
 		final JSONArray entries = data.getJSONArray("weather");
 		final Set<Condition> sortedConditions = new TreeSet<>();
 		for(int i = 0; i < entries.length(); i++) {
@@ -293,14 +293,14 @@ public class Weather extends NoiseModule implements Serializable
 				args.add(cond.temp);
 				args.add(txt.toLowerCase());
 			}
-			message.respond("#([  |  ] %(#loc)s %(#temp)s %(#text)s)", (Object)args.toArray());
+			ctx.respond("#([  |  ] %(#loc)s %(#temp)s %(#text)s)", (Object)args.toArray());
 		} else {
 			for(Condition cond : sortedConditions) {
 				args.add(cond.loc);
 				args.add(cond.text);
 				args.add(cond.temp + "F");
 			}
-			message.respond("#([ ] #info [%(#loc)s: %(#text)s, %(#temp)s])", (Object)args.toArray());
+			ctx.respond("#([ ] #info [%(#loc)s: %(#text)s, %(#temp)s])", (Object)args.toArray());
 		}
 	}
 

@@ -1,6 +1,6 @@
 package modules;
 
-import main.Message;
+import main.CommandContext;
 import main.NoiseModule;
 
 /**
@@ -11,13 +11,13 @@ import main.NoiseModule;
  */
 public class Hug extends NoiseModule {
 	@Command(value = "\\.hug (.*)", allowPM = false)
-	public void hug(Message message, String target) {
+	public void hug(CommandContext ctx, String target) {
 		this.bot.sendAction("hugs " + target);
 	}
 	
 	@Command(value = "\\.hug", allowPM = false)
-	public void hugSelf(Message message) {
-		this.hug(message, message.getSender());
+	public void hugSelf(CommandContext ctx) {
+		this.hug(ctx, ctx.getMessageSender());
 	}
 	
 	@Override public String getFriendlyName() {return "Hug";}

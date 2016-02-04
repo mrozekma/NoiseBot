@@ -17,8 +17,9 @@ import org.json.JSONObject;
 
 import debugging.Log;
 
-import main.Message;
+import main.CommandContext;
 import main.NoiseModule;
+import main.ViewContext;
 import static main.Utilities.formatSeconds;
 import static main.Utilities.pluralize;
 
@@ -42,7 +43,7 @@ public class Youtube extends NoiseModule {
 	}
 
 	@Command(".*https?://(?:www.youtube.com/(?:watch\\?v=|v/|user/.*\\#p/u/[0-9]+/)|youtu.be/)([A-Za-z0-9_-]{11}).*")
-	public JSONObject youtube(Message message, String videoID) throws JSONException {
+	public JSONObject youtube(CommandContext ctx, String videoID) throws JSONException {
 		try {
 			JSONObject data = getJSON(videoID);
 			JSONArray videos = data.getJSONArray("items");
@@ -69,7 +70,7 @@ public class Youtube extends NoiseModule {
 	}
 
 	@View
-	public void plainView(Message message, JSONObject video) throws JSONException {
+	public void plainView(ViewContext ctx, JSONObject video) throws JSONException {
 		final JSONObject snippet = video.getJSONObject("snippet");
 
 		String author, title;
@@ -99,7 +100,7 @@ public class Youtube extends NoiseModule {
 					final String pubdate = String.format("%d %s %d", startTime.get(Calendar.DAY_OF_MONTH), startTime.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.getDefault()), startTime.get(Calendar.YEAR));
 					final String pubtime = String.format("%d:%02d %s", startTime.get(Calendar.HOUR_OF_DAY), startTime.get(Calendar.MINUTE), startTime.getTimeZone().getDisplayName(false, TimeZone.SHORT));
 
-					message.respond("#info %s (Live, posted by %s, started on %s at %s, %s)", title, author, pubdate, pubtime, pluralize(viewers, "viewer", "viewers"));
+					ctx.respond("#info %s (Live, posted by %s, started on %s at %s, %s)", title, author, pubdate, pubtime, pluralize(viewers, "viewer", "viewers"));
 					return;
 				} else if(live.equals("upcoming")) {
 					Calendar startTime = new GregorianCalendar();
@@ -108,7 +109,7 @@ public class Youtube extends NoiseModule {
 					final String pubdate = String.format("%d %s %d", startTime.get(Calendar.DAY_OF_MONTH), startTime.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.getDefault()), startTime.get(Calendar.YEAR));
 					final String pubtime = String.format("%d:%02d %s", startTime.get(Calendar.HOUR_OF_DAY), startTime.get(Calendar.MINUTE), startTime.getTimeZone().getDisplayName(false, TimeZone.SHORT));
 
-					message.respond("#info %s (Upcoming, posted by %s, starting on %s at %s)", title, author, pubdate, pubtime);
+					ctx.respond("#info %s (Upcoming, posted by %s, starting on %s at %s)", title, author, pubdate, pubtime);
 					return;
 				} else {
 					Calendar endTime = new GregorianCalendar();
@@ -116,16 +117,16 @@ public class Youtube extends NoiseModule {
 
 					final String pubdate = String.format("%d %s %d", endTime.get(Calendar.DAY_OF_MONTH), endTime.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.getDefault()), endTime.get(Calendar.YEAR));
 
-					message.respond("#info %s (Recorded, posted by %s, ended on %s, %s)", title, author, pubdate, pluralize(viewCount, "view", "views"));
+					ctx.respond("#info %s (Recorded, posted by %s, ended on %s, %s)", title, author, pubdate, pluralize(viewCount, "view", "views"));
 					return;
 				}
 			}
 
 			final String pubdate = String.format("%d %s %d", published.get(Calendar.DAY_OF_MONTH), published.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.getDefault()), published.get(Calendar.YEAR));
-			message.respond("#info %s (posted by %s on %s, %s, %s)", title, author, pubdate, formatSeconds(duration.getSeconds()), pluralize(viewCount, "view", "views"));
+			ctx.respond("#info %s (posted by %s on %s, %s, %s)", title, author, pubdate, formatSeconds(duration.getSeconds()), pluralize(viewCount, "view", "views"));
 		} catch(ParseException e) {
 			Log.e(e);
-			message.respond("#error Parse exception: %s", e.getMessage());
+			ctx.respond("#error Parse exception: %s", e.getMessage());
 		}
 	}
 

@@ -12,8 +12,9 @@ import org.json.JSONObject;
 
 import debugging.Log;
 
-import main.Message;
+import main.CommandContext;
 import main.NoiseModule;
+import main.ViewContext;
 
 /**
  * Clip
@@ -29,7 +30,7 @@ public class Clip extends NoiseModule {
 	}
 
 	@Command(".*(http://clip.mrozekma.com/[0-9a-fA-F-]{36}).*")
-	public JSONObject clip(Message message, String url) throws JSONException {
+	public JSONObject clip(CommandContext ctx, String url) throws JSONException {
 		try {
 			return getJSON(url + "?info");
 		} catch(IOException e) {
@@ -39,8 +40,8 @@ public class Clip extends NoiseModule {
 	}
 
 	@View
-	public void view(Message message, JSONObject data) throws JSONException {
-		message.respond("#info %s (from %s, %s-%s)", data.isNull("title") ? "Untitled" : data.get("title"), data.get("source"), data.get("start"), data.get("end"));
+	public void view(ViewContext ctx, JSONObject data) throws JSONException {
+		ctx.respond("#info %s (from %s, %s-%s)", data.isNull("title") ? "Untitled" : data.get("title"), data.get("source"), data.get("start"), data.get("end"));
 	}
 	
 	@Override public String getFriendlyName() {return "Clip";}

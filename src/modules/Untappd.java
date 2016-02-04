@@ -104,7 +104,7 @@ public class Untappd extends NoiseModule {
 	}
 
 	@Command("\\.drank (.*)")
-	public JSONObject drank(Message message, String user) throws JSONException {
+	public JSONObject drank(CommandContext ctx, String user) throws JSONException {
 		try {
 			Document page = Jsoup.connect("http://untappd.com/user/" + user).timeout(10000).get();
 			Element checkin = page.select(".checkin").first();
@@ -137,13 +137,13 @@ public class Untappd extends NoiseModule {
 	}
 
 	@View(method = "drank")
-	public void plainDrankView(Message message, JSONObject data) throws JSONException {
+	public void plainDrankView(ViewContext ctx, JSONObject data) throws JSONException {
 		if(!data.has("texts")) {
-			message.respond("No results");
+			ctx.respond("No results");
 			return;
 		}
 
-		final MessageBuilder builder = message.buildResponse();
+		final MessageBuilder builder = ctx.buildResponse();
 		builder.add("#([ - ] #element %s)", new Object[] {data.getStringArray("texts")});
 		if(data.has("rating")) {
 			builder.add(" - %(#rating)s", new Object[] {getRatingString(data.getInt("rating"))});
@@ -153,7 +153,7 @@ public class Untappd extends NoiseModule {
 	}
 
 	@Command("\\.drankstats (.*)")
-	public JSONObject drankstats(Message m, String user) throws JSONException {
+	public JSONObject drankstats(CommandContext m, String user) throws JSONException {
 		try {
 			Document page = Jsoup.connect("http://untappd.com/user/" + user).timeout(10000).get();
 			Elements stats = page.select(".stats").first().select("a");
@@ -171,14 +171,14 @@ public class Untappd extends NoiseModule {
 	}
 
 	@View(method = "drankstats")
-	public void plainDrankStatsView(Message message, JSONObject data) throws JSONException {
+	public void plainDrankStatsView(ViewContext ctx, JSONObject data) throws JSONException {
 		final JSONArray stats = data.getJSONArray("stats");
 		final List<String> args = new LinkedList<>();
 		for(int i = 0; i < stats.length(); i++) {
 			args.add(stats.getJSONObject(i).getString("title"));
 			args.add(stats.getJSONObject(i).getString("value"));
 		}
-		message.respond("#([, ] %s: %s)", (Object)args.toArray());
+		ctx.respond("#([, ] %s: %s)", (Object)args.toArray());
 	}
 
 	@Override public String getFriendlyName() { return "Untappd"; }

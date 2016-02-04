@@ -154,19 +154,19 @@ public class Lebowski extends NoiseModule {
 	}
 
 	@Command(value = ".*fascist.*", allowPM = false)
-	public JSONObject fascist(Message message) throws JSONException {
-		return this.lebowski(message, "fucking fascist");
+	public JSONObject fascist(CommandContext ctx) throws JSONException {
+		return this.lebowski(ctx, "fucking fascist");
 	}
 
 	@Command(value = ".*shut the fuck up.*", allowPM = false)
-	public JSONObject shutTheFuckUp(Message message) throws JSONException {
-		return this.lebowski(message, "shut the fuck up");
+	public JSONObject shutTheFuckUp(CommandContext ctx) throws JSONException {
+		return this.lebowski(ctx, "shut the fuck up");
 	}
 
 	// Single char at the beginning doesn't allow . to avoid matching commands
 	// [a-zA-Z0-9,\\'\\\" !-][a-zA-Z0-9,\\'\\\"\\. !-]
 	@Command(value = "([^\\.].{" + (MIN_MESSAGE - 1) + "," + (PATTERN_MAX - 1) + "})", allowPM = false)
-	public JSONObject lebowski(Message message, String userMessage) throws JSONException {
+	public JSONObject lebowski(CommandContext ctx, String userMessage) throws JSONException {
 		Log.i("Lebowski: Searching for matches for \"%s\"", userMessage);
 
 		final JSONObject rtn = new JSONObject().put("message", userMessage);
@@ -183,7 +183,7 @@ public class Lebowski extends NoiseModule {
 	}
 
 	@View
-	public void view(Message message, JSONObject data) throws JSONException {
+	public void view(ViewContext ctx, JSONObject data) throws JSONException {
 		this.linesSinceLastQuote++;
 
 		if(!data.has("matches")) {return;}
@@ -192,12 +192,12 @@ public class Lebowski extends NoiseModule {
 
 		if(this.linesSinceLastQuote < SPACER_LINES) {
 			return;
-		} else if(this.lastNick.equalsIgnoreCase(message.getSender())) {
+		} else if(this.lastNick.equalsIgnoreCase(ctx.getMessageSender())) {
 			if(++this.lastNickMatches > MAX_CONSECUTIVE_MATCHES) {
 				return;
 			}
 		} else {
-			this.lastNick = message.getSender();
+			this.lastNick = ctx.getMessageSender();
 			this.lastNickMatches = 0;
 			this.linesSinceLastQuote = 0;
 		}
@@ -209,38 +209,38 @@ public class Lebowski extends NoiseModule {
 		this.undisplayedMatches.remove(idx);
 		this.lastMatchedUserMessage = data.getString("message");
 
-		final MessageBuilder builder = message.buildResponse();
+		final MessageBuilder builder = ctx.buildResponse();
 		this.renderMatch(builder, match, matches.length(), data.getString("message"));
 		builder.send();
 	}
 
-	@Command("\\.next") public void nextLine(Message message) {
+	@Command("\\.next") public void nextLine(CommandContext ctx) {
 		if(this.lastLineMatched < 0) {
-			message.respond("#error No matches yet");
+			ctx.respond("#error No matches yet");
 		} else if(this.lastLineMatched+1 == this.lines.length) {
-			message.respond("#error Out of lines");
+			ctx.respond("#error Out of lines");
 		} else {
 			this.undisplayedMatches = null;
-			if(this.limiter.isAllowed(message.getSender())) {
-				message.respond("#quote %s", this.lines[++this.lastLineMatched]);
+			if(this.limiter.isAllowed(ctx.getMessageSender())) {
+				ctx.respond("#quote %s", this.lines[++this.lastLineMatched]);
 			} else {
-				Slap.slap(this.bot, message);
+				Slap.slap(this.bot, ctx);
 			}
 		}
 	}
 
-	@Command("\\.other") public void other(Message message) throws JSONException {
+	@Command("\\.other") public void other(CommandContext ctx) throws JSONException {
 		if(this.lastLineMatched < 0 || this.undisplayedMatches == null) {
-			message.respond("#error No matches yet");
+			ctx.respond("#error No matches yet");
 		} else if(this.undisplayedMatches.length() == 0) {
-			message.respond("#error No other matches to display");
+			ctx.respond("#error No other matches to display");
 		} else {
 			final int idx = getRandomInt(0, this.undisplayedMatches.length() - 1);
 			final org.json.JSONObject match = this.undisplayedMatches.getJSONObject(idx);
 			this.lastLineMatched = match.getInt("line_num");
 			this.undisplayedMatches.remove(idx);
 
-			final MessageBuilder builder = message.buildResponse();
+			final MessageBuilder builder = ctx.buildResponse();
 			this.renderMatch(builder, match, 1, this.lastMatchedUserMessage);
 			builder.send();
 		}

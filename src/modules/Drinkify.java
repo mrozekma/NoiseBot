@@ -13,8 +13,9 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import debugging.Log;
-import main.Message;
+import main.CommandContext;
 import main.NoiseModule;
+import main.ViewContext;
 
 /**
  * Drinkify module
@@ -25,7 +26,7 @@ import main.NoiseModule;
  */
 public class Drinkify extends NoiseModule {
   @Command("\\.drinkify (.+)")
-  public JSONObject drinkify(Message message, String band) throws JSONException
+  public JSONObject drinkify(CommandContext ctx, String band) throws JSONException
   {
     final JSONObject rtn = new JSONObject();
     Document page;
@@ -55,8 +56,8 @@ public class Drinkify extends NoiseModule {
   }
 
   @View
-  public void view(Message message, JSONObject data) throws JSONException {
-    message.respond("%(#bold)s: #([, ] %s). %s", data.get("band"), data.getStringArray("ingredients"), data.get("instructions"));
+  public void view(ViewContext ctx, JSONObject data) throws JSONException {
+    ctx.respond("%(#bold)s: #([, ] %s). %s", data.get("band"), data.getStringArray("ingredients"), data.get("instructions"));
   }
 
   @Override

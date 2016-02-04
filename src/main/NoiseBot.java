@@ -278,6 +278,10 @@ public abstract class NoiseBot {
 		}
 	}
 
+	public ViewContext makeViewContext() {
+		return new ViewContext(new Message(this, null, null, false));
+	}
+
 	public abstract Protocol getProtocol();
 
 	public abstract String getBotNick();

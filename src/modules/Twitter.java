@@ -12,7 +12,7 @@ import java.util.TimerTask;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-import main.Style;
+import main.*;
 import migbase64.Base64;
 
 import org.json.JSONArray;
@@ -22,10 +22,6 @@ import org.json.JSONObject;
 import org.jsoup.Jsoup;
 
 import debugging.Log;
-
-import main.Message;
-import main.ModuleInitException;
-import main.NoiseModule;
 
 /**
  * Twitter
@@ -120,7 +116,7 @@ public class Twitter extends NoiseModule {
 	}
 
 	@Command(".*" + TWITTER_URL_PATTERN + ".*")
-	public JSONObject tweet(Message message, String id) throws JSONException {
+	public JSONObject tweet(CommandContext ctx, String id) throws JSONException {
 		try {
 			final JSONObject json = api("/statuses/show/" + id + ".json");
 			if(json.has("user") && json.has("text")) {
@@ -144,10 +140,10 @@ public class Twitter extends NoiseModule {
 	}
 
 	@View
-	public void plainView(Message message, JSONObject json) throws JSONException {
+	public void plainView(ViewContext ctx, JSONObject json) throws JSONException {
 		final String username = json.getJSONObject("user").getString("screen_name");
 		final String text = Jsoup.parse(json.getString("text")).text();
-		message.respond("#username @%s#info : %s", username, text);
+		ctx.respond("#username @%s#info : %s", username, text);
 	}
 
 	public void poll() {
@@ -169,7 +165,7 @@ public class Twitter extends NoiseModule {
 					final JSONObject tweet = results.getJSONObject(i);
 					Log.i("Emitting tweet ID %ld", tweet.getLong("id"));
 					// Not sure what the right thing to do is here; I really want to displayMessage(), but the interface is pretty awkward
-					this.plainView(new Message(this.bot, null, null, false), tweet);
+					this.plainView(this.bot.makeViewContext(), tweet);
 					this.sinceID = tweet.getLong("id");
 				}
 			}

@@ -1,8 +1,9 @@
 package modules;
 
-import main.Message;
+import main.CommandContext;
 import main.NoiseModule;
 import main.Style;
+import main.ViewContext;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -26,7 +27,7 @@ public class Woop extends NoiseModule {
    }
 
    @Command(value = "\\.woop (coffee)? ?([0-9]+\\.?[0-9]*)", caseSensitive = false)
-   public void woop(Message message, String coffeeArg, String woopsArg) {
+   public void woop(CommandContext ctx, String coffeeArg, String woopsArg) {
       float requestedWoops = Float.valueOf(woopsArg);
       String woopType = REGULAR_WOOP;
 
@@ -35,17 +36,17 @@ public class Woop extends NoiseModule {
       }
 
       String woops = generateWoops(woopType, requestedWoops);
-      message.respond("#woop %s", woops);
+      ctx.respond("#woop %s", woops);
   }
 
    @Command(value = "\\.woop ?(coffee)?", caseSensitive = false)
-   public void woopDefault(Message message, String coffeeArg) {this.woop(message, coffeeArg, "10");}
+   public void woopDefault(CommandContext ctx, String coffeeArg) {this.woop(ctx, coffeeArg, "10");}
 
    @Command(value = "\\.woo[o]+p (coffee)? ?([0-9]+\\.?[0-9]*)", caseSensitive = false)
-   public void woopLong(Message message, String coffeeArg, String woopsArg) {this.woop(message, coffeeArg, woopsArg);}
+   public void woopLong(CommandContext ctx, String coffeeArg, String woopsArg) {this.woop(ctx, coffeeArg, woopsArg);}
 
    @Command(value = "\\.woo([o]+)p ?(coffee)?", caseSensitive = false)
-   public void woopLongDefault(Message message, String numOs, String coffeeArg) {this.woop(message, coffeeArg, "" + (numOs.length() + 2));}
+   public void woopLongDefault(CommandContext ctx, String numOs, String coffeeArg) {this.woop(ctx, coffeeArg, "" + (numOs.length() + 2));}
 
    private String generateWoops(String woop, float requestedWoops) {
       int wholeWoops = (int) Math.floor(requestedWoops);

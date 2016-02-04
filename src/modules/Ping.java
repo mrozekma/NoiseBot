@@ -1,6 +1,6 @@
 package modules;
 
-import main.Message;
+import main.CommandContext;
 import main.NoiseModule;
 import static main.Utilities.getRandom;
 
@@ -12,13 +12,13 @@ import static main.Utilities.getRandom;
  */
 public class Ping extends NoiseModule {
 	@Command(value = "${bot.nick}!")
-	public void direct(Message message) {
-		message.respond("%s!", message.getSender());
+	public void direct(CommandContext ctx) {
+		ctx.respond("%s!", ctx.getMessageSender());
 	}
 
 	@Command(value = "(?:hi|hello|hey) ${bot.nick}", caseSensitive = false)
-	public void indirect(Message message) {
-		message.respond("%s %s", getRandom(new String[] {"Hi", "Hello", "Hey"}), message.getSender());
+	public void indirect(CommandContext ctx) {
+		ctx.respond("%s %s", getRandom(new String[] {"Hi", "Hello", "Hey"}), ctx.getMessageSender());
 	}
 
 	@Override public String getFriendlyName() {return "Ping";}

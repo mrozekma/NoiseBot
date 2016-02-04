@@ -58,7 +58,7 @@ public class QDB extends NoiseModule {
 	}
 
 	@Command("\\.(?:qdb|quote) ([0-9]+)")
-	public JSONObject show(Message message, int id) throws JSONException {
+	public JSONObject show(CommandContext ctx, int id) throws JSONException {
 		try {
 			return this.getQuote(id);
 		} catch(ParseException e) {
@@ -71,7 +71,7 @@ public class QDB extends NoiseModule {
 	}
 
 	@Command("\\.(?:qdb|quote)")
-	public JSONObject showRandom(Message message) throws JSONException {
+	public JSONObject showRandom(CommandContext ctx) throws JSONException {
 		try {
 			final int maxId = this.getMaxID();
 			Optional<JSONObject> quote = Optional.empty();
@@ -91,23 +91,23 @@ public class QDB extends NoiseModule {
 	}
 
 	@View
-	public void plainView(Message message, JSONObject data) throws JSONException {
+	public void plainView(ViewContext ctx, JSONObject data) throws JSONException {
 		final String[] lines = data.getStringArray("lines");
 		if(lines.length == 0) { // I don't think this is ever true
 			return;
 		}
-		final MessageBuilder builder = message.buildResponse();
+		final MessageBuilder builder = ctx.buildResponse();
 		if(data.has("upvotes") && data.has("downvotes")) {
 			builder.add("#quote (+%d/-%d) ", new Object[] {data.getInt("upvotes"), data.getInt("downvotes")});
 		}
 		builder.add("#quote %s", new Object[] {lines[0]}).send();
 		for(int i = 1; i < lines.length; i++) {
-			message.respond("#quote %s", lines[i]);
+			ctx.respond("#quote %s", lines[i]);
 		}
 	}
 
 	@View(Protocol.Slack)
-	public void slackView(Message message, JSONObject data) throws JSONException {
+	public void slackView(ViewContext ctx, JSONObject data) throws JSONException {
 		final SlackNoiseBot bot = (SlackNoiseBot)this.bot;
 		final String body = Arrays.stream(data.getStringArray("lines")).collect(Collectors.joining("\n"));
 		StringBuilder votes = new StringBuilder();
@@ -119,7 +119,7 @@ public class QDB extends NoiseModule {
 		}
 		final SlackAttachment attachment = new SlackAttachment(String.format("Quote #%d", data.getInt("id")), body, body + "\n" + votes, null);
 		attachment.setTitleLink(String.format("%s/%d", this.baseURL, data.getInt("id")));
-		bot.sendAttachmentTo(message.getResponseTarget(), attachment);
+		bot.sendAttachmentTo(ctx.getResponseTarget(), attachment);
 	}
 
 	private void checkForNewQuotes() {

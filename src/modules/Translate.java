@@ -3,9 +3,10 @@ package modules;
 import java.io.IOException;
 import java.util.*;
 
-import main.Message;
+import main.CommandContext;
 import main.MessageBuilder;
 import main.NoiseModule;
+import main.ViewContext;
 
 import main.Style;
 import org.json.JSONArray;
@@ -99,7 +100,7 @@ public class Translate extends NoiseModule {
 	}
 
 	@Command("\\.language (.+)")
-	public JSONObject guessLanguage(Message message, String phrase) throws JSONException {
+	public JSONObject guessLanguage(CommandContext ctx, String phrase) throws JSONException {
 		try {
 			final JSONObject json = getJSON(String.format("https://www.googleapis.com/language/translate/v2/detect?key=%s&format=text&q=%s", urlEncode(this.key), urlEncode(phrase)), true);
 			if(json.has("data")) {
@@ -130,8 +131,8 @@ public class Translate extends NoiseModule {
 	}
 
 	@View(method = "guessLanguage")
-	public void plainLanguageView(Message message, JSONObject data) throws JSONException {
-		message.respond("%(#language)s (# %2.2f%%#plain )", data.optString("language_name", data.getString("language_code")), data.getBoolean("reliable") ? "reliable" : "unreliable", data.getDouble("confidence"));
+	public void plainLanguageView(ViewContext ctx, JSONObject data) throws JSONException {
+		ctx.respond("%(#language)s (# %2.2f%%#plain )", data.optString("language_name", data.getString("language_code")), data.getBoolean("reliable") ? "reliable" : "unreliable", data.getDouble("confidence"));
 	}
 
 	private static JSONObject getLanguage(String lang) throws JSONException {
@@ -151,7 +152,7 @@ public class Translate extends NoiseModule {
 		return rtn;
 	}
 
-	private JSONObject translate(Message message, JSONObject fromLanguage, JSONObject toLanguage, String phrase) throws JSONException {
+	private JSONObject translate(CommandContext ctx, JSONObject fromLanguage, JSONObject toLanguage, String phrase) throws JSONException {
 		try {
 			final JSONObject json = getJSON(String.format("https://www.googleapis.com/language/translate/v2?key=%s&format=text&source=%s&target=%s&q=%s", urlEncode(this.key), urlEncode(fromLanguage.getString("language_code")), urlEncode(toLanguage.getString("language_code")), urlEncode(phrase)));
 			if(json.has("data")) {
@@ -171,28 +172,28 @@ public class Translate extends NoiseModule {
 		}
 	}
 
-	private JSONObject translate(Message message, JSONObject fromLanguage, String toCode, String phrase) throws JSONException {
-		return this.translate(message, fromLanguage, getLanguage(toCode), phrase);
+	private JSONObject translate(CommandContext ctx, JSONObject fromLanguage, String toCode, String phrase) throws JSONException {
+		return this.translate(ctx, fromLanguage, getLanguage(toCode), phrase);
 	}
 
 	@Command("\\.translate ([a-z]+) ([a-z]+) \"(.*)\"")
-	public JSONObject translate(Message message, String fromCode, String toCode, String phrase) throws JSONException {
-		return this.translate(message, getLanguage(fromCode), toCode, phrase);
+	public JSONObject translate(CommandContext ctx, String fromCode, String toCode, String phrase) throws JSONException {
+		return this.translate(ctx, getLanguage(fromCode), toCode, phrase);
 	}
 
 	@Command("\\.translate ([a-z]+) \"(.*)\"")
-	public JSONObject translate(Message message, String toCode, String phrase) throws JSONException {
-		return this.translate(message, this.guessLanguage(message, phrase), toCode, phrase);
+	public JSONObject translate(CommandContext ctx, String toCode, String phrase) throws JSONException {
+		return this.translate(ctx, this.guessLanguage(ctx, phrase), toCode, phrase);
 	}
 
 	@Command("\\.translate \"(.*)\"")
-	public JSONObject translate(Message message, String phrase) throws JSONException {
-		return this.translate(message, "en", phrase);
+	public JSONObject translate(CommandContext ctx, String phrase) throws JSONException {
+		return this.translate(ctx, "en", phrase);
 	}
 
 	@View(method = "translate")
-	public void plainTranslateView(Message message, JSONObject data) throws JSONException {
-		final MessageBuilder builder = message.buildResponse();
+	public void plainTranslateView(ViewContext ctx, JSONObject data) throws JSONException {
+		final MessageBuilder builder = ctx.buildResponse();
 
 		JSONObject language = data.getJSONObject("from_language");
 		builder.add("#language %s", new Object[] {language.optString("language_name", language.getString("language_code"))});
@@ -210,12 +211,12 @@ public class Translate extends NoiseModule {
 	}
 
 	@Command("\\.engrish \"(.*)\"")
-	public JSONObject engrish(Message message, String phrase) throws JSONException {
-		return this.engrish(message, 4, phrase);
+	public JSONObject engrish(CommandContext ctx, String phrase) throws JSONException {
+		return this.engrish(ctx, 4, phrase);
 	}
 
 	@Command("\\.engrish ([0-9]+) \"(.*)\"")
-	public JSONObject engrish(Message message, int times, String phrase) throws JSONException {
+	public JSONObject engrish(CommandContext ctx, int times, String phrase) throws JSONException {
 		times = range(times, 1, 20);
 		String[] langs = LANGUAGE_KEYS.keySet().toArray(new String[0]);
 		for(int i = 0; i < times; i++) {
@@ -234,7 +235,7 @@ public class Translate extends NoiseModule {
 		final JSONObject rtn = new JSONObject().put("original", phrase);
 		for(int i = 0; i <= times; i++) {
 			final JSONObject toLang = getLanguage(langs[i]);
-			final JSONObject translated = this.translate(message, fromLang, toLang, phrase);
+			final JSONObject translated = this.translate(ctx, fromLang, toLang, phrase);
 			if(translated.has("error")) {
 				return translated;
 			}
@@ -246,7 +247,7 @@ public class Translate extends NoiseModule {
 	}
 
 	@View(method = "engrish")
-	public void plainEngrishView(Message message, JSONObject data) throws JSONException {
+	public void plainEngrishView(ViewContext ctx, JSONObject data) throws JSONException {
 		final JSONArray chain = data.getJSONArray("engrish");
 		final String[] languageChain = new String[chain.length() + 1];
 		languageChain[0] = getLanguage(ENGRISH_ORIGIN).optString("language_name", ENGRISH_ORIGIN);
@@ -257,8 +258,8 @@ public class Translate extends NoiseModule {
 			languageChain[i + 1] = lang.optString("language_name", lang.getString("language_code"));
 			translated = entry.getString("translated");
 		}
-		message.respond("#([ -> ] %(#language)s)", (Object)languageChain);
-		message.respond("%s", translated);
+		ctx.respond("#([ -> ] %(#language)s)", (Object)languageChain);
+		ctx.respond("%s", translated);
 	}
 
 	@Override public String getFriendlyName() {return "Translate";}

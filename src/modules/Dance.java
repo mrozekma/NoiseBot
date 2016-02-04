@@ -1,6 +1,6 @@
 package modules;
 
-import main.Message;
+import main.CommandContext;
 import main.NoiseModule;
 import main.Protocol;
 import main.Style;
@@ -26,14 +26,14 @@ public class Dance extends NoiseModule {
 	}
 
 	@Command(value = ".*\\bdanc(?:e|ing).*", caseSensitive = false)
-	public void dance(Message message) {
-		message.respondAction("dances :D-<");
-		message.respondAction("dances :D|-<");
-		message.respondAction("dances :D/-<");
+	public void dance(CommandContext ctx) {
+		ctx.respondAction("dances :D-<");
+		ctx.respondAction("dances :D|-<");
+		ctx.respondAction("dances :D/-<");
 	}
 
 	@Command(value = ".*\\bdisco.*", caseSensitive = false)
-	public void disco(Message message) {
+	public void disco(CommandContext ctx) {
 		// Not sure if this should be a view; I don't really want this to return data
 		final String[] lines = {
 			"#first_guy \\o   #first_line LET'S   #second_guy o/",
@@ -42,17 +42,17 @@ public class Dance extends NoiseModule {
 		};
 		if(this.bot.getProtocol() == Protocol.Slack) {
 			// This looks so boring I think I'm just going to not disco on Slack. Disco is dead
-//			message.respond(String.format("```%s```", Arrays.stream(lines).collect(Collectors.joining("\n"))));
+//			ctx.respond(String.format("```%s```", Arrays.stream(lines).collect(Collectors.joining("\n"))));
 		} else {
-			Arrays.stream(lines).forEach(message::respond);
+			Arrays.stream(lines).forEach(ctx::respond);
 		}
 	}
 
 	@Command(value = ".*\\bflarhgunnstow.*", caseSensitive = false)
-	public void flarhgunnstow(Message message) {
-		message.respondAction("flarhgunnstows :D]-<");
-		message.respondAction("flarhgunnstows :D|-<");
-		message.respondAction("flarhgunnstows :D[-<");
+	public void flarhgunnstow(CommandContext ctx) {
+		ctx.respondAction("flarhgunnstows :D]-<");
+		ctx.respondAction("flarhgunnstows :D|-<");
+		ctx.respondAction("flarhgunnstows :D[-<");
 	}
 
 	@Override public String getFriendlyName() {return "Dance";}

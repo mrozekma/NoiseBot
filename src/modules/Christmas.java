@@ -41,47 +41,47 @@ public class Christmas extends NoiseModule {
 	}
 
 	@Command("[^\\.].*")
-	public JSONObject talked(Message message) throws JSONException {
+	public JSONObject talked(CommandContext ctx) throws JSONException {
 		// We return non-null if we actually want the view to display something; there's no actual data
 		return (getRandomInt(0, 50) == 0) ? new JSONObject() : null;
 	}
 
 	@View(method = "talked")
-	public void plainTalkedView(Message message, JSONObject data) {
-		message.respond("Ho Ho Ho!");
+	public void plainTalkedView(ViewContext ctx, JSONObject data) {
+		ctx.respond("Ho Ho Ho!");
 	}
 
 	@View(value = Protocol.IRC, method = "talked")
-	public void ircTalkedView(Message message, JSONObject data) {
+	public void ircTalkedView(ViewContext ctx, JSONObject data) {
 		final Style first = this.odd ? Style.RED : Style.GREEN,
 		            second = this.odd ? Style.GREEN : Style.RED;
-		message.respond("%#s %#s %#s", first, "Ho", second, "Ho", first, "Ho!");
+		ctx.respond("%#s %#s %#s", first, "Ho", second, "Ho", first, "Ho!");
 		this.odd = !this.odd;
 	}
 
 	@View(value = Protocol.Slack, method = "talked")
-	public void slackTalkedView(Message message, JSONObject data) {
+	public void slackTalkedView(ViewContext ctx, JSONObject data) {
 		final String first = this.odd ? ":santa:" : ":christmas_tree:",
 		             second = this.odd ? ":christmas_tree:" : ":santa:";
-		message.respond("%s %s %s!", first, second, first);
+		ctx.respond("%s %s %s!", first, second, first);
 		this.odd = !this.odd;
 	}
 
 	@Command("\\.jingle")
-	public JSONObject jingle(Message message) throws JSONException {
+	public JSONObject jingle(CommandContext ctx) throws JSONException {
 		return new JSONObject().put("song", getRandom(lyrics).split("\n"));
 	}
 
 	@View(method = "jingle")
-	public void plainJingleView(Message message, JSONObject data) throws JSONException {
+	public void plainJingleView(ViewContext ctx, JSONObject data) throws JSONException {
 		for(String line : data.getStringArray("song")) {
-			message.respond("#blue %s", line);
+			ctx.respond("#blue %s", line);
 		}
 	}
 
 	@View(value = Protocol.Slack, method = "jingle")
-	public void slackJingleView(Message message, JSONObject data) throws JSONException {
-		message.respond(Arrays.stream(data.getStringArray("song")).collect(Collectors.joining("\n")));
+	public void slackJingleView(ViewContext ctx, JSONObject data) throws JSONException {
+		ctx.respond(Arrays.stream(data.getStringArray("song")).collect(Collectors.joining("\n")));
 	}
 
 	@Override public String getFriendlyName() {return "Christmas";}

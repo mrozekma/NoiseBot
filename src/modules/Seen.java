@@ -5,10 +5,12 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+import main.CommandContext;
 import main.JSONObject;
-import main.Message;
 import main.NoiseModule;
 import main.Style;
+import main.ViewContext;
+
 import org.json.JSONException;
 
 /**
@@ -30,7 +32,7 @@ public class Seen extends NoiseModule implements Serializable {
 	}
 
 	@Command("\\.seen (.+)")
-	public JSONObject seen(Message message, String target) throws JSONException {
+	public JSONObject seen(CommandContext ctx, String target) throws JSONException {
 		target = target.replaceAll(" +$", "");
 		final JSONObject rtn = new JSONObject();
 		rtn.put("who", target);
@@ -46,25 +48,25 @@ public class Seen extends NoiseModule implements Serializable {
 	}
 
 	@View(method = "seen")
-	public void plainView(Message message, JSONObject data) throws JSONException {
+	public void plainView(ViewContext ctx, JSONObject data) throws JSONException {
 		if(data.has("last_online")) {
 			if(data.optString("last_online", "").equals("now")) {
 				if(data.has("last_spoke")) {
-					message.respond("#here %s is here now -- last spoke %s", data.get("who"), data.get("last_spoke"));
+					ctx.respond("#here %s is here now -- last spoke %s", data.get("who"), data.get("last_spoke"));
 				} else {
-					message.respond("#here %s is here now", data.get("who"));
+					ctx.respond("#here %s is here now", data.get("who"));
 				}
 			} else {
-				message.respond("#last_seen %s was last seen %s", data.get("who"), data.get("last_online"));
+				ctx.respond("#last_seen %s was last seen %s", data.get("who"), data.get("last_online"));
 			}
 		} else {
-			message.respond("#never_seen %s hasn't been seen", data.get("who"));
+			ctx.respond("#never_seen %s hasn't been seen", data.get("who"));
 		}
 	}
 	
 	@Command(".*")
-	public void talked(Message message) {
-		this.talkDates.put(message.getSender(), new Date());
+	public void talked(CommandContext ctx) {
+		this.talkDates.put(ctx.getMessageSender(), new Date());
 		this.save();
 	}
 	

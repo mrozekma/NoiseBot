@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 
-import main.Message;
+import main.CommandContext;
 import main.NoiseModule;
 
 /**
@@ -36,18 +36,18 @@ public class Tell extends NoiseModule implements Serializable {
 	private Map<String, LinkedList<CachedMessage>> messages = new HashMap<>();
 
 	@Command(value = "\\.(?:tell|ask) ([^ ]+) (.+)", allowPM = false)
-	public void tell(Message message, String nick, String userMessage) {
-		if(nick.equals(message.getSender())) {
-			message.respond("#error That's you");
+	public void tell(CommandContext ctx, String nick, String userMessage) {
+		if(nick.equals(ctx.getMessageSender())) {
+			ctx.respond("#error That's you");
 		} else if(this.bot.isOnline(nick)) {
-			message.respond("#error They're here now");
+			ctx.respond("#error They're here now");
 		} else {
 			if(!this.messages.containsKey(nick)) {
 				this.messages.put(nick, new LinkedList<>());
 			}
-			this.messages.get(nick).add(new CachedMessage(message.getSender(), userMessage));
+			this.messages.get(nick).add(new CachedMessage(ctx.getMessageSender(), userMessage));
 			this.save();
-			message.respond("#success Queued");
+			ctx.respond("#success Queued");
 		}
 	}
 	

@@ -1,9 +1,11 @@
 package modules;
 
+import main.CommandContext;
 import main.JSONObject;
 import main.Message;
 import main.NoiseModule;
 import main.Protocol;
+import main.ViewContext;
 import org.jibble.pircbot.Colors;
 import org.json.JSONException;
 
@@ -23,30 +25,30 @@ public class BotUtils extends NoiseModule {
 	}
 
 	@Command("\\.which (.+)")
-	public JSONObject which(Message message, String command) throws JSONException {
-		final Message subMessage = new Message(this.bot, this.clean(command), message.getSender(), message.isPM());
+	public JSONObject which(CommandContext ctx, String command) throws JSONException {
+		final Message subMessage = ctx.deriveMessage(this.clean(command));
 		final String[] modules = this.bot.getModules().entrySet().stream().filter(e -> e.getValue().matches(subMessage)).map(e -> e.getKey()).toArray(String[]::new);
 		return new JSONObject().put("modules", modules);
 	}
 
 	@View(method = "which")
-	public void whichView(Message message, JSONObject data) throws JSONException {
+	public void whichView(ViewContext ctx, JSONObject data) throws JSONException {
 		final String[] modules = data.getStringArray("modules");
 		if(modules.length == 0) {
-			message.respond("No modules handle the specified command");
+			ctx.respond("No modules handle the specified command");
 		} else {
-			message.respond("#(%s)", (Object)modules);
+			ctx.respond("#(%s)", (Object)modules);
 		}
 	}
 
 	@Command("`([^`]+)`")
-	public JSONObject rawEcho(Message message, String command) throws InvocationTargetException, JSONException {
-		final String[] modules = this.which(message, command).getStringArray("modules");
+	public JSONObject rawEcho(CommandContext ctx, String command) throws InvocationTargetException, JSONException {
+		final String[] modules = this.which(ctx, command).getStringArray("modules");
 		switch(modules.length) {
 		case 0:
 			return new JSONObject().put("error", "No modules handle the specified command");
 		case 1: {
-			final Message subMessage = new Message(this.bot, this.clean(command), message.getSender(), message.isPM());
+			final Message subMessage = ctx.deriveMessage(this.clean(command));
 			// Throws InvocationTargetException
 			final MessageResult result = this.bot.getModules().get(modules[0]).processMessage(subMessage);
 			return result.data.orElse(new JSONObject().put("error", "Command does not return data")); }

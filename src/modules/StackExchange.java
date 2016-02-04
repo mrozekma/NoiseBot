@@ -6,8 +6,10 @@ import java.net.URLConnection;
 import java.util.*;
 import java.util.zip.GZIPInputStream;
 
+import main.CommandContext;
 import main.MessageBuilder;
 import main.Style;
+import main.ViewContext;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -56,22 +58,22 @@ public class StackExchange extends NoiseModule {
 	}
 
 	@Command(".*" + ANSWER_URL_PATTERN + ".*")
-	public JSONObject answer(Message message, String site, String id) throws JSONException {
-		return this.se(message, site, true, id);
+	public JSONObject answer(CommandContext ctx, String site, String id) throws JSONException {
+		return this.se(ctx, site, true, id);
 	}
 
 	@Command(".*" + ANSWER_SHORT_URL_PATTERN + ".*")
-	public JSONObject answer_short(Message message, String site, String id) throws JSONException {
-		return this.se(message, site, true, id);
+	public JSONObject answer_short(CommandContext ctx, String site, String id) throws JSONException {
+		return this.se(ctx, site, true, id);
 	}
 
 	// QUESTION_URL_PATTERN is a prefix of ANSWER_URL_PATTERN, so this has to go later
 	@Command(".*" + QUESTION_URL_PATTERN + ".*")
-	public JSONObject question(Message message, String site, String id) throws JSONException {
-		return this.se(message, site, false, id);
+	public JSONObject question(CommandContext ctx, String site, String id) throws JSONException {
+		return this.se(ctx, site, false, id);
 	}
 
-	private JSONObject se(Message message, String site, boolean isAnswer, String id) throws JSONException {
+	private JSONObject se(CommandContext ctx, String site, boolean isAnswer, String id) throws JSONException {
 		try {
 			final JSONObject json = getJSON(String.format(isAnswer ? API_ANSWER : API_QUESTION, id, site));
 			if(json.has("error_id")) {
@@ -91,13 +93,13 @@ public class StackExchange extends NoiseModule {
 	}
 
 	@View
-	public void plainView(Message message, JSONObject post) throws JSONException {
+	public void plainView(ViewContext ctx, JSONObject post) throws JSONException {
 		final Calendar c = new GregorianCalendar();
 		c.setTime(new Date(post.getInt("creation_date") * 1000L));
 		final String created = String.format("%d %s %d", c.get(Calendar.DAY_OF_MONTH), c.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.US), c.get(Calendar.YEAR));
 		final boolean isAnswer = post.has("answer_id");
 
-		final MessageBuilder builder = message.buildResponse();
+		final MessageBuilder builder = ctx.buildResponse();
 		builder.add("#info %s (%s by %s on %s, +%d/-%d", new Object[] {
 				StringEscapeUtils.unescapeHtml4(post.getString("title")),
 				isAnswer ? "answered" : "asked",

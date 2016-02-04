@@ -1,6 +1,6 @@
 package modules;
 
-import main.Message;
+import main.CommandContext;
 import main.ModuleSaveException;
 import main.NoiseBot;
 import main.NoiseModule;
@@ -13,13 +13,13 @@ import main.NoiseModule;
  */
 public class Quit extends NoiseModule {
 	@Command("\\.quit")
-	public void quit(Message message) {
-		this.triggerIfOwner(message, () -> Quit.this.bot.quit(0), true);
+	public void quit(CommandContext ctx) {
+		this.triggerIfOwner(ctx, () -> Quit.this.bot.quit(0), true);
 	}
 
 	@Command("\\.quit!")
-	public void quitAll(Message message) {
-		this.triggerIfOwner(message, () -> {
+	public void quitAll(CommandContext ctx) {
+		this.triggerIfOwner(ctx, () -> {
 			while(!NoiseBot.bots.isEmpty()) {
 				NoiseBot.bots.values().iterator().next().quit(0);
 			}
@@ -27,8 +27,8 @@ public class Quit extends NoiseModule {
 	}
 
 	@Command("\\.restart")
-	public void restart(Message message) {
-		this.triggerIfOwner(message, () -> {
+	public void restart(CommandContext ctx) {
+		this.triggerIfOwner(ctx, () -> {
 			while(!NoiseBot.bots.isEmpty()) {
 				final NoiseBot bot = NoiseBot.bots.values().iterator().next();
 				bot.sendNotice("Restarting...");
@@ -38,12 +38,12 @@ public class Quit extends NoiseModule {
 	}
 
 	@Command("\\.save")
-	public void save(Message message) {
+	public void save(CommandContext ctx) {
 		try {
 			this.bot.saveModules();
-			message.respond("#success Saved");
+			ctx.respond("#success Saved");
 		} catch(ModuleSaveException e) {
-			message.respond("#error Problem saving: %s", e.getMessage());
+			ctx.respond("#error Problem saving: %s", e.getMessage());
 		}
 	}
 

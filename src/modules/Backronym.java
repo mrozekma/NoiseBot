@@ -68,7 +68,7 @@ public class Backronym extends NoiseModule {
 	}
 
 	@Command("\\.b(?:ackronym)? ([A-Za-z]+)")
-	public JSONObject backronym(Message message, String letters) throws JSONException {
+	public JSONObject backronym(CommandContext ctx, String letters) throws JSONException {
 		if(this.words == null) {
 			return new JSONObject().put("error", "No dictionary file loaded");
 		}
@@ -85,7 +85,7 @@ public class Backronym extends NoiseModule {
 	}
 
 	@Command("\\.b(?:ackronym)? (.*[^A-Za-z].*)")
-	public JSONObject backronymRegex(Message message, String line) throws JSONException {
+	public JSONObject backronymRegex(CommandContext ctx, String line) throws JSONException {
 		if(this.dict == null) {
 			return new JSONObject().put("error", "No dictionary file loaded");
 		}
@@ -119,11 +119,11 @@ public class Backronym extends NoiseModule {
 	}
 
 	@Command("\\.b(?:ackronym)?")
-	public JSONObject backronymDefault(Message message) throws JSONException {return this.backronym(message, message.getSender());}
+	public JSONObject backronymDefault(CommandContext ctx) throws JSONException {return this.backronym(ctx, ctx.getMessageSender());}
 
 	@View
-	public void plainView(Message message, JSONObject data) throws JSONException {
-		message.respond("#(%s)", (Object)data.getStringArray("choices"));
+	public void plainView(ViewContext ctx, JSONObject data) throws JSONException {
+		ctx.respond("#(%s)", (Object)data.getStringArray("choices"));
 	}
 
 	@Override public String getFriendlyName() {return "Backronym";}

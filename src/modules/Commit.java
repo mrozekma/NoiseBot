@@ -46,7 +46,7 @@ public class Commit extends NoiseModule {
 	}
 
 	@Command("\\.commit")
-	public JSONObject commit(Message message) throws JSONException {
+	public JSONObject commit(CommandContext ctx) throws JSONException {
 		if(this.messages.length == 0) {
 			return new JSONObject();
 		} else {
@@ -60,9 +60,9 @@ public class Commit extends NoiseModule {
 	}
 
 	@View
-	public void view(Message message, JSONObject data) throws JSONException {
+	public void view(ViewContext ctx, JSONObject data) throws JSONException {
 		if(data.has("processed")) {
-			message.respond("#quote %s", data.getString("processed"));
+			ctx.respond("#quote %s", data.getString("processed"));
 		}
 	}
 

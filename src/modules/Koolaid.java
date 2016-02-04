@@ -1,6 +1,6 @@
 package modules;
 
-import main.Message;
+import main.CommandContext;
 import main.NoiseModule;
 import main.Protocol;
 import main.Style;
@@ -23,12 +23,12 @@ public class Koolaid extends NoiseModule {
 	}
 
 	@Command(value = ".*oh(?:,|\\.)* no.*", caseSensitive = false)
-	public void ohyeah(Message message) {
+	public void ohyeah(CommandContext ctx) {
 		if(this.bot.getProtocol() == Protocol.Slack) {
 			// getRandomSlackEmoji() returns more than 2 elements, but the formatter is ok with it
-			message.respond("#yell %s OH YEAH! %s", (Object[])getRandomSlackEmoji());
+			ctx.respond("#yell %s OH YEAH! %s", (Object[])getRandomSlackEmoji());
 		} else {
-			message.respond("#yell OH YEAH!");
+			ctx.respond("#yell OH YEAH!");
 		}
 	}
 

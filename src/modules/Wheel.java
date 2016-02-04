@@ -3,9 +3,10 @@ package modules;
 import java.io.Serializable;
 import java.util.*;
 
+import main.CommandContext;
 import main.JSONObject;
-import main.Message;
 import main.NoiseModule;
+import main.ViewContext;
 import org.json.JSONException;
 
 import static main.Utilities.getRandom;
@@ -27,8 +28,8 @@ public class Wheel extends NoiseModule implements Serializable {
 	private Map<String, Integer> victims = new HashMap<>();
 
 	@Command(value = "\\.(?:wheel|spin)", allowPM = false)
-	public void wheel(Message message) {
-		message.respond("Spin, Spin, Spin! the wheel of %s", getRandom(wheels));
+	public void wheel(CommandContext ctx) {
+		ctx.respond("Spin, Spin, Spin! the wheel of %s", getRandom(wheels));
 		sleep(2);
 
 		final String[] nicks = this.bot.getNicks();
@@ -40,11 +41,11 @@ public class Wheel extends NoiseModule implements Serializable {
 		this.victims.put(choice, this.victims.getOrDefault(choice, 0) + 1);
 		this.save();
 
-		Slap.slap(this.bot, message, choice);
+		Slap.slap(this.bot, ctx, choice);
 	}
 
 	@Command("\\.wheelstats")
-	public JSONObject wheelStats(Message message) throws JSONException {
+	public JSONObject wheelStats(CommandContext ctx) throws JSONException {
 		final JSONObject rtn = new JSONObject();
 		for(Map.Entry<String, Integer> e : this.victims.entrySet()) {
 			rtn.put(e.getKey(), e.getValue().intValue());
@@ -53,9 +54,9 @@ public class Wheel extends NoiseModule implements Serializable {
 	}
 
 	@View(method = "wheelStats")
-	public void plainWheelStatsView(Message message, JSONObject data) throws JSONException {
+	public void plainWheelStatsView(ViewContext ctx, JSONObject data) throws JSONException {
 		if(data.length() == 0) {
-			message.respond("No victims yet");
+			ctx.respond("No victims yet");
 			return;
 		}
 
@@ -86,7 +87,7 @@ public class Wheel extends NoiseModule implements Serializable {
 			args.add(e.attacks * 100. / total);
 			args.add(e.victim);
 		}
-		message.respond("#([, ] (%2.2f%%) %s)", (Object)args.toArray());
+		ctx.respond("#([, ] (%2.2f%%) %s)", (Object)args.toArray());
 	}
 
 	@Override public String getFriendlyName() {return "Wheel";}

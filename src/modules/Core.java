@@ -27,7 +27,7 @@ public class Core extends NoiseModule {
 	}
 
 	@Command(value = "\\.load(\\??) (" + MODULE_REGEX + ")", allowPM = false)
-	public void loadModules(Message message, String qm, String moduleNames) {
+	public void loadModules(CommandContext ctx, String qm, String moduleNames) {
 		final boolean showErrors = qm.isEmpty();
 		for(String moduleName : moduleNames.split(" ")) {
 			try {
@@ -49,7 +49,7 @@ public class Core extends NoiseModule {
 	}
 
 	@Command(value = "\\.unload(\\??) (" + MODULE_REGEX + ")", allowPM = false)
-	public void unloadModules(Message message, String qm, String moduleNames) {
+	public void unloadModules(CommandContext ctx, String qm, String moduleNames) {
 		final boolean showErrors = qm.isEmpty();
 		for(String moduleName : moduleNames.split(" ")) {
 			// Don't allow unloading Core
@@ -77,7 +77,7 @@ public class Core extends NoiseModule {
 	}
 
 	@Command(value = "\\.reload(\\??) (" + MODULE_REGEX + ")", allowPM = false)
-	public void reloadModules(Message message, String qm, String moduleNames) {
+	public void reloadModules(CommandContext ctx, String qm, String moduleNames) {
 		final boolean showErrors = qm.isEmpty();
 		for(String moduleName : moduleNames.split(" ")) {
 			try {
@@ -98,31 +98,31 @@ public class Core extends NoiseModule {
 	}
 
 	@Command("\\.rev")
-	public void rev(Message message) {
+	public void rev(CommandContext ctx) {
 		final Git.Revision rev = this.bot.revision;
-		message.respond("Currently on revision %(#hash)s by %(#author)s -- %(#description)s", rev.getHash(), rev.getAuthor(), rev.getDescription());
-		message.respond("%s", Git.revisionLink(rev));
+		ctx.respond("Currently on revision %(#hash)s by %(#author)s -- %(#description)s", rev.getHash(), rev.getAuthor(), rev.getDescription());
+		ctx.respond("%s", Git.revisionLink(rev));
 	}
 
 	@Command("\\.owner\\?")
-	public void isOwner(Message message) {
-		this.triggerIfOwner(message, () -> message.respond("#success You own this NoiseBot"), true);
+	public void isOwner(CommandContext ctx) {
+		this.triggerIfOwner(ctx, () -> ctx.respond("#success You own this NoiseBot"), true);
 	}
 
 	@Command("\\.sync")
-	public void sync(Message message) {
+	public void sync(CommandContext ctx) {
 		try {
 			Git.attemptUpdate();
 			// attemptUpdate() will call NoiseBot.syncAll(), which handles outputting sync info to all channels
 		} catch(Git.SyncException e) {
 			// Only output the error to the channel/user that requested the sync
-			message.respond("#error %s", e.getMessage());
+			ctx.respond("#error %s", e.getMessage());
 		}
 	}
 
 	@Command("\\.rehash")
-	public void rehash(Message message) {
-		this.triggerIfOwner(message, () -> {
+	public void rehash(CommandContext ctx) {
+		this.triggerIfOwner(ctx, () -> {
 			NoiseBot.broadcastNotice("Reloading configuration");
 			NoiseBot.rehash();
 		}, true);

@@ -46,12 +46,12 @@ public class Links extends NoiseModule implements Serializable {
 	}
 
 	@Command(".*((?:ftp|http|https):\\/\\/(?:\\w+:{0,1}\\w*@)?(?:\\S+)(?::[0-9]+)?(?:\\/|\\/(?:[\\w#!:.?+=&%@!\\-\\/]))?).*")
-	public void url(Message message, String url) {
+	public void url(CommandContext ctx, String url) {
 		// We could make this command return data if the link is a duplicate; the problem is I don't really want to modify the list of seen links in that case
 		if(this.links.containsKey(url)) {
-			message.respond("#dup Duplicate URL: %s", this.links.get(url));
+			ctx.respond("#dup Duplicate URL: %s", this.links.get(url));
 		} else {
-			this.links.put(url, new CachedMessage(message));
+			this.links.put(url, new CachedMessage(ctx.getMessage()));
 			for(int i = this.lastN.length - 2; i >= 0; i--) {
 				this.lastN[i + 1] = this.lastN[i];
 			}
@@ -61,35 +61,35 @@ public class Links extends NoiseModule implements Serializable {
 	}
 
 	@Command("\\.(?:lasturls|links) ([0-9]+)")
-	public JSONObject lastURLs(Message message, int num) throws JSONException {
+	public JSONObject lastURLs(CommandContext ctx, int num) throws JSONException {
 		num = range(num, 1, this.lastN.length);
 		return new JSONObject().put("links", Arrays.stream(this.lastN).filter(url -> url != null).limit(num).map(url -> this.links.get(url)).toArray(CachedMessage[]::new));
 	}
 
 	@Command("\\.(?:lasturls|links) (\\w+)")
-	public JSONObject lastURLs(Message message, String user) throws JSONException {
+	public JSONObject lastURLs(CommandContext ctx, String user) throws JSONException {
 		final int num = 5;
 		return new JSONObject().put("links", this.links.values().stream().filter(c -> c.fromUser(user)).sorted().limit(num).toArray(CachedMessage[]::new));
 	}
 
 	@Command("\\.(?:lasturls|links)")
-	public JSONObject lastURLsDefault(Message message) throws JSONException {
-		return this.lastURLs(message, lastN.length);
+	public JSONObject lastURLsDefault(CommandContext ctx) throws JSONException {
+		return this.lastURLs(ctx, lastN.length);
 	}
 
 	@View
-	public void viewLastURLs(Message message, JSONObject data) throws JSONException {
+	public void viewLastURLs(ViewContext ctx, JSONObject data) throws JSONException {
 		final JSONArray cms = data.getJSONArray("links");
 		for(int i = 0; i < cms.length(); i++) {
-			message.respond("#recap %s", cms.get(i));
+			ctx.respond("#recap %s", cms.get(i));
 		}
 	}
 
 	@View(Protocol.Slack)
-	public void slackViewLastURLs(Message message, JSONObject data) throws JSONException {
+	public void slackViewLastURLs(ViewContext ctx, JSONObject data) throws JSONException {
 		final CachedMessage[] cms = data.getJavaArray("links", CachedMessage.class);
 		//TODO Links come out with <> around them for some reason
-		message.respond("#([\n] #recap " + MessageBuilder.BULLET + " %s)", (Object)cms);
+		ctx.respond("#([\n] #recap " + MessageBuilder.BULLET + " %s)", (Object)cms);
 	}
 
 	@Override public String getFriendlyName() {return "Links";}

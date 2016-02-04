@@ -36,7 +36,7 @@ public class Imgur extends NoiseModule {
 	}
 
 	@Command(".*" + URL_PATTERN + ".*")
-	public JSONObject imgur(Message message, String imgID) throws JSONException {
+	public JSONObject imgur(CommandContext ctx, String imgID) throws JSONException {
 		try {
 			final JSONObject json = this.getJSON(imgID);
 			if(!json.getBoolean("success")) {
@@ -60,8 +60,8 @@ public class Imgur extends NoiseModule {
 	}
 
 	@View
-	public void view(Message message, JSONObject data) throws JSONException {
-		message.respond("#info %s%s (%dx%d, %s, %s)",
+	public void view(ViewContext ctx, JSONObject data) throws JSONException {
+		ctx.respond("#info %s%s (%dx%d, %s, %s)",
 				(data.has("title") && !data.isNull("title")) ? data.get("title") : "Untitled",
 				(data.has("description") && !data.isNull("description")) ? " -- " + data.get("description") : "",
 				data.getInt("width"),
@@ -71,7 +71,7 @@ public class Imgur extends NoiseModule {
 	}
 
 	@View
-	public void slackView(Message message, JSONObject data) {
+	public void slackView(ViewContext ctx, JSONObject data) {
 		// Slack already unfolds Imgur URLs
 	}
 

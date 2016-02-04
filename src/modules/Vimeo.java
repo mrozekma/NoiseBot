@@ -1,12 +1,13 @@
 package modules;
 
 import debugging.Log;
-import main.Message;
+import main.CommandContext;
 import main.MessageBuilder;
 import main.NoiseModule;
+import main.Style;
+import main.ViewContext;
 import static main.Utilities.formatSeconds;
 
-import main.Style;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -30,7 +31,7 @@ public class Vimeo extends NoiseModule{
     }
 
     @Command(".*https?://(?:.+\\.)?vimeo.com/(?:.+/)?([a-zA-Z0-9]+).*")
-    public JSONObject vimeo(Message message, String vidID) throws JSONException {
+    public JSONObject vimeo(CommandContext ctx, String vidID) throws JSONException {
         try {
             final URLConnection c = new URL("http://vimeo.com/api/v2/video/" + vidID + ".json").openConnection();
             final Scanner s = new Scanner(c.getInputStream());
@@ -51,8 +52,8 @@ public class Vimeo extends NoiseModule{
     }
 
     @View
-    public void plainView(Message message, JSONObject data) throws JSONException {
-        final MessageBuilder builder = message.buildResponse();
+    public void plainView(ViewContext ctx, JSONObject data) throws JSONException {
+        final MessageBuilder builder = ctx.buildResponse();
         builder.add("#info %s (posted by %s", new Object[] {data.optString("title", "Untitled"), data.get("user_name")});
         if(data.getInt("duration") > 0) {
             builder.add("#info , %s", new Object[] {formatSeconds(data.getInt("duration"))});

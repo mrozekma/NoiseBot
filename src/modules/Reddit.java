@@ -15,8 +15,9 @@ import org.json.JSONObject;
 
 import debugging.Log;
 
-import main.Message;
+import main.CommandContext;
 import main.NoiseModule;
+import main.ViewContext;
 
 import static main.Utilities.urlEncode;
 
@@ -43,7 +44,7 @@ public class Reddit extends NoiseModule {
 	}
 
 	@Command(".*(" + REDDIT_URL_PATTERN + ").*")
-	public JSONObject reddit(Message message, String url) throws JSONException {
+	public JSONObject reddit(CommandContext ctx, String url) throws JSONException {
 		try {
 			final JSONObject json = getJSON(url + "/.json");
 			final JSONObject rtn = json.getJSONObject("data").getJSONArray("children").getJSONObject(0).getJSONObject("data");
@@ -55,7 +56,7 @@ public class Reddit extends NoiseModule {
 	}
 
 	@Command(".*((?:ftp|http|https):\\/\\/(?:\\w+:{0,1}\\w*@)?(?:\\S+)(?::[0-9]+)?(?:\\/|\\/(?:[\\w#!:.?+=&%@!\\-\\/]))?).*")
-	public JSONObject url(Message message, String url) throws JSONException {
+	public JSONObject url(CommandContext ctx, String url) throws JSONException {
 		if(url.matches(REDDIT_URL_PATTERN + ".*")) {return new JSONObject();}
 
 		try {
@@ -75,7 +76,7 @@ public class Reddit extends NoiseModule {
 	}
 
 	@View
-	public void plainView(Message message, JSONObject data) throws JSONException {
+	public void plainView(ViewContext ctx, JSONObject data) throws JSONException {
 		if(data.length() == 0) {
 			return;
 		} else if(data.has("linked_url")) {

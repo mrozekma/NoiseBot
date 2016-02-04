@@ -36,19 +36,19 @@ public class Help extends NoiseModule {
 	}
 
 	@Command(value = "\\.help", allowPM = true)
-	public JSONObject general(Message message) throws JSONException {
+	public JSONObject general(CommandContext ctx) throws JSONException {
 		final String[] modules = this.bot.getModules().values().stream().filter(m -> m.showInHelp()).map(m -> m.getFriendlyName()).sorted().toArray(String[]::new);
 		return new JSONObject().put("modules", modules);
 	}
 
 	@View(method = "general")
-	public void plainGeneralView(Message message, JSONObject data) throws JSONException {
-		message.respond("Use .#command help #module MODULE #plain to get examples for a specific module:");
-		message.respond("List of modules: #([, ] #module %s)", (Object)data.getStringArray("modules"));
+	public void plainGeneralView(ViewContext ctx, JSONObject data) throws JSONException {
+		ctx.respond("Use .#command help #module MODULE #plain to get examples for a specific module:");
+		ctx.respond("List of modules: #([, ] #module %s)", (Object)data.getStringArray("modules"));
 	}
 
 	@Command(value = "\\.help (.+)", allowPM = true)
-	public JSONObject specific(Message message, String moduleName) throws JSONException {
+	public JSONObject specific(CommandContext ctx, String moduleName) throws JSONException {
 		for(NoiseModule module : this.bot.getModules().values()) {
 			if(!module.showInHelp()) {continue;}
 			if(moduleName.equalsIgnoreCase(module.getFriendlyName())) {
@@ -63,25 +63,25 @@ public class Help extends NoiseModule {
 	}
 
 	@View(method = "specific")
-	public void plainSpecificView(Message message, JSONObject data) throws JSONException {
-		this.specificView(message, data, false);
+	public void plainSpecificView(ViewContext ctx, JSONObject data) throws JSONException {
+		this.specificView(ctx, data, false);
 	}
 
 	@View(value = Protocol.Slack, method = "specific")
-	public void slackSpecificView(Message message, JSONObject data) throws JSONException {
-		message.mergeResponses();
-		this.specificView(message, data, true);
+	public void slackSpecificView(ViewContext ctx, JSONObject data) throws JSONException {
+		ctx.getMessage().mergeResponses();
+		this.specificView(ctx, data, true);
 	}
 
-	private void specificView(Message message, JSONObject data, boolean showBullets) throws JSONException {
-		message.respond("#module %s #plain module -- %s", data.getString("name"), data.getString("description"));
+	private void specificView(ViewContext ctx, JSONObject data, boolean showBullets) throws JSONException {
+		ctx.respond("#module %s #plain module -- %s", data.getString("name"), data.getString("description"));
 		final String[] examples = data.getStringArray("examples");
 		if(examples == null || examples.length == 0) {
-			message.respond("No examples available");
+			ctx.respond("No examples available");
 		} else {
-			message.respond("Examples:");
+			ctx.respond("Examples:");
 			for(String example : examples) {
-				final MessageBuilder builder = message.buildResponse();
+				final MessageBuilder builder = ctx.buildResponse();
 				builder.add(showBullets ? MessageBuilder.BULLET + " " : "  ");
 				for(String piece : example.split(" ")) {
 					if(piece.length() > 1 && piece.startsWith(".")) {

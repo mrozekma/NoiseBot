@@ -102,21 +102,21 @@ The last could be allowed by making the pattern case-insensitive:
 @Command(value = "\\.demo ([0-9]+)", caseSensitive = false)
 ```
 
-If a user sends a message matching your command, NoiseBot will invoke the accompanying method. The method's first parameter must be of type `main.Message`, a class that contains information about the triggering message, who sent it, and [whence it came](https://www.youtube.com/watch?v=TrJJ6ncp1fc). Further parameters must match the groups in the pattern. There is special support for integers, but all other groups must be accepted as Strings and parsed further within your method if necessary. In this case:
+If a user sends a message matching your command, NoiseBot will invoke the accompanying method. The method's first parameter must be of type `main.CommandContext`, a class that contains information about the triggering message, who sent it, and [whence it came](https://www.youtube.com/watch?v=TrJJ6ncp1fc). Further parameters must match the groups in the pattern. There is special support for integers, but all other groups must be accepted as Strings and parsed further within your method if necessary. In this case:
 
 ```java
 @Command("\\.demo ([0-9]+)")
-public void demoCommand(Message message, int arg) {}
+public void demoCommand(CommandContext ctx, int arg) {}
 ```
 
 #### Old-style commands
 
-Old-style commands are commands that do not return data (i.e. they have return type `void`, like the example above). These commands generally send something back to the channel to interact with users. The best way to do with is with the `Message::respond()` method, called on the `Message` instance passed as the first argument to your command method. This is a printf-style method. The actual format string is augmented, but for the moment we can ignore that. Example usage:
+Old-style commands are commands that do not return data (i.e. they have return type `void`, like the example above). These commands generally send something back to the channel to interact with users. The best way to do with is with the `CommandContext::respond()` method, called on the `CommandContext` instance passed as the first argument to your command method. This is a printf-style method. The actual format string is augmented, but for the moment we can ignore that. Example usage:
 
 ```java
 @Command("\\.demo ([0-9]+)")
-public void demoCommand(Message message, int arg) {
-    message.respond("You sent the number %d!", arg);
+public void demoCommand(CommandContext ctx, int arg) {
+    ctx.respond("You sent the number %d!", arg);
 }
 ```
 
@@ -128,7 +128,7 @@ New-style commands return structured data instead of sending human-friendly text
 
 ```java
 @Command("\\.demo ([0-9]+)")
-public JSONObject demoCommand(Message message, int arg) throws JSONException {
+public JSONObject demoCommand(CommandContext ctx, int arg) throws JSONException {
     return new JSONObject().put("number", arg);
 }
 ```
@@ -198,12 +198,12 @@ Both of these parameters are lists, which in Java annotation syntax are wrapped 
 @View(value = {Protocol.IRC, Protocol.Slack}, method = "baz")
 ```
 
-The annotated method must take the same message argument as the command, plus a `JSONObject` for the data coming out of the command, and return void. Like the command, it's permitted to throw `JSONException`. It can then send messages just like an old-style command would. For example:
+The annotated method must take a ViewContext argument (analogous to the CommandContext passed to commands), plus a `JSONObject` for the data coming out of the command, and return void. Like the command, it's permitted to throw `JSONException`. It can then send messages just like an old-style command would. For example:
 
 ```java
 @View(method = "demoCommand")
-public void plainView(Message message, JSONObject data) throws JSONException {
-    message.respond("You sent the number %d!", data.getInt("number"));
+public void plainView(ViewContext ctx, JSONObject data) throws JSONException {
+    ctx.respond("You sent the number %d!", data.getInt("number"));
 }
 ```
 
@@ -224,11 +224,11 @@ These fields are filled in during your module's `setConfig()` method (in the par
 
 ### Constructing messages
 
-The process of going from module data to actual messages sent to the server is comically complex and involves at least 4 passes. I do my best to shield module authors from this insanity, but you do need to somewhat understand the first pass, message building. The `MessageBuilder` class is responsible for this step. You obtain a `MessageBuilder` either from a `Message`:
+The process of going from module data to actual messages sent to the server is comically complex and involves at least 4 passes. I do my best to shield module authors from this insanity, but you do need to somewhat understand the first pass, message building. The `MessageBuilder` class is responsible for this step. You obtain a `MessageBuilder` either from a `CommandContext`/`ViewContext`:
 
 ```java
-MessageBuilder builder = message.buildResponse();
-MessageBuilder builder2 = message.buildActionResponse();
+MessageBuilder builder = ctx.buildResponse();
+MessageBuilder builder2 = ctx.buildActionResponse();
 ```
 
 Or from a `NoiseBot` (the bot that owns your module is accessible via `this.bot`):
@@ -242,7 +242,7 @@ MessageBuilder builder5 = this.bot.buildActionTo(username);
 MessageBuilder builder6 = this.bot.buildNotice();
 ```
 
-As discussed above, in most cases you want to use the methods on `Message`, as they handle making sure the response goes to the same place the original message came from (either a channel or a private message).
+As discussed above, in most cases you want to use the methods on a context, as they handle making sure the response goes to the same place the original message came from (either a channel or a private message).
 
 You build up a message by one or more calls to `MessageBuilder::add(String fmt, Object[] args)`, and send it with `MessageBuilder::send()`. Pieces of a message are concatenated, so these are functionally equivalent:
 
@@ -251,10 +251,10 @@ builder.add(fmt1, args1).add(fmt2, args2).send();
 builder.add(fmt1 + fmt2, ArrayUtils.addAll(args1, args2)).send();
 ```
 
-Both `Message` and `NoiseBot` have helper methods if you only need to add one piece to a builder. These helpers take the format string and arguments (variadically), and handle making the builder, adding to it, and sending:
+Both the contexts and `NoiseBot` have helper methods if you only need to add one piece to a builder. These helpers take the format string and arguments (variadically), and handle making the builder, adding to it, and sending:
 
 ```java
-message.respond(fmt, arg1, arg2, ...);
+ctx.respond(fmt, arg1, arg2, ...);
 this.bot.sendMessage(fmt, arg1, arg2, ...);
 this.bot.sendMessageTo(username, fmt, arg1, arg2, ...);
 this.bot.sendAction(fmt, arg1, arg2, ...);
@@ -265,13 +265,13 @@ this.bot.sendNotice(fmt, arg1, arg2, ...);
 `MessageBuilder::add` takes a single array of arguments because of Java's brain-damaged handling of variadics, a lesson I apparently forgot in my zeal to make the helper methods easy to use. Like Python, Java's designers wanted variadic methods to be callable with either multiple individual arguments, or an array containing the arguments. A useful feature. Unlike Python, it did not occur to them to have syntax indicating which of the two things you are currently doing. Which means that this:
 
 ```java
-message.respond(fmt, new Object[] {"a", "b", "c"});
+ctx.respond(fmt, new Object[] {"a", "b", "c"});
 ```
 
 is ambiguous. Are you passing the `Object[]` as the single argument to the method, or are you saying the method should take the three values contained in the `Object[]` as arguments? javac will emit a warning and then assume you meant the latter -- to get the former behavior, you must cast the argument to a non-array type:
 
 ```java
-message.respond(fmt, (Object)new Object[] {"a", "b", "c"});
+ctx.respond(fmt, (Object)new Object[] {"a", "b", "c"});
 ```
 
 Thanks, Java. Fortunately, this only comes up when you pass a single argument and that argument is an array type.
@@ -281,7 +281,7 @@ Thanks, Java. Fortunately, this only comes up when you pass a single argument an
 In the olden times, we handled IRC styles, if they can even be called that, with in-band magic bytes. Green text was made by concatenating `org.jibble.pircbot.Colors.GREEN` into the string itself. Now the format string contains style information, and green text is made by including the `#green` style tag. For example:
 
 ```java
-message.respond("This text is normal, while #green this text is green");
+ctx.respond("This text is normal, while #green this text is green");
 ```
 
 Note that the style tag is followed by a space; this is not included in the final output.
@@ -325,7 +325,7 @@ The style syntax is `#([sep] fmt)`. `sep` is the string that is used to separate
 All arguments for a multi-part group are passed in a single array to the formatter function. For example, the format string `%d #([, ] %s: %s) %f` should be accompanied by three arguments: an `int`, a `String[]` containing two strings per entry in the multi-part group, and finally a `float`. More concretely:
 
 ```java
-message.respond("%d %([, ] %s: %s) %f", 42, new String[] {"foo", "bar", "baz", "qux"}, 100.0);
+ctx.respond("%d %([, ] %s: %s) %f", 42, new String[] {"foo", "bar", "baz", "qux"}, 100.0);
 // Resulting output: 42 foo: bar, baz: qux 100.0
 ```
 
@@ -340,15 +340,15 @@ The multi-part group format string can include all the same style strings as the
 }
 
 @Command("\\.scores")
-public void scores(Message message) {
+public void scores(CommandContext ctx) {
     final List<Object> args = new LinkedList<>();
     for(Map.Entry<String, Integer> score : this.scores) {
         args.add(score.getKey()); // username
         args.add(score.getValue() >= 0 ? "positive" : "negative");
         args.add(score.getValue());
     }
-    message.respond("Scores: #([, ] %s: %#d)", (Object)args.toArray());
+    ctx.respond("Scores: #([, ] %s: %#d)", (Object)args.toArray());
 }
 ```
 
-Note the cast to `Object` to avoid Java's [variadic terribleness](#constructing-messages) -- we're passing a single array of `Objects` to `message.respond()`, not the contents of the array.
+Note the cast to `Object` to avoid Java's [variadic terribleness](#constructing-messages) -- we're passing a single array of `Objects` to `ctx.respond()`, not the contents of the array.

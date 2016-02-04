@@ -44,12 +44,12 @@ public class Fortune extends NoiseModule {
 	}
 
 	@Command("\\.fortune")
-	public JSONObject fortune(Message message) throws JSONException {
+	public JSONObject fortune(CommandContext ctx) throws JSONException {
 		return new JSONObject().put("fortune", getRandom(this.fortunes));
 	}
 
 	@Command("\\.fortune (.*)")
-	public JSONObject fortune(Message message, String keyword) throws JSONException {
+	public JSONObject fortune(CommandContext ctx, String keyword) throws JSONException {
 		final JSONObject rtn = new JSONObject().put("keyword", keyword);
 		final String match = getRandomMatch(this.fortunes, ".*" + keyword + ".*");
 		if(match != null) {
@@ -59,11 +59,11 @@ public class Fortune extends NoiseModule {
 	}
 
 	@View
-	public void view(Message message, JSONObject data) throws JSONException {
+	public void view(ViewContext ctx, JSONObject data) throws JSONException {
 		if(data.has("fortune")) {
-			message.respond("%s", data.get("fortune"));
+			ctx.respond("%s", data.get("fortune"));
 		} else {
-			message.respond("#error No matches");
+			ctx.respond("#error No matches");
 		}
 	}
 

@@ -1,9 +1,6 @@
 package modules;
 
-import main.JSONObject;
-import main.Message;
-import main.NoiseBot;
-import main.NoiseModule;
+import main.*;
 import org.json.JSONException;
 
 import static main.Utilities.getRandom;
@@ -35,32 +32,44 @@ public class Slap extends NoiseModule {
 	};
 		
 	@Command("\\.slap ([^,]*).*")
-	public JSONObject slap(Message message, String target) throws JSONException {
+	public JSONObject slap(CommandContext ctx, String target) throws JSONException {
 		final String adverb = getRandom(adverbs);
 		return new JSONObject().put("victim", target).put("adverb", adverb).put("action", String.format("slaps %s %s", target, adverb));
 	}
 	
 	@Command("\\.slap")
-	public JSONObject slapSelf(Message message) throws JSONException {
-		return this.slap(message, message.getSender());
+	public JSONObject slapSelf(CommandContext ctx) throws JSONException {
+		return this.slap(ctx, ctx.getMessageSender());
 	}
 
 	@View
-	public void view(Message message, JSONObject data) throws JSONException {
+	public void view(ViewContext ctx, JSONObject data) throws JSONException {
 		this.bot.sendAction("%s", data.get("action"));
 	}
 
 	// A lot of modules are very interested in slapping people
-	static void slap(NoiseBot bot, Message message) {
-		slap(bot, message, message.getSender());
+	static void slap(NoiseBot bot, CommandContext ctx) {
+		slap(bot, ctx, ctx.getMessageSender());
 	}
-	static void slap(NoiseBot bot, Message message, String target) {
+	static void slap(NoiseBot bot, CommandContext ctx, String target) {
 		final NoiseModule slapModule = bot.getModules().get("Slap");
 		if(slapModule != null) {
-			slapModule.processMessageAndDisplayResult(message.deriveNew(".slap " + target));
+			slapModule.processMessageAndDisplayResult(ctx.deriveMessage(".slap " + target));
 		} else {
 			// Wholly inferior fallback
-			message.respondAction("slaps %s", target);
+			ctx.respondAction("slaps %s", target);
+		}
+	}
+	static void slap(NoiseBot bot, ViewContext ctx) {
+		slap(bot, ctx, ctx.getMessageSender());
+	}
+	static void slap(NoiseBot bot, ViewContext ctx, String target) {
+		final NoiseModule slapModule = bot.getModules().get("Slap");
+		if(slapModule != null) {
+			slapModule.processMessageAndDisplayResult(ctx.deriveMessage(".slap " + target));
+		} else {
+			// Wholly inferior fallback
+			ctx.respondAction("slaps %s", target);
 		}
 	}
 

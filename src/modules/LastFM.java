@@ -11,8 +11,10 @@ import org.json.JSONException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
-import main.Message;
+import main.CommandContext;
 import main.NoiseModule;
+import main.ViewContext;
+
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
@@ -23,7 +25,7 @@ import org.jsoup.select.Elements;
 
 public class LastFM extends NoiseModule {
 	@Command("\\.playing (.*)")
-	public JSONObject playing(Message message, String user) throws JSONException {
+	public JSONObject playing(CommandContext ctx, String user) throws JSONException {
 		try {
 			Document page = Jsoup.connect("http://ws.audioscrobbler.com/1.0/user/" + user + "/recenttracks.rss").timeout(10000).get();
 			Element song = page.select("item").first();
@@ -38,8 +40,8 @@ public class LastFM extends NoiseModule {
 	}
 
 	@View(method = "playing")
-	public void playingView(Message message, JSONObject data) throws JSONException {
-		message.respond("%s by %s %s", data.get("track"), data.get("artist"), fuzzyTimeAgo(data.getString("date")));
+	public void playingView(ViewContext ctx, JSONObject data) throws JSONException {
+		ctx.respond("%s by %s %s", data.get("track"), data.get("artist"), fuzzyTimeAgo(data.getString("date")));
 	}
 
 	private JSONObject top(String user, String which) throws JSONException {
@@ -59,7 +61,7 @@ public class LastFM extends NoiseModule {
 	}
 
 	@View(method = {"top10", "top10week"})
-	public void topView(Message message, JSONObject data) throws JSONException {
+	public void topView(ViewContext ctx, JSONObject data) throws JSONException {
 		final JSONArray top = data.getJSONArray("top");
 		final Object[] args = new Object[top.length() * 2];
 		for(int i = 0; i < top.length(); i++) {
@@ -67,14 +69,14 @@ public class LastFM extends NoiseModule {
 			args[i * 2] = o.get("name");
 			args[i * 2 + 1] = o.get("playcount");
 		}
-		message.respond("#([ - ] %s (%s))", (Object)args);
+		ctx.respond("#([ - ] %s (%s))", (Object)args);
 	}
 
 	@Command("\\.top10 (.*)")
-	public JSONObject top10(Message message, String user) throws JSONException { return this.top(user, "topartists"); }
+	public JSONObject top10(CommandContext ctx, String user) throws JSONException { return this.top(user, "topartists"); }
 
 	@Command("\\.top10week (.*)")
-	public JSONObject top10week(Message message, String user) throws JSONException { return this.top(user, "weeklyartistchart"); }
+	public JSONObject top10week(CommandContext ctx, String user) throws JSONException { return this.top(user, "weeklyartistchart"); }
 
 	@Override public String getFriendlyName() { return "LastFM"; }
 	@Override public String getDescription() { return "Show what a last.fm user last played"; }
