@@ -1,12 +1,15 @@
 package modules;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-import main.JSONObject;
+import com.ullink.slack.simpleslackapi.SlackAttachment;
+import main.*;
 import org.json.JSONException;
 import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
@@ -15,9 +18,6 @@ import org.jsoup.nodes.Document;
 
 import debugging.Log;
 
-import main.CommandContext;
-import main.NoiseModule;
-import main.ViewContext;
 import static main.Utilities.*;
 
 /**
@@ -114,41 +114,61 @@ public class Wikipedia extends NoiseModule {
 		return new JSONObject().put("term", term).put("url", url).put("text", text);
 	}
 
+	// Using AtomicBoolean as a way to pass booleans by reference
+	private static void determineViewFlags(Method commandMethod, AtomicBoolean showErrors, AtomicBoolean includeLink) {
+		final String command = commandMethod.getName();
+		if(command.equals("wikipedia")) {
+			showErrors.set(true);
+			includeLink.set(true);
+		} else if(command.equals("wikipediaLink")) {
+			showErrors.set(true);
+			includeLink.set(false);
+		} else if(command.equals("wikipediaInline")) {
+			showErrors.set(false);
+			includeLink.set(true);
+		} else if(command.equals("featured")) {
+			showErrors.set(true);
+			includeLink.set(true);
+		} else {
+			throw new IllegalArgumentException(String.format("Unrecognized command: %s", command));
+		}
+	}
+
 	@View
 	public void plainView(ViewContext ctx, JSONObject data) throws JSONException {
-		// Determine these flags from the command that triggered this
-		final boolean showErrors, includeLink;
-		{
-			final String command = ctx.getCommandMethod().getName();
-			if(command.equals("wikipedia")) {
-				showErrors = true;
-				includeLink = true;
-			} else if(command.equals("wikipediaLink")) {
-				showErrors = true;
-				includeLink = false;
-			} else if(command.equals("wikipediaInline")) {
-				showErrors = false;
-				includeLink = true;
-			} else if(command.equals("featured")) {
-				showErrors = true;
-				includeLink = true;
-			} else {
-				throw new IllegalArgumentException(String.format("Unrecognized command: %s", command));
-			}
-		}
-
+		final AtomicBoolean showErrors = new AtomicBoolean(), includeLink = new AtomicBoolean();
+		determineViewFlags(ctx.getCommandMethod(), showErrors, includeLink);
 		if(data.has("warning")) {
-			if(showErrors) {
+			if(showErrors.get()) {
 				ctx.respond("#error %s", data.get("warning"));
 			}
 			return;
 		}
+
 		final String url = data.getString("url");
-		String text = truncateOnWord(data.getString("text"), MAXIMUM_MESSAGE_LENGTH - (includeLink ? (1 + utf8Size(url)) : 0));
-		if(includeLink) {
+		String text = truncateOnWord(data.getString("text"), MAXIMUM_MESSAGE_LENGTH - (includeLink.get() ? (1 + utf8Size(url)) : 0));
+		if(includeLink.get()) {
 			text += " " + url;
 		}
 		ctx.respond("%s", text);
+	}
+
+	@View(Protocol.Slack)
+	public void slackView(ViewContext ctx, JSONObject data) throws JSONException {
+		final AtomicBoolean showErrors = new AtomicBoolean(), includeLink = new AtomicBoolean();
+		determineViewFlags(ctx.getCommandMethod(), showErrors, includeLink);
+		if(data.has("warning")) {
+			if(showErrors.get()) {
+				ctx.respond("#error %s", data.get("warning"));
+			}
+			return;
+		}
+
+		final String text = truncateOnWord(data.getString("text"), MAXIMUM_MESSAGE_LENGTH);
+		final SlackAttachment attachment = new SlackAttachment(data.getString("term"), text, text, null);
+		attachment.setTitleLink(data.getString("url")); // We include the link regardless of includeLink, since it doesn't take up any space
+		attachment.setThumbURL("https://www.wikipedia.org/portal/wikipedia.org/assets/img/Wikipedia-logo-v2_1x.png");
+		((SlackNoiseBot)this.bot).sendAttachmentTo(ctx.getResponseTarget(), attachment);
 	}
 
 	@Command("\\.featured")
