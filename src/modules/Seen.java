@@ -1,15 +1,12 @@
 package modules;
 
 import java.io.Serializable;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-import main.CommandContext;
-import main.JSONObject;
-import main.NoiseModule;
-import main.Style;
-import main.ViewContext;
+import main.*;
 
 import org.json.JSONException;
 
@@ -63,19 +60,12 @@ public class Seen extends NoiseModule implements Serializable {
 			ctx.respond("#never_seen %s hasn't been seen", data.get("who"));
 		}
 	}
-	
-	@Command(".*")
-	public void talked(CommandContext ctx) {
-		this.talkDates.put(ctx.getMessageSender(), new Date());
+
+	@Override public MessageResult processMessage(Message message) throws InvocationTargetException {
+		this.talkDates.put(message.getSender(), new Date());
 		this.save();
+		return super.processMessage(message);
 	}
-	
-	/*
-	@Override protected void joined(String nick) {
-		this.seenDates.put(nick, new Date());
-		this.save();
-	}
-	*/
 
 	@Override protected void left(String nick) {
 		this.seenDates.put(nick, new Date());
