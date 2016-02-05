@@ -324,7 +324,29 @@ public abstract class NoiseBot {
 		return true;
 	}
 
-	public void sync(String from, String to, Git.Revision oldrev, Git.Revision[] revs, boolean coreChanged) {
+	private void sync(String from, String to, Git.Revision oldrev, Git.Revision[] revs, boolean coreChanged) {
+		// Reload affected modules
+		final List<String> reloads = new LinkedList<>(), failedReloads = new LinkedList<>();
+		if(!coreChanged) {
+			final String[] moduleNames = Git.affectedModules(this, from, to);
+			for(String moduleName : moduleNames) {
+				try {
+					this.reloadModule(moduleName);
+					reloads.add(moduleName);
+				} catch(ModuleInitException | ModuleUnloadException e) {
+					failedReloads.add(moduleName);
+				}
+			}
+		}
+
+		this.outputSyncInfo(oldrev, revs, coreChanged, reloads.toArray(new String[0]));
+
+		if(!failedReloads.isEmpty()) {
+			throw new Git.SyncException(String.format("Unable to reload %s: %s", pluralize(failedReloads.size(),  "module", "modules", false), failedReloads.stream().collect(Collectors.joining(", "))));
+		}
+	}
+
+	protected void outputSyncInfo(Git.Revision oldrev, Git.Revision[] revs, boolean coreChanged, String[] reloadedModules) {
 		this.sendNotice("Synced " + pluralize(revs.length, "revision", "revisions") + ": " + Git.diffLink(oldrev, this.revision));
 		for(Git.Revision rev : reverse(revs)) {
 			this.sendNotice("    " + rev);
@@ -332,20 +354,8 @@ public abstract class NoiseBot {
 
 		if(coreChanged) {
 			this.sendNotice("#yellow Core files changed; NoiseBot will restart");
-		} else {
-			final String[] moduleNames = Git.affectedModules(this, from, to);
-			for(String moduleName : moduleNames) {
-				try {
-					this.reloadModule(moduleName);
-				} catch(ModuleInitException e) {
-					throw new Git.SyncException("Unable to load module " + moduleName);
-				} catch(ModuleUnloadException e) {
-					throw new Git.SyncException("Unable to unload module " + moduleName);
-				}
-			}
-			if(moduleNames.length != 0) {
-				this.sendNotice("Reloaded modules: #([, ] #module %s)", (Object)moduleNames);
-			}
+		} else if(reloadedModules.length > 0) {
+			this.sendNotice("Reloaded modules: #([, ] #module %s)", (Object)reloadedModules);
 		}
 	}
 

@@ -112,6 +112,7 @@ public class SlackServer implements SlackMessagePostedListener {
 	public SlackUser findUserByUserName(String userName) {return this.slack.findUserByUserName(userName);}
 	public SlackUser findUserById(String userId) {return this.slack.findUserById(userId);}
 	public SlackMessageHandle<SlackChannelReply> sendMessage(SlackChannel channel, String message, SlackAttachment attachment) {return this.slack.sendMessage(channel, message, attachment);}
+	public SlackMessageHandle<SlackChannelReply> sendMessage(SlackChannel channel, String message, SlackAttachment attachment, boolean unfurl) {return this.slack.sendMessage(channel, message, attachment, unfurl);}
 	public SlackMessageHandle<SlackMessageReply> sendMessageToUser(String userName, String message, SlackAttachment attachment) {return this.slack.sendMessageToUser(userName, message, attachment);}
 	public SlackMessageHandle<SlackChannelReply> deleteMessage(String timeStamp, SlackChannel channel) {return this.slack.deleteMessage(timeStamp, channel);}
 	public SlackMessageHandle<SlackChannelReply> updateMessage(String timeStamp, SlackChannel channel, String message) {return this.slack.updateMessage(timeStamp, channel, message);}

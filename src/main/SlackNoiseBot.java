@@ -15,7 +15,10 @@ import java.util.function.BiPredicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import static main.Utilities.pluralize;
+import static main.Utilities.reverse;
 import static main.Utilities.substring;
 
 /**
@@ -89,6 +92,22 @@ public class SlackNoiseBot extends NoiseBot {
 
 		// Synchronous communication -- what an idea
 		handler.notifyDone(true);
+	}
+
+	@Override protected void outputSyncInfo(Git.Revision oldrev, Git.Revision[] revs, boolean coreChanged, String[] reloadedModules) {
+		final String title = "Synced " + pluralize(revs.length, "revision", "revisions");
+		final Stream<String> fmtRevs = Arrays.stream(revs).map(rev -> String.format("%c `%s` by _%s_ -- %s", MessageBuilder.BULLET, rev.getHash(), rev.getAuthor(), rev.getDescription()));
+		final SlackAttachment attachment = new SlackAttachment(title, title, fmtRevs.collect(Collectors.joining("\n")), null);
+		attachment.setColor("#ff6d20");
+		attachment.setTitleLink(Git.diffLink(oldrev, this.revision));
+		attachment.addMarkdownIn("text");
+		this.sendAttachment(attachment);
+
+		if(coreChanged) {
+			this.sendMessage("#bold Core files changed; NoiseBot will restart");
+		} else if(reloadedModules.length > 0) {
+			this.sendMessage("Reloaded modules: #([, ] #module %s)", (Object)reloadedModules);
+		}
 	}
 
 	public String getUserID(String username) {
@@ -217,7 +236,7 @@ public class SlackNoiseBot extends NoiseBot {
 							}
 						} else {
 							if(target != null) {
-								handle = this.server.sendMessage(target, text, null);
+								handle = this.server.sendMessage(target, text, null, false);
 							} else {
 								handle = this.server.sendMessageToUser(last.target, text, null);
 							}
