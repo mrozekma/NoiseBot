@@ -3,6 +3,7 @@ package main;
 import com.google.gson.internal.StringMap;
 import com.ullink.slack.simpleslackapi.*;
 import com.ullink.slack.simpleslackapi.SlackTimestamped;
+import org.json.JSONException;
 
 import java.awt.*;
 import java.io.File;
@@ -108,6 +109,14 @@ public class SlackNoiseBot extends NoiseBot {
 		} else if(reloadedModules.length > 0) {
 			this.sendMessage("Reloaded modules: #([, ] #module %s)", (Object)reloadedModules);
 		}
+	}
+
+	@Override protected void onIssueEvent(String action, JSONObject issue) throws JSONException {
+		final String title = String.format("Issue #%d %s", issue.getInt("number"), action);
+		final SlackAttachment attachment = new SlackAttachment(title, title, issue.getString("title"), null);
+		attachment.setColor("#ff6d20");
+		attachment.setTitleLink(issue.getString("html_url"));
+		this.sendAttachment(attachment);
 	}
 
 	public String getUserID(String username) {

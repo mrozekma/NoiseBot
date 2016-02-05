@@ -14,6 +14,8 @@ import static main.Utilities.pluralize;
 import static main.Utilities.reverse;
 
 import com.google.gson.internal.StringMap;
+import org.json.JSONArray;
+import org.json.JSONException;
 
 /**
  * NoiseBot
@@ -389,6 +391,34 @@ public abstract class NoiseBot {
 				bot.quit(2);
 			}
 		}
+	}
+
+	static void broadcastIssueEvent(String action, JSONObject issue) throws JSONException {
+		// If tagged with a particular protocol, only show the issue on bots connected under that protocol
+		// (e.g. IRC users probably don't care about Slack-specific issues)
+		List<Protocol> protocols = new LinkedList<>();
+		if(issue.has("labels")) {
+			final JSONArray labels = issue.getJSONArray("labels");
+			for(int i = 0; i < labels.length(); i++) {
+				final String label = labels.getJSONObject(i).getString("name");
+				// Can't use Protocol.valueOf because of case
+				for(Protocol protocol : Protocol.values()) {
+					if(label.equalsIgnoreCase(protocol.name())) {
+						protocols.add(protocol);
+					}
+				}
+			}
+		}
+
+		for(NoiseBot bot : bots.values()) {
+			if(protocols.isEmpty() || protocols.contains(bot.getProtocol())) {
+				bot.onIssueEvent(action, issue);
+			}
+		}
+	}
+
+	protected void onIssueEvent(String action, JSONObject issue) throws JSONException {
+		this.sendNotice("Issue ##%d %s: %s -- %s", issue.getInt("number"), action, issue.getString("title"), issue.getString("html_url"));
 	}
 
 	// By default, just ignore the style entirely. Child classes will probably override this

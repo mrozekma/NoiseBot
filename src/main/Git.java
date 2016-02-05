@@ -17,7 +17,6 @@ import org.apache.http.HttpEntityEnclosingRequest;
 import org.apache.http.HttpException;
 import org.apache.http.impl.DefaultBHttpServerConnection;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -241,26 +240,7 @@ public class Git {
 								} else if(event.equals("issues")) {
 									final String action = json.getString("action");
 									if(action.equals("opened") || action.equals("closed") || action.equals("reopened")) { // The others we don't care about are 'assigned', 'unassigned', 'labeled', and 'unlabeled'
-										final JSONObject issue = json.getJSONObject("issue");
-
-										// If tagged with a particular protocol, only show the issue on bots connected under that protocol
-										// (e.g. IRC users probably don't care about Slack-specific issues)
-										List<Protocol> protocols = new LinkedList<>();
-										if(issue.has("labels")) {
-											final JSONArray labels = issue.getJSONArray("labels");
-											for(int i = 0; i < labels.length(); i++) {
-												final String label = labels.getJSONObject(i).getString("name");
-												try {
-													protocols.add(Protocol.valueOf(label));
-												} catch(IllegalArgumentException e) {} // Label isn't a protocol
-											}
-										}
-										// If not tagged, show on all bots
-										if(protocols.isEmpty()) {
-											protocols = Arrays.asList(Protocol.values());
-										}
-
-										NoiseBot.broadcastNotice(protocols, String.format("Issue #%d %s: %s -- %s", issue.getInt("number"), action, issue.getString("title"), issue.getString("html_url")));
+										NoiseBot.broadcastIssueEvent(action, new main.JSONObject(json.getJSONObject("issue")));
 									}
 								} else if(event.equals("issue_comment")) {
 									final JSONObject issue = json.getJSONObject("issue");
