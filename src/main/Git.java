@@ -6,12 +6,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Scanner;
-import java.util.TreeSet;
-import java.util.Vector;
+import java.util.*;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -22,6 +17,7 @@ import org.apache.http.HttpEntityEnclosingRequest;
 import org.apache.http.HttpException;
 import org.apache.http.impl.DefaultBHttpServerConnection;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -175,95 +171,109 @@ public class Git {
 	}
 
 	public static void startGithubListener(final String secret) {
-		new Thread(new Runnable() {
-			@Override public void run() {
-				final ServerSocket server;
+		new Thread(() -> {
+			final ServerSocket server;
+			try {
+				server = new ServerSocket(GITHUB_SIGNAL_PORT);
+			} catch(IOException e) {
+				Log.e("Unable to listen for github updates");
+				Log.e(e);
+				return;
+			}
+			while(true) {
 				try {
-					server = new ServerSocket(GITHUB_SIGNAL_PORT);
-				} catch(IOException e) {
-					Log.e("Unable to listen for github updates");
-					Log.e(e);
-					return;
-				}
-				while(true) {
-					try {
-						final Socket socket = server.accept();
-						synchronized(server) {
-							new Thread(new Runnable() {
-								@Override public void run() {
-									try {
-										Log.i("Received new Github alert from %s", socket.getRemoteSocketAddress());
-										final DefaultBHttpServerConnection conn = new DefaultBHttpServerConnection(4096);
-										conn.bind(socket);
-										final HttpEntityEnclosingRequest req = (HttpEntityEnclosingRequest)conn.receiveRequestHeader();
-										conn.receiveRequestEntity(req);
+					final Socket socket = server.accept();
+					synchronized(server) {
+						new Thread(() -> {
+							try {
+								Log.i("Received new Github alert from %s", socket.getRemoteSocketAddress());
+								final DefaultBHttpServerConnection conn = new DefaultBHttpServerConnection(4096);
+								conn.bind(socket);
+								final HttpEntityEnclosingRequest req = (HttpEntityEnclosingRequest)conn.receiveRequestHeader();
+								conn.receiveRequestEntity(req);
 
-										Header[] headers = req.getHeaders("X-Hub-Signature");
-										if(headers.length != 1) {
-											Log.e("Signature headers: %d", headers.length);
-											return;
-										}
-
-										String signature = headers[0].getValue();
-										if(!signature.startsWith("sha1=")) {
-											Log.e("Bad signature format: %s", signature);
-											return;
-										}
-										signature = signature.substring("sha1=".length());
-
-										final String payload;
-										{
-											final StringBuffer buffer = new StringBuffer();
-											final Scanner s = new Scanner(req.getEntity().getContent());
-											while(s.hasNextLine()) {
-												buffer.append(s.nextLine());
-											}
-											payload = buffer.toString();
-										}
-										try {
-											final Mac mac = Mac.getInstance("HmacSHA1");
-											mac.init(new SecretKeySpec(secret.getBytes(), "HmacSHA1"));
-											if(!signature.equals(Hex.encodeHexString(mac.doFinal(payload.getBytes())))) {
-												Log.e("Bad signature: %s", signature);
-												return;
-											}
-										} catch(InvalidKeyException | NoSuchAlgorithmException e) {
-											Log.e(e);
-											return;
-										}
-
-										headers = req.getHeaders("X-GitHub-Event");
-										if(headers.length != 1) {
-											Log.e("Event headers: %d", headers.length);
-											return;
-										}
-
-										final String event = headers[0].getValue();
-										final JSONObject json = new JSONObject(payload);
-										if(event.equals("ping")) {
-											Log.v("Github ping");
-										} else if(event.equals("push")) {
-											Git.attemptUpdate();
-										} else if(event.equals("issues")) {
-											final String action = json.getString("action");
-											if(action.equals("opened") || action.equals("closed") || action.equals("reopened")) { // The others we don't care about are 'assigned', 'unassigned', 'labeled', and 'unlabeled'
-												final JSONObject issue = json.getJSONObject("issue");
-												NoiseBot.broadcastNotice(String.format("Issue #%d %s: %s -- %s", issue.getInt("number"), action, issue.getString("title"), issue.getString("html_url")));
-											}
-										} else if(event.equals("issue_comment")) {
-											final JSONObject issue = json.getJSONObject("issue");
-											final JSONObject comment = json.getJSONObject("comment");
-											final JSONObject user = comment.getJSONObject("user");
-											NoiseBot.broadcastNotice(String.format("Issue #%d new comment by %s -- %s", issue.getInt("number"), user.getString("login"), comment.getString("html_url")));
-										}
-									} catch(SyncException | IOException | HttpException | JSONException e) {
-										Log.e(e);
-									}
+								Header[] headers = req.getHeaders("X-Hub-Signature");
+								if(headers.length != 1) {
+									Log.e("Signature headers: %d", headers.length);
+									return;
 								}
-							}).start();
-						}
-					} catch(IOException e) {}
-				}
+
+								String signature = headers[0].getValue();
+								if(!signature.startsWith("sha1=")) {
+									Log.e("Bad signature format: %s", signature);
+									return;
+								}
+								signature = signature.substring("sha1=".length());
+
+								final String payload;
+								{
+									final StringBuffer buffer = new StringBuffer();
+									final Scanner s = new Scanner(req.getEntity().getContent());
+									while(s.hasNextLine()) {
+										buffer.append(s.nextLine());
+									}
+									payload = buffer.toString();
+								}
+								try {
+									final Mac mac = Mac.getInstance("HmacSHA1");
+									mac.init(new SecretKeySpec(secret.getBytes(), "HmacSHA1"));
+									if(!signature.equals(Hex.encodeHexString(mac.doFinal(payload.getBytes())))) {
+										Log.e("Bad signature: %s", signature);
+										return;
+									}
+								} catch(InvalidKeyException | NoSuchAlgorithmException e) {
+									Log.e(e);
+									return;
+								}
+
+								headers = req.getHeaders("X-GitHub-Event");
+								if(headers.length != 1) {
+									Log.e("Event headers: %d", headers.length);
+									return;
+								}
+
+								final String event = headers[0].getValue();
+								final JSONObject json = new JSONObject(payload);
+								if(event.equals("ping")) {
+									Log.v("Github ping");
+								} else if(event.equals("push")) {
+									Git.attemptUpdate();
+								} else if(event.equals("issues")) {
+									final String action = json.getString("action");
+									if(action.equals("opened") || action.equals("closed") || action.equals("reopened")) { // The others we don't care about are 'assigned', 'unassigned', 'labeled', and 'unlabeled'
+										final JSONObject issue = json.getJSONObject("issue");
+
+										// If tagged with a particular protocol, only show the issue on bots connected under that protocol
+										// (e.g. IRC users probably don't care about Slack-specific issues)
+										List<Protocol> protocols = new LinkedList<>();
+										if(issue.has("labels")) {
+											final JSONArray labels = issue.getJSONArray("labels");
+											for(int i = 0; i < labels.length(); i++) {
+												final String label = labels.getJSONObject(i).getString("name");
+												try {
+													protocols.add(Protocol.valueOf(label));
+												} catch(IllegalArgumentException e) {} // Label isn't a protocol
+											}
+										}
+										// If not tagged, show on all bots
+										if(protocols.isEmpty()) {
+											protocols = Arrays.asList(Protocol.values());
+										}
+
+										NoiseBot.broadcastNotice(protocols, String.format("Issue #%d %s: %s -- %s", issue.getInt("number"), action, issue.getString("title"), issue.getString("html_url")));
+									}
+								} else if(event.equals("issue_comment")) {
+									final JSONObject issue = json.getJSONObject("issue");
+									final JSONObject comment = json.getJSONObject("comment");
+									final JSONObject user = comment.getJSONObject("user");
+									NoiseBot.broadcastNotice(String.format("Issue #%d new comment by %s -- %s", issue.getInt("number"), user.getString("login"), comment.getString("html_url")));
+								}
+							} catch(SyncException | IOException | HttpException | JSONException e) {
+								Log.e(e);
+							}
+						}).start();
+					}
+				} catch(IOException e) {}
 			}
 		}).start();
 	}

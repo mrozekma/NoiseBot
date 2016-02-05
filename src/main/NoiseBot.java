@@ -454,6 +454,14 @@ public abstract class NoiseBot {
 		}
 	}
 
+	public static void broadcastNotice(Collection<Protocol> protocols, String notice) {
+		for(NoiseBot bot : bots.values()) {
+			if(protocols.contains(bot.getProtocol())) {
+				bot.sendNotice("%s", notice);
+			}
+		}
+	}
+
 	void onChannelJoin() {
 		this.loadModules();
 	}
