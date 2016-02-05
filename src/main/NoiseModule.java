@@ -368,6 +368,9 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 //	@View(Protocol.Slack)
 //	public void defaultSlackView(ViewContext ctx, JSONObject data) throws JSONException {}
 
+	// This is Slack specific; IRC bots will never see reactions
+	protected void processReaction(Message message, String sender, String reaction) {}
+
 	public static <T extends NoiseModule> T load(NoiseBot bot, Class<T> moduleType) {
 		Log.v("%s - Loading", moduleType.getSimpleName());
 		if(!Arrays.asList(moduleType.getInterfaces()).contains(Serializable.class)) {return null;}

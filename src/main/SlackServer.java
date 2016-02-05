@@ -1,8 +1,10 @@
 package main;
 
 import com.ullink.slack.simpleslackapi.*;
+import com.ullink.slack.simpleslackapi.events.ReactionAdded;
 import com.ullink.slack.simpleslackapi.events.SlackMessagePosted;
 import com.ullink.slack.simpleslackapi.impl.SlackSessionFactory;
+import com.ullink.slack.simpleslackapi.listeners.ReactionAddedListener;
 import com.ullink.slack.simpleslackapi.listeners.SlackMessagePostedListener;
 import com.ullink.slack.simpleslackapi.replies.SlackChannelReply;
 import com.ullink.slack.simpleslackapi.replies.SlackMessageReply;
@@ -12,6 +14,7 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * @author Michael Mrozek
@@ -34,6 +37,9 @@ public class SlackServer implements SlackMessagePostedListener {
 		this.token = token;
 		this.slack = SlackSessionFactory.createWebSocketSlackSession(token);
 		this.slack.addMessagePostedListener(this);
+
+		// SlackServer can't directly implement ReactionAddedListener, it conflicts with SlackMessagePostedListener
+		this.slack.addReactionAddedListener((event, session) -> SlackServer.this.onEvent(event, session));
 	}
 
 	String getToken() {
@@ -89,10 +95,51 @@ public class SlackServer implements SlackMessagePostedListener {
 		final String channel = "#" + pack.getChannel().getName();
 		final String message = pack.getMessageContent();
 		Log.in(String.format("<%s -> %s: %s", sender, channel, message));
+
+		if(!this.bots.containsKey(channel)) {
+			Log.w("Ignore dispatch to unknown channel %s", channel);
+			return;
+		}
+
+		final SlackNoiseBot bot = (SlackNoiseBot)this.bots.get(channel);
+		bot.recordIncomingMessage(pack);
+
 		this.moduleDispatch(channel, new ModuleCall() {
 			@Override public void call(NoiseBot bot, NoiseModule module) {
 				if(!sender.equals(bot.getBotNick())) {
 					module.processMessageAndDisplayResult(new Message(bot, ((SlackNoiseBot)bot).unescape(message), sender, false));
+				}
+			}
+
+			@Override public void onException(NoiseBot bot, Exception e) {
+				super.onException(bot, e);
+				bot.sendMessage("#coreerror %s", e.getMessage());
+			}
+		});
+	}
+
+	//TODO Listen to ReactionRemoved?
+	public void onEvent(final ReactionAdded event, SlackSession session) {
+		final String channel = "#" + event.getChannel().getName();
+		final String ts = event.getMessageID();
+		final String sender = event.getUser().getUserName();
+
+		if(!this.bots.containsKey(channel)) {
+			Log.w("Ignore reaction in unknown channel %s", channel);
+			return;
+		}
+
+		final SlackNoiseBot bot = (SlackNoiseBot)this.bots.get(channel);
+		final Optional<SlackMessagePosted> message = bot.getRecordedMessage(ts);
+		if(!message.isPresent()) {
+			Log.w("Ignore reaction added event in channel %s for unknown message %s", channel, ts);
+			return;
+		}
+
+		this.moduleDispatch(channel, new ModuleCall() {
+			@Override public void call(NoiseBot bot, NoiseModule module) {
+				if(!sender.equals(bot.getBotNick())) {
+					module.processReaction(new Message(bot, ((SlackNoiseBot)bot).unescape(message.get().getMessageContent()), message.get().getSender().getUserName(), false), sender, event.getEmojiName());
 				}
 			}
 

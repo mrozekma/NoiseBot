@@ -3,15 +3,14 @@ package main;
 import com.google.gson.internal.StringMap;
 import com.ullink.slack.simpleslackapi.*;
 import com.ullink.slack.simpleslackapi.SlackTimestamped;
+import com.ullink.slack.simpleslackapi.events.SlackMessagePosted;
 import org.json.JSONException;
 
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.LinkedList;
+import java.util.*;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.BiPredicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -27,11 +26,15 @@ import static main.Utilities.substring;
  *         Created Dec 31, 2015.
  */
 public class SlackNoiseBot extends NoiseBot {
+	private static final int RECENT_MESSAGE_MEMORY = 100;
+
 	private final SlackServer server;
+	private final TreeMap<String, SlackMessagePosted> recentMessages;
 
 	public SlackNoiseBot(SlackServer server, String channel, boolean quiet, String[] fixedModules) {
 		super(channel, quiet, fixedModules);
 		this.server = server;
+		this.recentMessages = new TreeMap<>();
 	}
 
 	static void createBots(String connectionName, StringMap data) throws IOException {
@@ -121,6 +124,22 @@ public class SlackNoiseBot extends NoiseBot {
 
 	public String getUserID(String username) {
 		return this.server.findUserByUserName(username).getId();
+	}
+
+	// We remember the most recent messages so we can find them on events (e.g. reactionAdded)
+	void recordIncomingMessage(SlackMessagePosted message) {
+		synchronized(this.recentMessages) {
+			this.recentMessages.put(message.getTimestamp(), message);
+			while(this.recentMessages.size() > RECENT_MESSAGE_MEMORY) {
+				this.recentMessages.remove(this.recentMessages.firstKey());
+			}
+		}
+	}
+
+	Optional<SlackMessagePosted> getRecordedMessage(String ts) {
+		synchronized(this.recentMessages) {
+			return Optional.ofNullable(this.recentMessages.get(ts));
+		}
 	}
 
 	public String escape(String text) {

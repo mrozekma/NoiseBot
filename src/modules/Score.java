@@ -79,6 +79,14 @@ public class Score extends NoiseModule implements Serializable {
 		this.changeScore(ctx.getMessageSender(), target, -1);
 	}
 
+	@Override protected void processReaction(Message message, String sender, String reaction) {
+		if(reaction.equals("thumbsup") || reaction.equals("+1")) {
+			this.changeScore(sender, message.getSender(), 1);
+		} else if(reaction.equals("thumbsdown") || reaction.equals("-1")) {
+			this.changeScore(sender, message.getSender(), -1);
+		}
+	}
+
 	private void changeScore(String sender, String target, int amount) {
 		final Calendar when = new GregorianCalendar();
 		// Just in case multiple score changes come in at the same second
