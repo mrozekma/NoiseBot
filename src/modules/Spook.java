@@ -9,6 +9,7 @@ import java.nio.file.Paths;
 import java.util.*;
 
 import main.*;
+import org.json.JSONArray;
 import org.json.JSONException;
 
 import static main.Utilities.*;
@@ -109,6 +110,16 @@ public class Spook extends NoiseModule implements Serializable {
 	@Command("\\.spook")
 	public JSONObject spookDefault(CommandContext ctx) throws JSONException {
 		return this.spook(ctx, 10);
+	}
+
+	@View
+	public void plainView(ViewContext ctx, JSONObject data) throws JSONException {
+		final JSONArray entries = data.getJSONArray("spook");
+		final List<Object> args = new LinkedList<>();
+		for(int i = 0; i < entries.length(); i++) {
+			args.add(entries.getJSONObject(i).get("entry"));
+		}
+		ctx.respond("#(%s)", (Object)args.toArray());
 	}
 
 	@Command("\\.spookadd (.+)")
