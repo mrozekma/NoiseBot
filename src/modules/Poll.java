@@ -38,11 +38,10 @@ public class Poll extends NoiseModule {
 	private List<String> validVotes;
 
 	@Override protected Map<String, Style> styles() {
-		final Map<String, Style> rtn = new HashMap<String, Style>() {{
+		return new HashMap<String, Style>() {{
 			put("vote", Style.MAGENTA);
+			Style.addHelpStyles(bot.getProtocol(), this); // Needed for 'command' and 'argument'
 		}};
-		Help.addHelpStyles(this.bot.getProtocol(), rtn); // Needed for 'command' and 'argument'
-		return rtn;
 	}
 
 	//@Command("\\.poll \\[((?:" + VOTE_CLASS_REGEX + "+,?)+)\\] ?(.*)")

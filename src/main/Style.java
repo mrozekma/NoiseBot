@@ -30,6 +30,7 @@ public class Style {
 	// It's important that these two be unique instances, since Slack checks for them specially
 	public static final Style ERROR = RED.isBlock(true);
 	public static final Style COREERROR = RED.updateProp(Prop.reverse).isBlock(true);
+
 	public static final Style WARNING = YELLOW;
 	public static final Style SUCCESS = GREEN;
 
@@ -149,5 +150,21 @@ public class Style {
 		}
 
 		return Optional.empty();
+	}
+
+	// These are called "help styles" because it was the first module to use them, but they come up in other places, so they're defined here
+	public static void addHelpStyles(Protocol protocol, Map<String, Style> map) {
+		switch(protocol) {
+		case IRC:
+			map.put("command", Style.BLUE);
+			map.put("argument", Style.GREEN);
+			map.put("module", Style.RED);
+			break;
+		case Slack:
+			map.put("command", Style.BOLD);
+			map.put("argument", Style.ITALIC);
+			map.put("module", Style.BOLD);
+			break;
+		}
 	}
 }

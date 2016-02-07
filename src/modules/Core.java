@@ -17,13 +17,12 @@ public class Core extends NoiseModule {
 	private static final String MODULE_REGEX = "[a-zA-Z0-9_ -]+";
 
 	@Override protected Map<String, Style> styles() {
-		final Map<String, Style> rtn = new HashMap<String, Style>() {{
+		return new HashMap<String, Style>() {{
 			put("hash", Style.BLUE.update("bold"));
 			put("author", Style.BLUE.update("bold"));
 			put("description", Style.RED.update("bold"));
+			Style.addHelpStyles(bot.getProtocol(), this); // Needed for 'module'
 		}};
-		Help.addHelpStyles(this.bot.getProtocol(), rtn); // Needed for 'module'
-		return rtn;
 	}
 
 	@Command(value = "\\.load(\\??) (" + MODULE_REGEX + ")", allowPM = false)

@@ -13,26 +13,10 @@ import org.json.JSONException;
  *         Created Jun 14, 2009.
  */
 public class Help extends NoiseModule {
-	// Other modules use these styles, so we make them statically accessible
-	static void addHelpStyles(Protocol protocol, Map<String, Style> map) {
-		switch(protocol) {
-		case IRC:
-			map.put("command", Style.BLUE);
-			map.put("argument", Style.GREEN);
-			map.put("module", Style.RED);
-			break;
-		case Slack:
-			map.put("command", Style.BOLD);
-			map.put("argument", Style.ITALIC);
-			map.put("module", Style.BOLD);
-			break;
-		}
-	}
-
 	@Override protected Map<String, Style> styles() {
-		final Map<String, Style> rtn = new HashMap<>();
-		addHelpStyles(this.bot.getProtocol(), rtn);
-		return rtn;
+		return new HashMap<String, Style>() {{
+			Style.addHelpStyles(bot.getProtocol(), this);
+		}};
 	}
 
 	@Command(value = "\\.help", allowPM = true)

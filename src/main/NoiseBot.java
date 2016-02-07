@@ -5,7 +5,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.*;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import debugging.Log;
@@ -24,15 +23,6 @@ import org.json.JSONException;
  *         Created June 13, 2009.
  */
 public abstract class NoiseBot {
-	private static class QueuedAction {
-		final String source; // Target to contact in case of failure, either channel or nick
-		final Consumer<NoiseModule> fn;
-		QueuedAction(String source, Consumer<NoiseModule> fn) {
-			this.source = source;
-			this.fn = fn;
-		}
-	}
-
 	public static final String DEFAULT_CONNECTION = "default";
 	private static final String CONFIG_FILENAME = "config";
 	private static final String DATA_DIRECTORY = "data";
@@ -49,7 +39,6 @@ public abstract class NoiseBot {
 	protected final String[] fixedModules;
 	protected Optional<StringMap> owner = Optional.empty();
 	protected final Map<String, NoiseModule> modules = new HashMap<>();
-	protected final Queue<QueuedAction> rxQueue = new LinkedList<>();
 
 	protected NoiseBot(String channel, boolean quiet, String[] fixedModules) {
 		this.channel = channel;
@@ -357,7 +346,14 @@ public abstract class NoiseBot {
 		if(coreChanged) {
 			this.sendNotice("#yellow Core files changed; NoiseBot will restart");
 		} else if(reloadedModules.length > 0) {
-			this.sendNotice("Reloaded modules: #([, ] #module %s)", (Object)reloadedModules);
+			Style.pushOverrideMap(new HashMap<String, Style>() {{
+				Style.addHelpStyles(getProtocol(), this);
+			}});
+			try {
+				this.sendNotice("Reloaded modules: #([, ] #module %s)", (Object)reloadedModules);
+			} finally {
+				Style.popOverrideMap();
+			}
 		}
 	}
 
