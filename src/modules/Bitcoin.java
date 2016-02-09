@@ -31,6 +31,14 @@ public class Bitcoin extends NoiseModule {
 			this.ask = ask;
 			this.avg = avg;
 		}
+
+		public JSONObject pack() throws JSONException {
+			return new JSONObject().put("bid", this.bid).put("ask", this.ask).put("avg", this.avg);
+		}
+
+		public static Price unpack(org.json.JSONObject data) throws JSONException {
+			return new Price(data.getDouble("bid"), data.getDouble("ask"), data.getDouble("avg"));
+		}
 	}
 
 	private final Map<String, Price> exchanges = new HashMap<>();
@@ -53,7 +61,7 @@ public class Bitcoin extends NoiseModule {
 				return new JSONObject().put("error", "Unknown exchange");
 			}
 
-			return new JSONObject().put("exchange", exchange).put("price", price);
+			return new JSONObject().put("exchange", exchange).put("price", price.pack());
 		} catch(Exception e) {
 			Log.e(e);
 			return new JSONObject().put("error", "Problem parsing data");
@@ -78,7 +86,7 @@ public class Bitcoin extends NoiseModule {
 
 	@View(method = "bitcoin")
 	public void plainBitcoinView(ViewContext ctx, JSONObject data) throws JSONException {
-		final Price price = data.getT("price");
+		final Price price = Price.unpack(data.getJSONObject("price"));
 		ctx.respond("$%.2f / $%.2f", price.ask, price.bid);
 	}
 

@@ -114,11 +114,8 @@ public class Spook extends NoiseModule implements Serializable {
 	@View
 	public void plainView(ViewContext ctx, JSONObject data) throws JSONException {
 		final JSONArray entries = data.getJSONArray("spook");
-		final List<Object> args = new LinkedList<>();
-		for(int i = 0; i < entries.length(); i++) {
-			args.add(entries.getJSONObject(i).get("entry"));
-		}
-		ctx.respond("#(%s)", (Object)args.toArray());
+		final Object[] args = entries.flatValueStream("entry");
+		ctx.respond("#(%s)", (Object)args);
 	}
 
 	@Command("\\.spookadd (.+)")

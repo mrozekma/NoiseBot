@@ -172,12 +172,8 @@ public class Untappd extends NoiseModule {
 	@View(method = "drankstats")
 	public void plainDrankStatsView(ViewContext ctx, JSONObject data) throws JSONException {
 		final JSONArray stats = data.getJSONArray("stats");
-		final List<String> args = new LinkedList<>();
-		for(int i = 0; i < stats.length(); i++) {
-			args.add(stats.getJSONObject(i).getString("title"));
-			args.add(stats.getJSONObject(i).getString("value"));
-		}
-		ctx.respond("#([, ] %s: %s)", (Object)args.toArray());
+		final Object[] args = stats.flatValueStream("title", "value");
+		ctx.respond("#([, ] %s: %s)", (Object)args);
 	}
 
 	@Override public String getFriendlyName() { return "Untappd"; }

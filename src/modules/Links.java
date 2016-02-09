@@ -79,9 +79,7 @@ public class Links extends NoiseModule implements Serializable {
 	@View
 	public void viewLastURLs(ViewContext ctx, JSONObject data) throws JSONException {
 		final JSONArray cms = data.getJSONArray("links");
-		for(int i = 0; i < cms.length(); i++) {
-			ctx.respond("#recap %s", cms.get(i));
-		}
+		cms.stream().forEach(link -> ctx.respond("#recap %s", link));
 	}
 
 	@View(Protocol.Slack)

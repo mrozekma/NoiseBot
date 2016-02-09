@@ -30,6 +30,14 @@ public class JSONObject extends org.json.JSONObject {
 		return (T)this.get(key);
 	}
 
+	public <T> T getSoft(String key) throws RuntimeException {
+		try {
+			return this.getT(key);
+		} catch(JSONException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	public <T> T[] getJavaArray(String key, Class<T> cls) throws JSONException {
 		final JSONArray arr = this.getJSONArray(key);
 		final T[] rtn = (T[])Array.newInstance(cls, arr.length());

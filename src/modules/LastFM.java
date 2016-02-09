@@ -63,12 +63,7 @@ public class LastFM extends NoiseModule {
 	@View(method = {"top10", "top10week"})
 	public void topView(ViewContext ctx, JSONObject data) throws JSONException {
 		final JSONArray top = data.getJSONArray("top");
-		final Object[] args = new Object[top.length() * 2];
-		for(int i = 0; i < top.length(); i++) {
-			final JSONObject o = top.getJSONObject(i);
-			args[i * 2] = o.get("name");
-			args[i * 2 + 1] = o.get("playcount");
-		}
+		final Object[] args = top.flatValueStream("name", "playcount");
 		ctx.respond("#([ - ] %s (%s))", (Object)args);
 	}
 
