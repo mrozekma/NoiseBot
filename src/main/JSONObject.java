@@ -1,11 +1,9 @@
 package main;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 
 import java.lang.reflect.Array;
 import java.util.*;
-import java.util.function.Function;
 
 /**
  * @author Michael Mrozek
@@ -13,6 +11,10 @@ import java.util.function.Function;
  */
 public class JSONObject extends org.json.JSONObject {
 	public JSONObject() {}
+
+	public JSONObject(String source) throws JSONException {
+		super(source);
+	}
 
 	public JSONObject(org.json.JSONObject wrap) throws JSONException {
 		super(wrap, getKeys(wrap.keys()));
@@ -85,6 +87,14 @@ public class JSONObject extends org.json.JSONObject {
 			rtn[i] = arr.getString(i);
 		}
 		return rtn;
+	}
+
+	public JSONArray getJSONArray(String key) throws JSONException {
+		return new JSONArray(super.getJSONArray(key));
+	}
+
+	public JSONObject getJSONObject(String key) throws JSONException {
+		return new JSONObject(super.getJSONObject(key));
 	}
 
 	// Every superclass method that returns this:

@@ -13,17 +13,12 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-import main.CommandContext;
-import main.MessageBuilder;
-import main.NoiseModule;
-import main.ViewContext;
+import main.*;
 
 import static main.Utilities.formatSeconds;
 import static main.Utilities.pluralize;
 
-import main.Style;
 import org.json.JSONException;
-import org.json.JSONObject;
 
 /**
  * Twitch

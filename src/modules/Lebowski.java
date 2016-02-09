@@ -14,7 +14,6 @@ import java.util.Vector;
 import debugging.Log;
 
 import main.*;
-import org.json.JSONArray;
 import org.json.JSONException;
 
 import static main.Utilities.getRandomInt;
@@ -203,7 +202,7 @@ public class Lebowski extends NoiseModule {
 		}
 
 		final int idx = getRandomInt(0, matches.length() - 1);
-		final org.json.JSONObject match = matches.getJSONObject(idx);
+		final JSONObject match = matches.getJSONObject(idx);
 		this.lastLineMatched = match.getInt("line_num");
 		this.undisplayedMatches = matches;
 		this.undisplayedMatches.remove(idx);
@@ -236,7 +235,7 @@ public class Lebowski extends NoiseModule {
 			ctx.respond("#error No other matches to display");
 		} else {
 			final int idx = getRandomInt(0, this.undisplayedMatches.length() - 1);
-			final org.json.JSONObject match = this.undisplayedMatches.getJSONObject(idx);
+			final JSONObject match = this.undisplayedMatches.getJSONObject(idx);
 			this.lastLineMatched = match.getInt("line_num");
 			this.undisplayedMatches.remove(idx);
 
@@ -246,7 +245,7 @@ public class Lebowski extends NoiseModule {
 		}
 	}
 
-	private void renderMatch(MessageBuilder builder, org.json.JSONObject match, int matches, String userMessage) throws JSONException {
+	private void renderMatch(MessageBuilder builder, JSONObject match, int matches, String userMessage) throws JSONException {
 		if(matches > 1) {
 			builder.add("#count (%d) ", new Object[] {matches});
 		}

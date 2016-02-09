@@ -141,28 +141,6 @@ If you create such a command and run it, you will see that even though no messag
 
 This is facilitated by a **View**, explained in the [**Views**](#views) section below.
 
-Note that by default the `JSONObject` you use will be the one in the `main` package; this extends the one in the `org.json` package to provide additional useful methods. This can be a source of confusion if you try to use an `org.json.JSONObject` where a `main.JSONObject` is expected. For example, `JSONObject::getJSONObject()` returns an `org.json.JSONObject` in all cases, so this will not work:
-
-```java
-import main.JSONObject;
-
-...
-
-JSONObject foo = ...;
-JSONObject bar = foo.getJSONObject("bar");
-```
-
-When this comes up (which should be rare), I prefer to import `main.JSONObject` anyway and fully qualify any usage of `org.json.JSONObject`:
-
-```java
-import main.JSONObject;
-
-...
-
-JSONObject foo = ...;
-org.json.JSONObject bar = foo.getJSONObject("bar");
-```
-
 ### Views
 
 Analogous to a view in MVC, a NoiseBot view takes the structured data coming out of a command and turns it into human-friendly text that can be send to a channel or user. Commands and views are split up for two main reasons:

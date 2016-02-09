@@ -8,16 +8,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
 
-import main.Style;
-import org.json.JSONArray;
+import main.*;
 import org.json.JSONException;
-import org.json.JSONObject;
 
 import debugging.Log;
-
-import main.CommandContext;
-import main.NoiseModule;
-import main.ViewContext;
 
 import static main.Utilities.urlEncode;
 

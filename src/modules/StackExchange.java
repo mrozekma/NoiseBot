@@ -6,19 +6,12 @@ import java.net.URLConnection;
 import java.util.*;
 import java.util.zip.GZIPInputStream;
 
-import main.CommandContext;
-import main.MessageBuilder;
-import main.Style;
-import main.ViewContext;
+import main.*;
 import org.apache.commons.lang3.StringEscapeUtils;
-import org.json.JSONArray;
 import org.json.JSONException;
-import org.json.JSONObject;
 
 import debugging.Log;
 
-import main.Message;
-import main.NoiseModule;
 import static main.Utilities.pluralize;
 
 /**

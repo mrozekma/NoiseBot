@@ -6,15 +6,10 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import main.Style;
+import main.*;
 import org.json.JSONException;
-import org.json.JSONObject;
 
 import debugging.Log;
-
-import main.CommandContext;
-import main.NoiseModule;
-import main.ViewContext;
 
 /**
  * Clip

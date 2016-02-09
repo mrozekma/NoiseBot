@@ -1,7 +1,6 @@
 package modules;
 
 import main.*;
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -64,7 +63,7 @@ public class Weather extends NoiseModule implements Serializable
 			return new JSONObject().put("woeid", this.woeid).put("city", this.city).put("state", this.state);
 		}
 
-		public static Location unpack(org.json.JSONObject data) throws JSONException {
+		public static Location unpack(JSONObject data) throws JSONException {
 			return new Location(data.getInt("woeid"), data.getString("city"), data.getString("state"));
 		}
 
@@ -97,7 +96,7 @@ public class Weather extends NoiseModule implements Serializable
 			return new JSONObject().put("location", this.loc.pack()).put("temp", this.temp).put("condition", this.text);
 		}
 
-		public static Condition unpack(org.json.JSONObject data) throws JSONException {
+		public static Condition unpack(JSONObject data) throws JSONException {
 			return new Condition(Location.unpack(data.getJSONObject("location")), data.getInt("temp"), data.getString("condition"));
 		}
 

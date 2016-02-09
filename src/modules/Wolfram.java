@@ -1,10 +1,7 @@
 package modules;
 
 import debugging.Log;
-import main.JSONObject;
-import main.CommandContext;
-import main.NoiseModule;
-import main.ViewContext;
+import main.*;
 
 import com.wolfram.alpha.WAEngine;
 import com.wolfram.alpha.WAException;
@@ -12,8 +9,6 @@ import com.wolfram.alpha.WAPlainText;
 import com.wolfram.alpha.WAPod;
 import com.wolfram.alpha.WAQuery;
 import com.wolfram.alpha.WAQueryResult;
-import main.Style;
-import org.json.JSONArray;
 import org.json.JSONException;
 
 import java.util.*;

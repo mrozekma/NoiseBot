@@ -10,16 +10,11 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.time.Duration;
 
-import main.Style;
-import org.json.JSONArray;
+import main.*;
 import org.json.JSONException;
-import org.json.JSONObject;
 
 import debugging.Log;
 
-import main.CommandContext;
-import main.NoiseModule;
-import main.ViewContext;
 import static main.Utilities.formatSeconds;
 import static main.Utilities.pluralize;
 

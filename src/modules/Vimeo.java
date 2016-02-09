@@ -1,15 +1,10 @@
 package modules;
 
 import debugging.Log;
-import main.CommandContext;
-import main.MessageBuilder;
-import main.NoiseModule;
-import main.Style;
-import main.ViewContext;
+import main.*;
 import static main.Utilities.formatSeconds;
 
 import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.FileNotFoundException;
 import java.net.URL;

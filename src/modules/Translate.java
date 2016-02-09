@@ -3,15 +3,8 @@ package modules;
 import java.io.IOException;
 import java.util.*;
 
-import main.CommandContext;
-import main.MessageBuilder;
-import main.NoiseModule;
-import main.ViewContext;
-
-import main.Style;
-import org.json.JSONArray;
+import main.*;
 import org.json.JSONException;
-import org.json.JSONObject;
 
 import debugging.Log;
 

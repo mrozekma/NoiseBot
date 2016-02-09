@@ -69,7 +69,7 @@ public class Discordianism extends NoiseModule {
 	@View
 	public void view(ViewContext ctx, JSONObject data) throws JSONException {
 		// It's sad that this is the most complicated part
-		final org.json.JSONObject disco = data.getJSONObject("discordian");
+		final JSONObject disco = data.getJSONObject("discordian");
 		final int dayOfSeason = disco.getInt("day");
 		final String daySuffix;
 		if(dayOfSeason >= 10 && dayOfSeason < 20) {

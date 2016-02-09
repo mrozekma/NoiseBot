@@ -176,7 +176,7 @@ public class Score extends NoiseModule implements Serializable {
 
 	@View(method = {"scores", "scoresWhen"})
 	public void plainViewScores(ViewContext ctx, JSONObject data) throws JSONException {
-		final org.json.JSONObject scores = data.getJSONObject("scores");
+		final JSONObject scores = data.getJSONObject("scores");
 		if(scores.length() == 0) {
 			ctx.respond("No scores available");
 			return;

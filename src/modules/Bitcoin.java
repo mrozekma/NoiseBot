@@ -7,8 +7,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
 
+import main.JSONArray;
 import main.JSONObject;
-import org.json.JSONArray;
 import org.json.JSONException;
 
 import debugging.Log;
@@ -107,7 +107,7 @@ public class Bitcoin extends NoiseModule {
 		final JSONArray json = new JSONArray(buffer.toString());
 		this.exchanges.clear();
 		for(int i = 0; i < json.length(); i++) {
-			final org.json.JSONObject obj = json.getJSONObject(i);
+			final JSONObject obj = json.getJSONObject(i);
 			if(obj.getString("currency").equals("USD")) {
 				final double bid = obj.isNull("bid") ? 0.0 : obj.getDouble("bid");
 				final double ask = obj.isNull("ask") ? 0.0 : obj.getDouble("ask");

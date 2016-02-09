@@ -5,8 +5,8 @@ import static main.Utilities.fuzzyTimeAgo;
 import java.io.IOException;
 
 import debugging.Log;
+import main.JSONArray;
 import main.JSONObject;
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -65,7 +65,7 @@ public class LastFM extends NoiseModule {
 		final JSONArray top = data.getJSONArray("top");
 		final Object[] args = new Object[top.length() * 2];
 		for(int i = 0; i < top.length(); i++) {
-			final org.json.JSONObject o = top.getJSONObject(i);
+			final JSONObject o = top.getJSONObject(i);
 			args[i * 2] = o.get("name");
 			args[i * 2 + 1] = o.get("playcount");
 		}

@@ -16,7 +16,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import org.json.JSONException;
-import org.json.JSONObject;
 
 /**
  * Utilities
