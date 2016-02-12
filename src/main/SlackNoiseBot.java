@@ -170,11 +170,13 @@ public class SlackNoiseBot extends NoiseBot {
 					switch(what.charAt(0)) {
 					case '@':
 						// Strip the '@'
-						matcher.appendReplacement(rtn, this.server.findUserById(what.substring(1)).getUserName());
+						final SlackUser user = this.server.findUserById(what.substring(1));
+						matcher.appendReplacement(rtn, (user == null) ? what.substring(1) : user.getUserName());
 						break;
 					case '#':
 						// Include the '#'
-						matcher.appendReplacement(rtn, "#" + this.server.findChannelById(what.substring(1)).getName());
+						final SlackChannel channel = this.server.findChannelById(what.substring(1));
+						matcher.appendReplacement(rtn, (channel == null) ? what : ("#" + channel.getName()));
 						break;
 					}
 				}
