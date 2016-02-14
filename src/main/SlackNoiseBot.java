@@ -110,7 +110,14 @@ public class SlackNoiseBot extends NoiseBot {
 		if(coreChanged) {
 			this.sendMessage("#bold Core files changed; NoiseBot will restart");
 		} else if(reloadedModules.length > 0) {
-			this.sendMessage("Reloaded modules: #([, ] #module %s)", (Object)reloadedModules);
+			Style.pushOverrideMap(new HashMap<String, Style>() {{
+				Style.addHelpStyles(getProtocol(), this);
+			}});
+			try {
+				this.sendMessage("Reloaded modules: #([, ] #module %s)", (Object)reloadedModules);
+			} finally {
+				Style.popOverrideMap();
+			}
 		}
 	}
 
