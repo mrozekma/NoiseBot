@@ -129,7 +129,7 @@ public class Choose extends NoiseModule {
 	@Override public String getDescription() {return "Returns a randomly selected entry from the specified list";}
 	@Override public String[] getExamples() {
 		return new String[] {
-				".choose _opt1_ _opt2_... -- Returns a random entry from the comma-separated list. Double-quote any arguments if they have spaces",
+				".choose _opt1_ _opt2_... -- Returns a random entry from the space-separated list. Double-quote any arguments if they have spaces",
 				".choice _opt1_ _opt2_ ... -- Same as above",
 				".rechoose -- Run the last .choose again",
 				".roll 3d4+5 -- Roll some dice",
