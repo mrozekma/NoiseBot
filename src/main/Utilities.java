@@ -252,4 +252,13 @@ public class Utilities {
 
 		return s.toString();
 	}
+
+	public static String exceptionString(Throwable e) {
+		final StringBuilder rtn = new StringBuilder();
+		rtn.append(e.getClass().getSimpleName());
+		if(e.getMessage() != null) {
+			rtn.append(": ").append(e.getMessage());
+		}
+		return rtn.toString();
+	}
 }

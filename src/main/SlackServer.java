@@ -16,6 +16,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import static main.Utilities.exceptionString;
+
 /**
  * @author Michael Mrozek
  *         Created Dec 31, 2015.
@@ -114,7 +116,7 @@ public class SlackServer implements SlackMessagePostedListener {
 			@Override public void onException(NoiseBot bot, Exception e) {
 				super.onException(bot, e);
 				Log.e(e);
-				bot.sendMessage("#coreerror %s", e.getMessage());
+				bot.sendMessage("#coreerror %s", exceptionString(e));
 			}
 		});
 	}
@@ -147,7 +149,7 @@ public class SlackServer implements SlackMessagePostedListener {
 			@Override public void onException(NoiseBot bot, Exception e) {
 				super.onException(bot, e);
 				Log.e(e);
-				bot.sendMessage("#coreerror %s", e.getMessage());
+				bot.sendMessage("#coreerror %s", exceptionString(e));
 			}
 		});
 	}

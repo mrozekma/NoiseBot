@@ -14,6 +14,7 @@ import org.jibble.pircbot.Colors;
 
 import debugging.Log;
 
+import static main.Utilities.exceptionString;
 import static main.Utilities.sleep;
 
 /**
@@ -40,7 +41,7 @@ public class IRCServer extends PircBot {
 		try {
 			this.setEncoding("UTF-8");
 		} catch (UnsupportedEncodingException e) {
-			System.err.println("Unable to set encoding: " + e.getMessage());
+			System.err.printf("Unable to set encoding: %s\n", e.getMessage());
 		}
 
 		this.setName(this.connection.nick);
@@ -107,7 +108,7 @@ public class IRCServer extends PircBot {
 
 			@Override public void onException(NoiseBot bot, Exception e) {
 				super.onException(bot, e);
-				bot.sendMessageTo(channel, "#coreerror %s: %s", e.getClass().getSimpleName(), e.getMessage());
+				bot.sendMessageTo(channel, "#coreerror %s", exceptionString(e));
 			}
 		});
 	}
@@ -150,7 +151,7 @@ public class IRCServer extends PircBot {
 
 			@Override public void onException(NoiseBot bot, Exception e) {
 				super.onException(bot, e);
-				bot.sendMessageTo(sender, "#coreerror %s: %s", e.getClass().getSimpleName(), e.getMessage());
+				bot.sendMessageTo(sender, "#coreerror %s", exceptionString(e));
 			}
 		});
 	}

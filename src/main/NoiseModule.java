@@ -24,6 +24,8 @@ import org.jibble.pircbot.User;
 import debugging.Log;
 import org.json.JSONException;
 
+import static main.Utilities.exceptionString;
+
 /**
  * NoiseModule
  *
@@ -318,7 +320,7 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 			if(e instanceof InvocationTargetException) {
 				e = e.getCause();
 			}
-			result.message.respond("#error %s: %s", e.getClass().getSimpleName(), e.getMessage());
+			result.message.respond("#error %s", exceptionString(e));
 		}
 	}
 

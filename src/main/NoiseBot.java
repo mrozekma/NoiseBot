@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 
 import debugging.Log;
 
+import static main.Utilities.exceptionString;
 import static main.Utilities.pluralize;
 import static main.Utilities.reverse;
 
@@ -106,7 +107,7 @@ public abstract class NoiseBot {
 			} catch(ModuleInitException e) {
 				Log.e("Failed loading module %s", moduleName);
 				Log.e(e);
-				this.sendMessage("#coreerror Failed loading module %s: %s", moduleName, e.getMessage());
+				this.sendMessage("#coreerror Failed loading module %s: %s", moduleName, exceptionString(e));
 			}
 		}
 
@@ -184,7 +185,7 @@ public abstract class NoiseBot {
 			throw new ModuleInitException("Unable to instantiate module " + moduleName + ": Module does not exist");
 		} catch(Exception e) {
 			Log.e(e);
-			throw new ModuleInitException("Unable to instantiate module " + moduleName + ": " + e.getMessage());
+			throw new ModuleInitException("Unable to instantiate module " + moduleName + ": " + exceptionString(e));
 		}
 
 		this.setModuleConfig(module);
