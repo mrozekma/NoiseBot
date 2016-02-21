@@ -56,6 +56,11 @@ public class Wikipedia extends NoiseModule {
 		String anchor = null;
 		try {
 			anchor = new URL(url).getRef();
+
+			// We don't want references that are empty or start with '/' (hash URLs)
+			if(anchor.isEmpty() || anchor.charAt(0) == '/') {
+				anchor = null;
+			}
 		} catch(MalformedURLException e) {
 			Log.e(e);
 		}
