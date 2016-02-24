@@ -14,12 +14,43 @@ import java.util.stream.Collectors;
 public class MessageBuilder {
 	enum Type {MESSAGE, ACTION, NOTICE}
 
-	private interface Message {}
+	private interface Message {
+		String[] finalize(StringBuilder cur, ListIterator<Message> iter, Optional<Integer> maxMessageLen);
+	}
 
 	private static class SingleMessage implements Message {
 		final String message;
 		SingleMessage(String message) {
 			this.message = message;
+		}
+
+		@Override public String[] finalize(StringBuilder cur, ListIterator<Message> iter, Optional<Integer> maxMessageLen) {
+			if(!maxMessageLen.isPresent()) {
+				cur.append(this.message);
+				return new String[0];
+			}
+
+			// For single-part messages, if they're too long we just split wherever
+			final int remaining = maxMessageLen.get() - cur.length();
+			String text = this.message;
+			if(text.length() > remaining) {
+				String excess = text.substring(remaining);
+				text = text.substring(0, remaining);
+				cur.append(text);
+
+				// Send the string so far
+				final String[] rtn = {cur.toString()};
+				cur.setLength(0);
+
+				// Queue the excess up to be processed next iteration
+				iter.add(new SingleMessage(excess));
+				iter.previous();
+
+				return rtn;
+			} else {
+				cur.append(text);
+				return new String[0];
+			}
 		}
 	}
 
@@ -29,6 +60,57 @@ public class MessageBuilder {
 		MultipartMessage(String separator, String[] parts) {
 			this.separator = separator;
 			this.parts = parts;
+		}
+
+		@Override public String[] finalize(StringBuilder cur, ListIterator<Message> iter, Optional<Integer> maxMessageLen) {
+			if(!maxMessageLen.isPresent()) {
+				cur.append(Arrays.stream(this.parts).collect(Collectors.joining(this.separator)));
+				return new String[0];
+			}
+
+			if(this.separator.length() > maxMessageLen.get()) {
+				throw new IllegalArgumentException("Separator is too large");
+			}
+			String separator = "";
+			final List<String> rtn = new LinkedList<>();
+			for(int i = 0; i < this.parts.length; i++) {
+				String part = this.parts[i];
+				int remaining = maxMessageLen.get() - cur.length();
+				// For multi-part messages, try to split between parts if possible
+				if(separator.length() + part.length() > remaining) {
+					if(cur.length() == 0) {
+						// This one part is too large for a single message, so we have to split it up
+						cur.append(separator);
+						remaining -= separator.length();
+
+						while(part.length() > remaining) {
+							cur.append(part.substring(0, remaining));
+							part = part.substring(remaining);
+							rtn.add(cur.toString());
+							cur.setLength(0);
+							remaining = maxMessageLen.get();
+						}
+
+						// There might be remaining data in 'part'
+						if(part.isEmpty()) {
+							continue;
+						} else {
+							cur.append(part);
+						}
+					} else {
+						// Redo this part next pass, after flushing 'str'
+						i--;
+					}
+					rtn.add(cur.toString());
+					cur.setLength(0);
+					separator = "";
+				} else {
+					cur.append(separator).append(part);
+					separator = this.separator;
+				}
+			}
+
+			return rtn.toArray(new String[0]);
 		}
 	}
 
@@ -307,84 +389,11 @@ public class MessageBuilder {
 		final StringBuilder str = new StringBuilder();
 		for(ListIterator<Message> iter = this.messages.listIterator(); iter.hasNext();) {
 			final Message message = iter.next();
-			if(message instanceof SingleMessage) {
-				final SingleMessage smessage = (SingleMessage)message;
-				if(maxMessageLen.isPresent()) {
-					final int remaining = maxMessageLen.get() - str.length();
-					// For single-part messages, if they're too long we just split wherever
-					String text = smessage.message;
-					if(text.length() > remaining) {
-						String excess = text.substring(remaining);
-						text = text.substring(0, remaining);
-						str.append(text);
-
-						// Send the string so far
-						rtn.add(str.toString());
-						str.setLength(0);
-
-						// Queue the excess up to be processed next iteration
-						iter.add(new SingleMessage(excess));
-						iter.previous();
-					} else {
-						str.append(text);
-					}
-				} else {
-					str.append(smessage.message);
-				}
-			} else if(message instanceof MultipartMessage) {
-				final MultipartMessage mpmessage = (MultipartMessage)message;
-				if(maxMessageLen.isPresent()) {
-					if(mpmessage.separator.length() > maxMessageLen.get()) {
-						throw new IllegalArgumentException("Separator is too large");
-					}
-					String separator = "";
-					for(int i = 0; i < mpmessage.parts.length; i++) {
-						String part = mpmessage.parts[i];
-						int remaining = maxMessageLen.get() - str.length();
-						// For multi-part messages, try to split between parts if possible
-						if(separator.length() + part.length() > remaining) {
-							if(str.length() == 0) {
-								// This one part is too large for a single message, so we have to split it up
-								str.append(separator);
-								remaining -= separator.length();
-
-								while(part.length() > remaining) {
-									str.append(part.substring(0, remaining));
-									part = part.substring(remaining);
-									rtn.add(str.toString());
-									str.setLength(0);
-									remaining = maxMessageLen.get();
-								}
-
-								// There might be remaining data in 'part'
-								if(part.isEmpty()) {
-									continue;
-								} else {
-									str.append(part);
-								}
-							} else {
-								// Redo this part next pass, after flushing 'str'
-								i--;
-							}
-							rtn.add(str.toString());
-							str.setLength(0);
-							separator = "";
-						} else {
-							str.append(separator).append(part);
-							separator = mpmessage.separator;
-						}
-					}
-				} else {
-					str.append(Arrays.stream(mpmessage.parts).collect(Collectors.joining(mpmessage.separator)));
-				}
-			} else {
-				throw new RuntimeException("Unexpected Message subclass: " + message.getClass());
-			}
+			rtn.addAll(Arrays.asList(message.finalize(str, iter, maxMessageLen)));
 		}
 		if(str.length() > 0) {
 			rtn.add(str.toString());
 		}
-
 		return rtn.toArray(new String[0]);
 	}
 }
