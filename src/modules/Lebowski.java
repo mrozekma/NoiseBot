@@ -265,11 +265,12 @@ public class Lebowski extends NoiseModule {
 		if(m == 0) {return 0;} // return text
 		if(m > PATTERN_MAX) {throw new IllegalArgumentException("Pattern is too long");}
 
-		for(int i =0; i <= k; i++) {R[i] = ~1;}
-		for(int i = 0; i <= CHAR_MAX; i++) {patternMask[i] = ~0;}
-		for(int i = 0; i < m; i++) {patternMask[pattern.charAt(i)] &= ~(1 << i);}
-
 		try {
+			for(int i = 0; i <= k; i++) {R[i] = ~1;}
+			for(int i = 0; i <= CHAR_MAX; i++) {patternMask[i] = ~0;}
+			// Can throw an ArrayIndexOutOfBoundsException if a character in the pattern is non-ASCII
+			for(int i = 0; i < m; i++) {patternMask[pattern.charAt(i)] &= ~(1 << i);}
+
 			for(int i = 0; i < text.length(); i++) {
 				long oldRd1 = R[0];
 				R[0] |= patternMask[text.charAt(i)];
