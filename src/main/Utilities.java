@@ -112,11 +112,8 @@ public class Utilities {
 	public static String truncateOnWord(String line, int maxLength) {
 		if(utf8Size(line) <= maxLength) {
 			return line;
-		} else if(maxLength < 3) {
-			return "";
 		}
 
-		maxLength -= 3; // Ellipses
 		int prev = -1, cur = 0;
 		while((cur = line.indexOf(' ', prev + 1)) >= 0) {
 			if(cur > maxLength) {
@@ -125,9 +122,6 @@ public class Utilities {
 			prev = cur;
 		}
 		line = line.substring(0, prev);
-		if(!line.endsWith("...")) {
-			line += "...";
-		}
 		return line;
 	}
 

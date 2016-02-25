@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import static main.Utilities.truncateOnWord;
+
 /**
  * @author Michael Mrozek
  *         Created Jan 2, 2016.
@@ -111,6 +113,45 @@ public class MessageBuilder {
 			}
 
 			return rtn.toArray(new String[0]);
+		}
+	}
+
+	private static class BulkMessage implements Message {
+		final String message;
+		final String truncationIndicator;
+		final String suffix;
+		final boolean splitOnWord;
+
+		BulkMessage(String message, String truncationIndicator, String suffix, boolean splitOnWord) {
+			this.message = message;
+			this.truncationIndicator = truncationIndicator;
+			this.suffix = suffix;
+			this.splitOnWord = splitOnWord;
+		}
+
+		@Override public String[] finalize(StringBuilder cur, ListIterator<Message> iter, Optional<Integer> maxMessageLen) {
+			if(!maxMessageLen.isPresent()) {
+				cur.append(this.message);
+			} else {
+				final int remaining = maxMessageLen.get() - cur.length();
+				if(remaining >= this.message.length() + this.suffix.length()) {
+					cur.append(this.message).append(this.suffix);
+				} else if(remaining >= this.truncationIndicator.length() + this.suffix.length()) {
+					final int amt = remaining - this.truncationIndicator.length() - this.suffix.length();
+					if(this.splitOnWord) {
+						cur.append(truncateOnWord(this.message, amt));
+					} else {
+						cur.append(this.message.substring(0, amt));
+					}
+					if(!cur.toString().endsWith(this.truncationIndicator)) {
+						cur.append(this.truncationIndicator);
+					}
+					cur.append(this.suffix);
+				} else {
+					// Not enough room for anything; just leave the string unchanged
+				}
+			}
+			return new String[0];
 		}
 	}
 
@@ -370,6 +411,13 @@ public class MessageBuilder {
 		flush.accept(style);
 
 		return (rtn == null) ? null : rtn.toString();
+	}
+
+	public MessageBuilder addBulk(String text) {return this.addBulk(text, "");}
+	public MessageBuilder addBulk(String text, String suffix) {return this.addBulk(text, "...", suffix, false);}
+	public MessageBuilder addBulk(String text, String truncationIndicator, String suffix, boolean splitOnWord) {
+		this.messages.add(new BulkMessage(text, truncationIndicator, suffix, splitOnWord));
+		return this;
 	}
 
 	public SentMessage[] send() {
