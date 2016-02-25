@@ -104,7 +104,7 @@ public class IRCNoiseBot extends NoiseBot {
 	@Override public void quit(int exitCode) {
 		// Wait (for a little while) for outgoing messages to be sent
 		if(this.outQueue != null) {
-			for(int tries = 0; tries < 5 && !this.outQueue.isEmpty(); tries++) {
+			for(int tries = 0; tries < 10 && !this.outQueue.isEmpty(); tries++) {
 				sleep(1);
 			}
 		}
