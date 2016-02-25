@@ -6,12 +6,9 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.ullink.slack.simpleslackapi.SlackAttachment;
 import main.*;
 import org.json.JSONException;
-import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Document;
@@ -26,22 +23,34 @@ import static main.Utilities.*;
  * @author Michael Mrozek
  *         Created Jun 16, 2009.
  */
-public class Wikipedia extends NoiseModule {
-	private static final int MAXIMUM_MESSAGE_LENGTH = 400; // Approximately (512 bytes including IRC data), although we truncate on all protocols
-
+public class Wikipedia extends WebLookupModule {
 	@Command("\\.(?:wik|wp) (.+)")
 	public JSONObject wikipedia(CommandContext ctx, String term) throws JSONException {
-		return this.getEntry(term, "http://en.wikipedia.org/wiki/" + urlEncode(fixTitle(term)));
+		return this.lookup(term, "http://en.wikipedia.org/wiki/" + urlEncode(fixTitle(term)));
 	}
 
 	@Command(".*((?:https?:\\/\\/en\\.wikipedia\\.org|https:\\/\\/secure\\.wikimedia\\.org\\/wikipedia(?:\\/commons|\\/en))\\/wiki\\/((?:\\S+)(?::[0-9]+)?(?:\\/|\\/(?:[\\w#!:.?+=&%@!\\-\\/]))?)).*")
 	public JSONObject wikipediaLink(CommandContext ctx, String url, String term) throws JSONException {
-		return this.getEntry(urlDecode(term).replace("_", " "), url);
+		return this.lookup(urlDecode(term).replace("_", " "), url);
 	}
 
 	@Command(".*\\[\\[([^\\]]+)]].*")
 	public JSONObject wikipediaInline(CommandContext ctx, String term) throws JSONException {
-		return this.getEntry(term, "http://en.wikipedia.org/wiki/" + urlEncode(fixTitle(term)));
+		return this.lookup(term, "http://en.wikipedia.org/wiki/" + urlEncode(fixTitle(term)));
+	}
+
+	@Override protected String getThumbnailURL() {
+		return "https://upload.wikimedia.org/wikipedia/commons/6/63/Wikipedia-logo.png";
+	}
+
+	@Override protected boolean shouldIncludeLink(Method commandMethod) {
+		final String name = commandMethod.getName();
+		return name.equals("wikipedia") || name.equals("wikipediaInline") || name.equals("featured");
+	}
+
+	@Override protected boolean shouldShowErrors(Method commandMethod) {
+		final String name = commandMethod.getName();
+		return !name.equals("wikipediaInline");
 	}
 
 	private static String fixTitle(String term) {
@@ -52,13 +61,13 @@ public class Wikipedia extends NoiseModule {
 		return fixedTerm;
 	}
 
-	private String selectEntryText(final String term, final String url, final Document doc) {
+	@Override protected String getBody(final String term, final String url, final Document doc) throws BodyNotFound {
 		String anchor = null;
 		try {
 			anchor = new URL(url).getRef();
 
 			// We don't want references that are empty or start with '/' (hash URLs)
-			if(anchor.isEmpty() || anchor.charAt(0) == '/') {
+			if(anchor != null && (anchor.isEmpty() || anchor.charAt(0) == '/')) {
 				anchor = null;
 			}
 		} catch(MalformedURLException e) {
@@ -92,88 +101,12 @@ public class Wikipedia extends NoiseModule {
 		if (el == null) {
 			el = doc.select("div#bodyContent p").first();
 		}
-		return el == null ? null : el.text();
-	}
 
-	private JSONObject getEntry(final String term, final String url) throws JSONException {
-		final Document doc;
-		try {
-			doc = Jsoup.connect(url).get();
-		} catch(HttpStatusException e) {
-			if(e.getStatusCode() == 404) {
-				return new JSONObject().put("warning", "No entry for " + term);
-			} else {
-				Log.e(e);
-				return new JSONObject().put("warning", "Unable to connect to Wikipedia: " + e.getMessage());
-			}
-		} catch(IOException e) {
-			Log.e(e);
-			return new JSONObject().put("warning", "Unable to connect to Wikipedia: " + e.getMessage());
-		}
-
-		String text = selectEntryText(term, url, doc);
-		if(text == null) {
-			return new JSONObject().put("warning", "Unable to find post body");
-		}
-
-		return new JSONObject().put("term", term).put("url", url).put("text", text);
-	}
-
-	// Using AtomicBoolean as a way to pass booleans by reference
-	private static void determineViewFlags(Method commandMethod, AtomicBoolean showErrors, AtomicBoolean includeLink) {
-		final String command = commandMethod.getName();
-		if(command.equals("wikipedia")) {
-			showErrors.set(true);
-			includeLink.set(true);
-		} else if(command.equals("wikipediaLink")) {
-			showErrors.set(true);
-			includeLink.set(false);
-		} else if(command.equals("wikipediaInline")) {
-			showErrors.set(false);
-			includeLink.set(true);
-		} else if(command.equals("featured")) {
-			showErrors.set(true);
-			includeLink.set(true);
+		if (el != null) {
+			return el.text();
 		} else {
-			throw new IllegalArgumentException(String.format("Unrecognized command: %s", command));
+			throw new BodyNotFound();
 		}
-	}
-
-	@View
-	public void plainView(ViewContext ctx, JSONObject data) throws JSONException {
-		final AtomicBoolean showErrors = new AtomicBoolean(), includeLink = new AtomicBoolean();
-		determineViewFlags(ctx.getCommandMethod(), showErrors, includeLink);
-		if(data.has("warning")) {
-			if(showErrors.get()) {
-				ctx.respond("#error %s", data.get("warning"));
-			}
-			return;
-		}
-
-		final String url = data.getString("url");
-		String text = truncateOnWord(data.getString("text"), MAXIMUM_MESSAGE_LENGTH - (includeLink.get() ? (1 + utf8Size(url)) : 0));
-		if(includeLink.get()) {
-			text += " " + url;
-		}
-		ctx.respond("%s", text);
-	}
-
-	@View(Protocol.Slack)
-	public void slackView(ViewContext ctx, JSONObject data) throws JSONException {
-		final AtomicBoolean showErrors = new AtomicBoolean(), includeLink = new AtomicBoolean();
-		determineViewFlags(ctx.getCommandMethod(), showErrors, includeLink);
-		if(data.has("warning")) {
-			if(showErrors.get()) {
-				ctx.respond("#error %s", data.get("warning"));
-			}
-			return;
-		}
-
-		final String text = truncateOnWord(data.getString("text"), MAXIMUM_MESSAGE_LENGTH);
-		final SlackAttachment attachment = new SlackAttachment(data.getString("term"), text, text, null);
-		attachment.setTitleLink(data.getString("url")); // We include the link regardless of includeLink, since it doesn't take up any space
-		attachment.setThumbURL("https://www.wikipedia.org/portal/wikipedia.org/assets/img/Wikipedia-logo-v2_1x.png");
-		((SlackNoiseBot)this.bot).sendAttachmentTo(ctx.getResponseTarget(), attachment);
 	}
 
 	@Command("\\.featured")

@@ -296,13 +296,13 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 			Optional<Method> view = Optional.empty();
 
 			// If there's an error, we force use of a default handler
-			if(!data.has("error")) {
-				view = this.findBestView(method, getAnnotatedMethods(method.getDeclaringClass(), View.class));
-			}
-
-			// If we couldn't find a valid view (or didn't try because of an error condition), find the best default handler
-			if(!view.isPresent()) {
+			if(data.has("error")) {
 				view = this.findBestView(method, getAnnotatedMethods(NoiseModule.class, View.class));
+			} else {
+				// Scan up the inheritance hierarchy until a valid view is found. In most cases the module inherits directly from NoiseModule, so if the module has no views we use a default view on NoiseModule
+				for(Class cls = method.getDeclaringClass(); !view.isPresent(); cls = cls.getSuperclass()) {
+					view = this.findBestView(method, getAnnotatedMethods(cls, View.class));
+				}
 			}
 
 			Style.pushOverrideMap(this.styles());

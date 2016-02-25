@@ -1,18 +1,15 @@
 package modules;
 
-import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
 import org.json.JSONException;
-import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Document;
 
 import main.CommandContext;
 import main.JSONObject;
-import main.NoiseModule;
-import main.ViewContext;
 import static main.Utilities.*;
 
 /**
@@ -21,27 +18,15 @@ import static main.Utilities.*;
  * @author Michael Mrozek
  *         Created Jun 28, 2014.
  */
-public class TVTropes extends NoiseModule {
-	private static final int MAXIMUM_MESSAGE_LENGTH = 400; // Approximately (512 bytes including IRC data), although we truncate on all protocols
-
+public class TVTropes extends WebLookupModule {
 	@Command("\\.trope (.+)")
 	public JSONObject tvtrope(CommandContext ctx, String term) throws JSONException {
-		return this.getEntry(term, "http://tvtropes.org/pmwiki/pmwiki.php/Main/" + urlEncode(fixTitle(term)));
-	}
-
-	@View(method = "tvtrope")
-	public void plainTvtropeView(ViewContext ctx, JSONObject data) throws JSONException {
-		this.plainView(ctx, data, true);
+		return this.lookup(term, "http://tvtropes.org/pmwiki/pmwiki.php/Main/" + urlEncode(fixTitle(term)));
 	}
 
 	@Command(".*(http://tvtropes.org/pmwiki/pmwiki.php/Main/(.+)).*")
 	public JSONObject tvtropeLink(CommandContext ctx, String url, String term) throws JSONException {
-		return this.getEntry(urlDecode(term).replace("_", " "), url);
-	}
-
-	@View(method = "tvtropeLink")
-	public void plainTvtropeLinkView(ViewContext ctx, JSONObject data) throws JSONException {
-		this.plainView(ctx, data, false);
+		return this.lookup(urlDecode(term).replace("_", " "), url);
 	}
 
 	private static String fixTitle(String term) {
@@ -56,40 +41,26 @@ public class TVTropes extends NoiseModule {
 		return Arrays.stream(words).collect(Collectors.joining());
 	}
 
-	private JSONObject getEntry(final String term, final String url) throws JSONException {
-		final Document doc;
-		try {
-			doc = Jsoup.connect(url).get();
-		} catch(IOException e) {
-			return new JSONObject().put("error", "Unable to connect to TVTropes: " + e.getMessage());
-		}
-
-		final Element el = doc.select("#wikitext").first();
-		if(el.text().startsWith("We don't have an article named")) {
-			return new JSONObject().put("warning", "No entry for " + term);
+	@Override protected String getBody(String term, String url, Document doc) throws EntryNotFound, BodyNotFound {
+		final Element el = doc.select(".page-content").first();
+		if(el == null || el.text().startsWith("We don't have an article named")) {
+			throw new EntryNotFound();
 		}
 		el.select("div,span").remove();
 		String text = el.text();
 		if(text == null) {
-			return new JSONObject().put("warning", "Unable to find post body");
+			throw new BodyNotFound();
 		}
-
-		return new JSONObject().put("term", term).put("url", url).put("text", text);
+		return text;
 	}
 
-	private void plainView(ViewContext ctx, JSONObject data, boolean includeLink) throws JSONException {
-		if(data.has("warning")) {
-			ctx.respond("#warning %s", data.get("warning"));
-			return;
-		}
+	@Override protected String getThumbnailURL() {
+		return "https://s3-us-west-2.amazonaws.com/s.cdpn.io/291322/tv-logo.png";
+	}
 
-		String text = data.getString("text");
-		final String url = data.getString("url");
-		text = truncateOnWord(text, MAXIMUM_MESSAGE_LENGTH - (includeLink ? (1 + utf8Size(url)) : 0));
-		if(includeLink) {
-			text += " " + url;
-		}
-		ctx.respond("%s", text);
+	@Override protected boolean shouldIncludeLink(Method commandMethod) {
+		final String name = commandMethod.getName();
+		return name.equals("tvtrope");
 	}
 
 	@Override public String getFriendlyName() {return "TVTropes";}

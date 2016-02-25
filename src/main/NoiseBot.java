@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -161,6 +162,9 @@ public abstract class NoiseBot {
 				moduleFileDeps.remove(moduleName);
 
 				final Class<? extends NoiseModule> c = (Class<? extends NoiseModule>)getModuleLoader().loadClass("modules." + moduleName);
+				if(Modifier.isAbstract(c.getModifiers())) {
+					throw new ModuleInitException("Unable to instantiate module " + moduleName + ": Module is abstract");
+				}
 
 				// Try loading from disk
 				module = NoiseModule.load(this, c);
@@ -177,9 +181,12 @@ public abstract class NoiseBot {
 
 			module.init(this);
 			this.modules.put(moduleName, module);
+		} catch(ModuleInitException e) {
+			Log.e(e);
+			throw e;
 		} catch(ClassCastException e) {
 			Log.e(e);
-			throw new ModuleInitException("Defined module " + moduleName + " does not extend NoiseModule");
+			throw new ModuleInitException("Unable to instantiate module " + moduleName + ": Module does not extend NoiseModule");
 		} catch(ClassNotFoundException e) {
 			Log.e(e);
 			throw new ModuleInitException("Unable to instantiate module " + moduleName + ": Module does not exist");
