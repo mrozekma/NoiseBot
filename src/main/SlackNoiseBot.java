@@ -296,11 +296,11 @@ public class SlackNoiseBot extends NoiseBot {
 		return rtn.toArray(new SentMessage[0]);
 	}
 
-	public SentMessage sendAttachment(SlackAttachment attachment) {
+	public SlackSentMessage sendAttachment(SlackAttachment attachment) {
 		return this.sendAttachmentTo(this.channel, attachment);
 	}
 
-	public SentMessage sendAttachmentTo(String target, SlackAttachment attachment) {
+	public SlackSentMessage sendAttachmentTo(String target, SlackAttachment attachment) {
 		final SlackMessageHandle<? extends SlackTimestamped> handle;
 		if(!target.isEmpty() && target.charAt(0) == '#') {
 			handle = this.server.sendMessage(this.server.findChannelByName(target.substring(1)), "\n", attachment);
