@@ -203,6 +203,11 @@ public class SlackNoiseBot extends NoiseBot {
 		return text.substring(0, leading) + emph + text.substring(leading, trailing) + emph + text.substring(trailing);
 	}
 
+	public String formatUser(String username) {
+		final SlackUser user = this.server.findUserByUserName(username);
+		return String.format("<@%s>", user.getId());
+	}
+
 	@Override public String format(Style style, String text) {
 		text = this.escape(text);
 
