@@ -27,9 +27,14 @@ public class Dance extends NoiseModule {
 
 	@Command(value = ".*\\bdanc(?:e|ing).*", caseSensitive = false)
 	public void dance(CommandContext ctx) {
-		ctx.respondAction("dances :D-<");
-		ctx.respondAction("dances :D|-<");
-		ctx.respondAction("dances :D/-<");
+		// Not sure if this should be a view; I don't really want this to return data
+		if(this.bot.getProtocol() == Protocol.Slack) {
+			ctx.respond(":dancer: :dancers: :dancer: :dancers: :dancer:");
+		} else {
+			ctx.respondAction("dances :D-<");
+			ctx.respondAction("dances :D|-<");
+			ctx.respondAction("dances :D/-<");
+		}
 	}
 
 	@Command(value = ".*\\bdisco.*", caseSensitive = false)
