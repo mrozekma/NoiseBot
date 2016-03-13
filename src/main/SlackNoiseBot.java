@@ -209,7 +209,13 @@ public class SlackNoiseBot extends NoiseBot {
 	}
 
 	@Override public String format(Style style, String text) {
-		text = this.escape(text);
+		return this.format(style, text, true);
+	}
+
+	public String format(Style style, String text, boolean escape) {
+		if(escape) {
+			text = this.escape(text);
+		}
 
 		if(style.is(Style.Prop.bold)) {
 			text = emph(text, "*");
@@ -263,7 +269,7 @@ public class SlackNoiseBot extends NoiseBot {
 					case ACTION:
 						// There's currently no way to send me_message events through the Slack API
 						// Instead we just italicize the whole message. Close enough?
-						text = this.format(Style.ITALIC, text);
+						text = this.format(Style.ITALIC, text, false);
 						// Fallthrough
 					case MESSAGE:
 					case NOTICE:
