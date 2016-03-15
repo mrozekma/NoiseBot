@@ -3,12 +3,6 @@ package modules;
 import main.*;
 
 public class Die extends NoiseModule {
-	@Override public void init(NoiseBot bot) throws ModuleInitException {
-		if(bot.getProtocol() != Protocol.IRC) {
-			throw new ModuleInitException("This module is IRC-specific");
-		}
-	}
-
 	@Command("\\.die(?:diedie)?")
 	public void die(CommandContext ctx) {
 		if(this.bot.clearPendingSends()) {
@@ -16,6 +10,10 @@ public class Die extends NoiseModule {
 		} else {
 			this.bot.sendMessage("#red Unable to modify outqueue");
 		}
+	}
+
+	@Override public boolean supportsProtocol(Protocol protocol) {
+		return protocol == Protocol.IRC;
 	}
 
 	@Override public String getFriendlyName() {return "Die";}

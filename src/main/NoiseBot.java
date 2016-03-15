@@ -177,6 +177,8 @@ public abstract class NoiseBot {
 
 			if(module.getFriendlyName() == null) {
 				throw new ModuleInitException("Module " + moduleName + " does not have a friendly name");
+			} else if(!module.supportsProtocol(this.getProtocol())) {
+				throw new ModuleInitException("Module " + moduleName + " does not support " + this.getProtocol());
 			}
 
 			module.init(this);

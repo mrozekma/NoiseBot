@@ -159,9 +159,6 @@ public class EmojiRace extends NoiseModule implements Serializable {
 
 	@Override public void init(NoiseBot bot) throws ModuleInitException {
 		super.init(bot);
-		if(bot.getProtocol() != Protocol.Slack) {
-			throw new ModuleInitException("This module is Slack-specific");
-		}
 		this.bot = (SlackNoiseBot)bot;
 	}
 
@@ -443,6 +440,10 @@ public class EmojiRace extends NoiseModule implements Serializable {
 		}
 
 		this.updateMessage(race);
+	}
+
+	@Override public boolean supportsProtocol(Protocol protocol) {
+		return protocol == Protocol.Slack;
 	}
 
 	@Override public String getFriendlyName() {return "EmojiRace";}

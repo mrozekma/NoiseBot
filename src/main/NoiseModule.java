@@ -213,6 +213,8 @@ public abstract class NoiseModule implements Comparable<NoiseModule> {
 
 	public boolean showInHelp() {return true;}
 
+	public boolean supportsProtocol(Protocol protocol) {return true;}
+
 	public Pattern[] getPatterns() {return this.patterns.keySet().toArray(new Pattern[0]);}
 
 	public boolean matches(Message message) {
