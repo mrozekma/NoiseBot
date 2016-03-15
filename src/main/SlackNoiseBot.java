@@ -352,4 +352,8 @@ public class SlackNoiseBot extends NoiseBot {
 			this.server.deleteMessageToUser(message.getTimestamp(), message.target);
 		}
 	}
+
+	public void uploadFile(byte[] data, String title) {
+		this.server.uploadFile(this.slackChannel(), data, title);
+	}
 }

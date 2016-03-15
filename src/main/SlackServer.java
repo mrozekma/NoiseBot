@@ -8,6 +8,7 @@ import com.ullink.slack.simpleslackapi.listeners.ReactionAddedListener;
 import com.ullink.slack.simpleslackapi.listeners.SlackMessagePostedListener;
 import com.ullink.slack.simpleslackapi.replies.SlackChannelReply;
 import com.ullink.slack.simpleslackapi.replies.SlackMessageReply;
+import com.ullink.slack.simpleslackapi.replies.SlackUploadReply;
 import debugging.Log;
 
 import java.io.IOException;
@@ -172,5 +173,5 @@ public class SlackServer implements SlackMessagePostedListener {
 	public SlackMessageHandle<SlackChannelReply> updateMessage(String timeStamp, SlackChannel channel, String message, SlackAttachment attachment) {return this.slack.updateMessage(timeStamp, channel, message, attachment);}
 	public SlackMessageHandle<SlackMessageReply> updateMessageToUser(String timeStamp, String userName, String message) {return this.slack.updateMessageToUser(timeStamp, userName, message);}
 	public SlackMessageHandle<SlackMessageReply> updateMessageToUser(String timeStamp, String userName, String message, SlackAttachment attachment) {return this.slack.updateMessageToUser(timeStamp, userName, message, attachment);}
+	public SlackMessageHandle<SlackUploadReply> uploadFile(SlackChannel channel, byte[] data, String title) {return this.slack.uploadFile(channel, data, title);}
 }
-
