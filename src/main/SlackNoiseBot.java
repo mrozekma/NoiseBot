@@ -18,7 +18,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static main.Utilities.pluralize;
-import static main.Utilities.reverse;
 import static main.Utilities.substring;
 
 /**
@@ -37,25 +36,21 @@ public class SlackNoiseBot extends NoiseBot {
 		this.recentMessages = new TreeMap<>();
 	}
 
-	static void createBots(String connectionName, StringMap data) throws IOException {
+	static void createBot(String connectionName, StringMap data) throws IOException {
 		final String token = (String)data.get("token");
 		final boolean quiet = data.containsKey("quiet") ? (Boolean)data.get("quiet") : false;
 		final String[] modules = data.containsKey("modules") ? ((List<String>)data.get("modules")).toArray(new String[0]) : null;
 		final SlackServer server = new SlackServer(token);
 
-		final List<String> channels = (List<String>)data.get("channels");
-		for(String channel : channels) {
-			final NoiseBot bot = new SlackNoiseBot(server, channel, quiet, modules);
-			if(data.containsKey("owner")) {
-				bot.setOwner((StringMap)data.get("owner"));
-			}
-			NoiseBot.bots.put(connectionName + channel, bot);
-			server.addBot(channel, bot);
-		}
-
-		if(!server.connect()) {
+		final Optional<String> general = server.connect();
+		if(!general.isPresent()) {
 			throw new IOException("Unable to connect to server");
 		}
+
+		final SlackNoiseBot bot = new SlackNoiseBot(server, "#" + general.get(), quiet, modules);
+		server.setBot(bot);
+		NoiseBot.bots.put(connectionName, bot);
+		bot.onChannelJoin();
 	}
 
 	private SlackChannel slackChannel() {

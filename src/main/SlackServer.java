@@ -3,6 +3,7 @@ package main;
 import com.ullink.slack.simpleslackapi.*;
 import com.ullink.slack.simpleslackapi.events.ReactionAdded;
 import com.ullink.slack.simpleslackapi.events.SlackMessagePosted;
+import com.ullink.slack.simpleslackapi.impl.SlackJSONSessionStatusParser;
 import com.ullink.slack.simpleslackapi.impl.SlackSessionFactory;
 import com.ullink.slack.simpleslackapi.listeners.ReactionAddedListener;
 import com.ullink.slack.simpleslackapi.listeners.SlackMessagePostedListener;
@@ -34,7 +35,7 @@ public class SlackServer implements SlackMessagePostedListener {
 	private final String token;
 	private final SlackSession slack;
 	// channel -> bot for that channel
-	private final Map<String, NoiseBot> bots = new HashMap<>();
+	private SlackNoiseBot bot;
 
 	SlackServer(String token) {
 		this.token = token;
@@ -49,41 +50,36 @@ public class SlackServer implements SlackMessagePostedListener {
 		return this.token;
 	}
 
-	void addBot(String channel, NoiseBot bot) {
-		this.bots.put(channel, bot);
+	void setBot(SlackNoiseBot bot) {
+		this.bot = bot;
 	}
 
-	public boolean connect() {
+	public Optional<String> connect() {
 		Log.i("Connecting to slack");
 		if(this.slack.isConnected()) {
 			Log.w("Already connected");
-			return true;
+			return Optional.of(this.bot.channel);
 		}
 
 		try {
 			System.out.println("Connecting to slack");
-			this.slack.connect();
-			for(Map.Entry<String, NoiseBot> e : this.bots.entrySet()) {
-				System.out.printf("Joining %s\n", e.getKey());
-				this.slack.joinChannel(e.getKey().substring(1));
-				e.getValue().onChannelJoin();
+			final SlackJSONSessionStatusParser parser = this.slack.connect();
+			final Optional<SlackChannel> general = parser.getChannels().values().stream().filter(channel -> channel.isGeneral()).findAny();
+			if(general.isPresent()) {
+				return Optional.of(general.get().getName());
 			}
-			return true;
+
+			System.err.println("No general channel found");
 		} catch(IOException e) {
 			Log.e(e);
 			System.err.printf("Network error: %s\n", e.getMessage());
 		}
 
-		return false;
+		return Optional.empty();
 	}
 
 	private void moduleDispatch(String channel, ModuleCall call) {
-		if(!this.bots.containsKey(channel)) {
-			Log.w("Ignore dispatch to unknown channel %s", channel);
-		}
-
-		final NoiseBot bot = this.bots.get(channel);
-		for(NoiseModule module : bot.getModules().values()) {
+		for(NoiseModule module : this.bot.getModules().values()) {
 			try {
 				call.call(bot, module);
 			} catch(Exception e) {
@@ -99,18 +95,12 @@ public class SlackServer implements SlackMessagePostedListener {
 		final String message = pack.getMessageContent();
 		Log.in(String.format("<%s -> %s: %s", sender, channel, message));
 
-		if(!this.bots.containsKey(channel)) {
-			Log.w("Ignore dispatch to unknown channel %s", channel);
-			return;
-		}
-
-		final SlackNoiseBot bot = (SlackNoiseBot)this.bots.get(channel);
-		bot.recordIncomingMessage(pack);
+		this.bot.recordIncomingMessage(pack);
 
 		this.moduleDispatch(channel, new ModuleCall() {
 			@Override public void call(NoiseBot bot, NoiseModule module) {
 				if(!sender.equals(bot.getBotNick())) {
-					module.processMessageAndDisplayResult(new Message(bot, ((SlackNoiseBot)bot).unescape(message), sender, false));
+					module.processMessageAndDisplayResult(new Message(bot, ((SlackNoiseBot)bot).unescape(message), sender, channel));
 				}
 			}
 
@@ -128,13 +118,7 @@ public class SlackServer implements SlackMessagePostedListener {
 		final String ts = event.getMessageID();
 		final String sender = event.getUser().getUserName();
 
-		if(!this.bots.containsKey(channel)) {
-			Log.w("Ignore reaction in unknown channel %s", channel);
-			return;
-		}
-
-		final SlackNoiseBot bot = (SlackNoiseBot)this.bots.get(channel);
-		final Optional<SlackMessagePosted> message = bot.getRecordedMessage(ts);
+		final Optional<SlackMessagePosted> message = this.bot.getRecordedMessage(ts);
 		if(!message.isPresent()) {
 			Log.w("Ignore reaction added event in channel %s for unknown message %s", channel, ts);
 			return;
@@ -143,7 +127,8 @@ public class SlackServer implements SlackMessagePostedListener {
 		this.moduleDispatch(channel, new ModuleCall() {
 			@Override public void call(NoiseBot bot, NoiseModule module) {
 				if(!sender.equals(bot.getBotNick())) {
-					module.processReaction(new Message(bot, ((SlackNoiseBot)bot).unescape(message.get().getMessageContent()), message.get().getSender().getUserName(), false), sender, event.getEmojiName());
+					final String targetSender = message.get().getSender().getUserName();
+					module.processReaction(new Message(bot, ((SlackNoiseBot)bot).unescape(message.get().getMessageContent()), targetSender, targetSender), sender, event.getEmojiName());
 				}
 			}
 

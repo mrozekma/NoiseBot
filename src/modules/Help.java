@@ -19,7 +19,7 @@ public class Help extends NoiseModule {
 		}};
 	}
 
-	@Command(value = "\\.help", allowPM = true)
+	@Command("\\.help")
 	public JSONObject general(CommandContext ctx) throws JSONException {
 		final String[] modules = this.bot.getModules().values().stream().filter(m -> m.showInHelp()).map(m -> m.getFriendlyName()).sorted().toArray(String[]::new);
 		return new JSONObject().put("modules", modules);

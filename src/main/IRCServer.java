@@ -103,7 +103,7 @@ public class IRCServer extends PircBot {
 		Log.in(String.format("<%s (%s@%s) -> %s: %s", sender, login, hostname, channel, message));
 		this.moduleDispatch(channel, new ModuleCall() {
 			@Override public void call(NoiseBot bot, NoiseModule module) {
-				module.processMessageAndDisplayResult(new Message(bot, Colors.removeFormattingAndColors(message.trim()), sender, false));
+				module.processMessageAndDisplayResult(new Message(bot, Colors.removeFormattingAndColors(message.trim()), sender, channel));
             }
 
 			@Override public void onException(NoiseBot bot, Exception e) {
@@ -146,7 +146,7 @@ public class IRCServer extends PircBot {
 
 		this.moduleDispatch(channel, new ModuleCall() {
 			@Override public void call(NoiseBot bot, NoiseModule module) {
-				module.processMessageAndDisplayResult(new Message(bot, Colors.removeFormattingAndColors(realMessage.trim()), sender, true));
+				module.processMessageAndDisplayResult(new Message(bot, Colors.removeFormattingAndColors(realMessage.trim()), sender, sender));
             }
 
 			@Override public void onException(NoiseBot bot, Exception e) {

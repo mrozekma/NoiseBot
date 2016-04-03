@@ -280,7 +280,7 @@ public abstract class NoiseBot {
 	}
 
 	public ViewContext makeViewContext() {
-		return new ViewContext(new Message(this, null, null, false));
+		return new ViewContext(new Message(this, null, null, this.channel));
 	}
 
 	public abstract Protocol getProtocol();
@@ -551,7 +551,7 @@ public abstract class NoiseBot {
 					IRCNoiseBot.createBots(connectionName, data);
 					break;
 				case Slack:
-					SlackNoiseBot.createBots(connectionName, data);
+					SlackNoiseBot.createBot(connectionName, data);
 					break;
 				}
 			} catch(IOException e) {

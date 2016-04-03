@@ -29,26 +29,24 @@ public class Message {
 	private transient final NoiseBot bot;
 	private final String message;
 	private final String sender;
-	private final boolean pm;
+	private final String responseTarget;
 
 	private transient Optional<Queue<MessageBuilder>> mergeResponses = Optional.empty();
 
-	public Message(NoiseBot bot, String message, String sender, boolean pm) {
+	public Message(NoiseBot bot, String message, String sender, String responseTarget) {
 		this.bot = bot;
 		this.message = message;
 		this.sender = sender;
-		this.pm = pm;
+		this.responseTarget = responseTarget;
 	}
 
 	public String getMessage() {return this.message;}
 	public String getSender() {return this.sender;}
-	public boolean isPM() {return this.pm;}
-	public String getResponseTarget() {
-		return this.pm ? this.sender : this.bot.channel;
-	}
+	public String getResponseTarget() {return this.responseTarget;}
+	public boolean isPM() {return this.responseTarget.charAt(0) != '#';}
 
 	public Message deriveNew(String message) {
-		return new Message(this.bot, message, this.sender, this.pm);
+		return new Message(this.bot, message, this.sender, this.responseTarget);
 	}
 
 	////////////////////////////////////////////////////////////////////////////////
@@ -71,7 +69,7 @@ public class Message {
 	}
 
 	public MessageBuilder buildResponse() {
-		return this.new BufferedBuilder(this.bot, this.getResponseTarget(), MessageBuilder.Type.MESSAGE);
+		return this.new BufferedBuilder(this.bot, this.responseTarget, MessageBuilder.Type.MESSAGE);
 	}
 
 	public void respondAction(String fmt, Object... args) {
@@ -79,7 +77,7 @@ public class Message {
 	}
 
 	public MessageBuilder buildActionResponse() {
-		return this.new BufferedBuilder(this.bot, this.getResponseTarget(), MessageBuilder.Type.ACTION);
+		return this.new BufferedBuilder(this.bot, this.responseTarget, MessageBuilder.Type.ACTION);
 	}
 
 	@Override public String toString() {return "<" + this.sender + "> " + this.message;}
