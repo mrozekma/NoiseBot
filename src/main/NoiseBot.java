@@ -350,7 +350,7 @@ public abstract class NoiseBot {
 	protected void outputSyncInfo(Git.Revision oldrev, Git.Revision[] revs, boolean coreChanged, String[] reloadedModules) {
 		this.sendNotice("Synced " + pluralize(revs.length, "revision", "revisions") + ": " + Git.diffLink(oldrev, this.revision));
 		for(Git.Revision rev : reverse(revs)) {
-			this.sendNotice("    " + rev);
+			this.sendNotice("    %s", rev);
 		}
 
 		if(coreChanged) {
