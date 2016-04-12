@@ -1,17 +1,15 @@
 package modules;
 
 import main.*;
+import static main.Utilities.getJSON;
+
 import org.json.JSONException;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.nodes.Node;
 
 import debugging.Log;
 
+import java.io.IOException;
 import java.util.*;
 import java.io.Serializable;
-import java.net.URL;
 import java.net.URLEncoder;
 
 /**
@@ -23,57 +21,56 @@ import java.net.URLEncoder;
  */
 public class Weather extends NoiseModule implements Serializable
 {
+	// https://developers.google.com/maps/documentation/geocoding/intro#GeocodingResponses
+	private enum GeocodeStatusCode {
+		OK("Ok"),
+		ZERO_RESULTS("No location found"),
+		OVER_QUERY_LIMIT("Too many geocode requests"),
+		REQUEST_DENIED("Request denied"),
+		INVALID_REQUEST("Invalid request"),
+		UNKNOWN_ERROR("Unknown error");
+
+		final String msg;
+		GeocodeStatusCode(String msg) {
+			this.msg = msg;
+		}
+	}
+
 	private static class Location implements Comparable<Location>, Serializable {
-		public final int woeid;
 		public final String city;
 		public final String state;
+		public final double lat, lon;
 
-		public Location(int woeid, String city, String state) {
-			this.woeid = woeid;
+		public Location(String city, String state, double lat, double lon) {
 			this.city = city;
 			this.state = state;
-		}
-
-		public static Location parse(Document doc) {
-			try {
-				final int woeid = Integer.parseInt(doc.select("place > woeid").first().text());
-				final String city = doc.select("place > [type=Town]").first().text();
-				final String state;
-				{
-					Element e = doc.select("place > [type=State]").first();
-					if(e != null) {
-						if(e.hasAttr("code") && e.attr("code").startsWith("US-")) {
-							state = e.attr("code").substring(3);
-						} else {
-							state = e.text();
-						}
-					} else {
-						e = doc.select("place > country[code]").first();
-						state = e.attr("code");
-					}
-				}
-				return new Location(woeid, city, state);
-			} catch(Exception e) {
-				Log.e(e);
-				return null;
-			}
+			this.lat = lat;
+			this.lon = lon;
 		}
 
 		public JSONObject pack() throws JSONException {
-			return new JSONObject().put("woeid", this.woeid).put("city", this.city).put("state", this.state);
+			return new JSONObject().put("city", this.city).put("state", this.state).put("latitude", this.lat).put("longitude", this.lon);
 		}
 
 		public static Location unpack(JSONObject data) throws JSONException {
-			return new Location(data.getInt("woeid"), data.getString("city"), data.getString("state"));
+			return new Location(data.getString("city"), data.getString("state"), data.getDouble("latitude"), data.getDouble("longitude"));
 		}
 
 		@Override public boolean equals(Object o) {
-			return (o instanceof Location) && ((Location)o).woeid == this.woeid;
+			if(!(o instanceof Location)) {
+				return false;
+			}
+			final Location other = (Location)o;
+			return this.lat == other.lat && this.lon == other.lon;
 		}
 
 		// Controls the order conditions will be displayed in
 		@Override public int compareTo(Location o) {
-			return Integer.compare(this.woeid, o.woeid);
+			int rtn = Double.compare(this.lat, o.lat);
+			if(rtn == 0) {
+				rtn = Double.compare(this.lon, o.lon);
+			}
+			return rtn;
 		}
 
 		@Override public String toString() {
@@ -83,21 +80,23 @@ public class Weather extends NoiseModule implements Serializable
 
 	private static class Condition implements Comparable<Condition> {
 		public final Location loc;
-		public final int temp;
+		public final double temp;
+		public final String shortText;
 		public final String text;
 
-		public Condition(Location loc, int temp, String text) {
+		public Condition(Location loc, double temp, String shortText, String text) {
 			this.loc = loc;
 			this.temp = temp;
+			this.shortText = shortText;
 			this.text = text;
 		}
 
 		public JSONObject pack() throws JSONException {
-			return new JSONObject().put("location", this.loc.pack()).put("temp", this.temp).put("condition", this.text);
+			return new JSONObject().put("location", this.loc.pack()).put("temp", this.temp).put("short_condition", this.shortText).put("condition", this.text);
 		}
 
 		public static Condition unpack(JSONObject data) throws JSONException {
-			return new Condition(Location.unpack(data.getJSONObject("location")), data.getInt("temp"), data.getString("condition"));
+			return new Condition(Location.unpack(data.getJSONObject("location")), data.getDouble("temp"), data.getString("short_condition"), data.getString("condition"));
 		}
 
 		@Override public int compareTo(Condition o) {
@@ -105,19 +104,15 @@ public class Weather extends NoiseModule implements Serializable
 		}
 	}
 
-	private static final String WEATHER_URL = "http://weather.yahooapis.com/forecastrss?w=";
-	private static final String PLACE_TO_WOEID_URL = "http://where.yahooapis.com/v1/places.q('%s')?appid=%s";
-	private static final String WOEID_TO_PLACE_URL = "http://where.yahooapis.com/v1/place/%d?appid=%s";
+	private static final String GEOCODE_URL = "https://maps.googleapis.com/maps/api/geocode/json?key=%s&address=%s";
+	private static final String FORECAST_URL = "https://api.forecast.io/forecast/%s/%f,%f";
 	private static final int TIMEOUT = 5; // seconds
 
-	private static final Map<String, String> shortNames = new HashMap<String, String>() {{
-		put("Partly Cloudy", "cloudy-");
-		put("Mostly Cloudy", "cloudy+");
-		put("Thunderstorms", "storms");
-	}};
+	@Configurable("forecast-key")
+	private transient String forecastKey = null;
 
-	@Configurable("appid")
-	private transient String appid = null;
+	@Configurable("geocode-key")
+	private transient String geocodeKey = null;
 
 	// nick -> user's location. Perfect for NSA surveillance teams
 	private final Map<String, Location> locations = new HashMap<>();
@@ -131,45 +126,63 @@ public class Weather extends NoiseModule implements Serializable
 		}};
 	}
 
-	private static Document getXML(String url) throws Exception {
-		return Jsoup.parse(new URL(url), TIMEOUT * 1000);
-	}
-
 	private Condition getWeather(Location loc) {
 		try {
-			final String uri = WEATHER_URL + loc.woeid;
-			final Node cond = getXML(uri).select("yweather|condition").first();
-			return new Condition(loc, Integer.parseInt(cond.attr("temp")), cond.attr("text"));
-		} catch (Exception e) {
-			Log.e(e);
-			return null;
-		}
-	}
-
-	private Location locationLookup(int woeid) {
-		if(this.appid == null) {
-			return null;
-		}
-
-		try {
-			return Location.parse(getXML(String.format(WOEID_TO_PLACE_URL, woeid, this.appid)));
+			final JSONObject json = getJSON(String.format(FORECAST_URL, this.forecastKey, loc.lat, loc.lon));
+			final JSONObject currently = json.getJSONObject("currently");
+			return new Condition(loc, currently.getDouble("temperature"), currently.getString("icon"), currently.getString("summary"));
 		} catch(Exception e) {
 			Log.e(e);
 			return null;
 		}
 	}
 
-	private Location locationLookup(String desc) {
-		if(this.appid == null) {
+	private Location locationLookup(String desc) throws IOException, JSONException {
+		if(this.geocodeKey == null) {
 			return null;
 		}
 
-		try {
-			return Location.parse(getXML(String.format(PLACE_TO_WOEID_URL, URLEncoder.encode(desc, "UTF-8"), this.appid)));
-		} catch(Exception e) {
-			Log.e(e);
-			return null;
+		final JSONObject json = getJSON(String.format(GEOCODE_URL, this.geocodeKey, URLEncoder.encode(desc, "UTF-8")));
+		GeocodeStatusCode status = GeocodeStatusCode.valueOf(json.getString("status"));
+		if(status == GeocodeStatusCode.OK) {
+			final JSONArray results = json.getJSONArray("results");
+			if(results.length() == 0) {
+				status = GeocodeStatusCode.ZERO_RESULTS;
+			} else {
+				final JSONObject result = results.getJSONObject(0);
+				final JSONArray addressComponents = result.getJSONArray("address_components");
+				Optional<String> city = Optional.empty(), state = Optional.empty(), country = Optional.empty();
+				for(int i = 0; i < addressComponents.length(); i++) {
+					final JSONObject component = addressComponents.getJSONObject(i);
+					final JSONArray types = component.getJSONArray("types");
+					if(types.contains("locality")) {
+						city = Optional.of(component.getString("long_name"));
+					} else if(types.contains("administrative_area_level_1")) {
+						state = Optional.of(component.getString("short_name"));
+					} else if(types.contains("country")) {
+						country = Optional.of(component.getString("short_name"));
+					}
+				}
+				// My Americentrism comes back to bite me
+				if(!country.orElse("").equals("US")) {
+					state = country;
+				}
+				if(!(city.isPresent() && state.isPresent())) {
+					throw new JSONException("Missing city and/or state");
+				}
+				final JSONObject location = result.getJSONObject("geometry").getJSONObject("location");
+				final double lat = location.getDouble("lat"), lon = location.getDouble("lng");
+				return new Location(city.get(), state.get(), lat, lon);
+			}
 		}
+		if(status == null) {
+			status = GeocodeStatusCode.UNKNOWN_ERROR;
+		}
+		String msg = status.msg;
+		if(json.has("error_message")) {
+			msg += ": " + json.getString("error_message");
+		}
+		throw new IOException(msg);
 	}
 
 	private Map<Location, Condition> getWeather(boolean all) {
@@ -193,34 +206,25 @@ public class Weather extends NoiseModule implements Serializable
 		return rtn;
 	}
 
-	@Command("\\.weatheradd ([^:]+)")
+	@Command("\\.weather(?:add|set) ([^:]+)")
 	public void weatherAdd(CommandContext ctx, String loc) {
 		this.weatherAdd(ctx, ctx.getMessageSender(), loc);
 	}
 
-	@Command("\\.weatheradd ([^ :]+): (.+)")
+	@Command("\\.weather(?:add|set) ([^ :]+): (.+)")
 	public void weatherAdd(CommandContext ctx, String nick, String locDesc) {
-		Location loc = null;
+		final Location loc;
 		try {
-			// I'm just hoping WOEIDs are never 5 digits, since they'll be indistinguishable from zipcodes
-			if(locDesc.length() != 5) {
-				final int woeid = Integer.parseInt(locDesc);
-				loc = this.locationLookup(woeid);
-			}
-		} catch(NumberFormatException e) {}
-
-		if(loc == null) {
 			loc = this.locationLookup(locDesc);
-		}
-
-		if(loc == null) {
-			ctx.respond("#error Unable to determine location");
+		} catch(IOException | JSONException e) {
+			Log.e(e);
+			ctx.respond("#error %s", e.getMessage());
 			return;
 		}
 
 		this.locations.put(nick, loc);
 		this.save();
-		ctx.respond("#success Added location %d (%s) for %s", loc.woeid, loc, nick);
+		ctx.respond("#success Added location %s for %s", loc, nick);
 	}
 
 	@Command("\\.weatherrm ([^ :]+)")
@@ -287,17 +291,16 @@ public class Weather extends NoiseModule implements Serializable
 		final List<Object> args = new LinkedList<>();
 		if(data.getBoolean("short_form")) {
 			for(Condition cond : sortedConditions) {
-				final String txt = shortNames.entrySet().stream().reduce(cond.text, (text, entry) -> text.replace(entry.getKey(), entry.getValue()), (before, after) -> after);
 				args.add(cond.loc.city);
-				args.add(cond.temp);
-				args.add(txt.toLowerCase());
+				args.add((int)cond.temp);
+				args.add(cond.shortText.replaceAll("-day$", "").replaceAll("-night$", "").replace("partly-cloudy", "cloudy-"));
 			}
 			ctx.respond("#([  |  ] %(#loc)s %(#temp)s %(#text)s)", (Object)args.toArray());
 		} else {
 			for(Condition cond : sortedConditions) {
 				args.add(cond.loc);
 				args.add(cond.text);
-				args.add(cond.temp + "F");
+				args.add(String.format("%.2fF", cond.temp));
 			}
 			ctx.respond("#([ ] #info [%(#loc)s: %(#text)s, %(#temp)s])", (Object)args.toArray());
 		}
@@ -311,8 +314,8 @@ public class Weather extends NoiseModule implements Serializable
 			".weather _*_ -- Show weather for all recorded users",
 			".weather _._ -- Show weather for the sender",
 			".wx -- Show weather information in a condensed form",
-			".weatheradd _location_ -- Record the user's location",
-			".weatheradd _nick_: _location_ -- Record _nick_'s location",
+			".weatherset _location_ -- Record the user's location",
+			".weatherset _nick_: _location_ -- Record _nick_'s location",
 			".weatherrm _nick_ -- Remove _nick_'s recorded location",
 			".weatherls -- List recorded locations"
 		};

@@ -111,6 +111,10 @@ public class JSONArray extends org.json.JSONArray {
 		return new JSONArray(super.getJSONArray(index));
 	}
 
+	public boolean contains(Object seek) {
+		return this.stream().anyMatch(seek::equals);
+	}
+
 	public <T> Stream<T> stream() {
 		return StreamSupport.stream(new JSONArraySpliterator<>(this), false);
 	}
