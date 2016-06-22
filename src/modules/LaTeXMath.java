@@ -26,7 +26,7 @@ public class LaTeXMath extends NoiseModule {
 		this.bot = (SlackNoiseBot)bot;
 	}
 
-	@Command("\\$\\$(.+)\\$\\$")
+	@Command(value = "\\$\\$(.+)\\$\\$", allowPM = false)
 	public void math(CommandContext ctx, String expression) {
 		final TeXFormula formula = new TeXFormula(expression);
 		final BufferedImage image = (BufferedImage)formula.createBufferedImage(TeXConstants.STYLE_DISPLAY, SIZE, Color.BLACK, null);
@@ -37,7 +37,7 @@ public class LaTeXMath extends NoiseModule {
 			ctx.respond("#error Unable to generate image: " + e.getMessage());
 		}
 
-		this.bot.uploadFile(baos.toByteArray(), expression);
+		this.bot.uploadFileTo(ctx.getResponseTarget(), baos.toByteArray(), expression);
 	}
 
 	@Override public boolean supportsProtocol(Protocol protocol) {

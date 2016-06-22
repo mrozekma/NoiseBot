@@ -349,6 +349,10 @@ public class SlackNoiseBot extends NoiseBot {
 	}
 
 	public void uploadFile(byte[] data, String title) {
-		this.server.uploadFile(this.slackChannel(), data, title);
+		this.uploadFileTo(this.channel, data, title);
+	}
+
+	public void uploadFileTo(String channel, byte[] data, String title) {
+		this.server.uploadFile(this.server.findChannelByName(channel.substring(1)), data, title);
 	}
 }
