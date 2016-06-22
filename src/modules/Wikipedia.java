@@ -85,13 +85,15 @@ public class Wikipedia extends WebLookupModule {
 		}
 		if (el == null && anchor != null) {
 			el = doc.select("span.mw-headline#" + anchor).first(); // <span>
-			el = el.parent(); // <h2>
-			while((el = el.nextElementSibling()) != null) {
-				if(el.tagName().equals("p")) {
-					break;
-				} else if(el.hasClass("mw-headline")) {
-					el = null;
-					break;
+			if(el != null) {
+				el = el.parent(); // <h2>
+				while((el = el.nextElementSibling()) != null) {
+					if(el.tagName().equals("p")) {
+						break;
+					} else if(el.hasClass("mw-headline")) {
+						el = null;
+						break;
+					}
 				}
 			}
 		}
