@@ -91,16 +91,16 @@ public class SlackServer implements SlackMessagePostedListener {
 	@Override public void onEvent(SlackMessagePosted pack, SlackSession session) {
 		//TODO Direct messages
 		final String sender = pack.getSender().getUserName();
-		final String channel = "#" + pack.getChannel().getName();
+		final String responseTarget = pack.getChannel().isDirect() ? sender : "#" + pack.getChannel().getName();
 		final String message = pack.getMessageContent();
-		Log.in(String.format("<%s -> %s: %s", sender, channel, message));
+		Log.in(String.format("<%s -> %s: %s", sender, responseTarget, message));
 
 		this.bot.recordIncomingMessage(pack);
 
-		this.moduleDispatch(channel, new ModuleCall() {
+		this.moduleDispatch(responseTarget, new ModuleCall() {
 			@Override public void call(NoiseBot bot, NoiseModule module) {
 				if(!sender.equals(bot.getBotNick())) {
-					module.processMessageAndDisplayResult(new Message(bot, ((SlackNoiseBot)bot).unescape(message), sender, channel));
+					module.processMessageAndDisplayResult(new Message(bot, ((SlackNoiseBot)bot).unescape(message), sender, responseTarget));
 				}
 			}
 
