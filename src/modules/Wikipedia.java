@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 
@@ -24,9 +25,11 @@ import static main.Utilities.*;
  *         Created Jun 16, 2009.
  */
 public class Wikipedia extends WebLookupModule {
+	final String API_URL = "https://en.wikipedia.org/w/api.php?action=query&format=json&list=search&utf8=1&srsearch=intitle%%3A%s";
+
 	@Command("\\.(?:wik|wp) (.+)")
 	public JSONObject wikipedia(CommandContext ctx, String term) throws JSONException {
-		return this.lookup(term, "http://en.wikipedia.org/wiki/" + urlEncode(fixTitle(term)));
+		return this.lookup(term, urlFromTerm(term));
 	}
 
 	@Command(".*((?:https?:\\/\\/en\\.wikipedia\\.org|https:\\/\\/secure\\.wikimedia\\.org\\/wikipedia(?:\\/commons|\\/en))\\/wiki\\/((?:\\S+)(?::[0-9]+)?(?:\\/|\\/(?:[\\w#!:.?+=&%@!\\-\\/]))?)).*")
@@ -36,7 +39,7 @@ public class Wikipedia extends WebLookupModule {
 
 	@Command(".*\\[\\[([^\\]]+)]].*")
 	public JSONObject wikipediaInline(CommandContext ctx, String term) throws JSONException {
-		return this.lookup(term, "http://en.wikipedia.org/wiki/" + urlEncode(fixTitle(term)));
+		return this.lookup(term, urlFromTerm(term));
 	}
 
 	@Override protected String getThumbnailURL() {
@@ -53,12 +56,40 @@ public class Wikipedia extends WebLookupModule {
 		return !name.equals("wikipediaInline");
 	}
 
+	@Override public JSONObject lookup(String term, String url) throws JSONException {
+		JSONObject rtn = super.lookup(term, url);
+		// If the entry isn't found, try searching for it with the API
+		if(rtn.has("fail_type") && rtn.get("fail_type").equals("no_entry")) {
+			try {
+				final URLConnection apiConnection = new URL(String.format(API_URL, urlEncode(term.toLowerCase()))).openConnection();
+				apiConnection.setRequestProperty("User-Agent", "NoiseBot (https://github.com/mrozekma/NoiseBot/; noisebot@mrozekma.com)");
+				final JSONObject apiResult = getJSON(apiConnection);
+				final JSONArray results = apiResult.getJSONObject("query").getJSONArray("search");
+				for(int i = 0; i < results.length(); i++) {
+					final String title = results.getJSONObject(i).getString("title");
+					if(title.equalsIgnoreCase(term)) {
+						rtn = super.lookup(title, urlFromTerm(title));
+						break;
+					}
+				}
+			} catch(IOException | JSONException e) {
+				// Log and just return the original lookup attempt
+				Log.e(e);
+			}
+		}
+		return rtn;
+	}
+
 	private static String fixTitle(String term) {
 		String fixedTerm = term.replace(" ", "_");
 		if(Character.isLowerCase(fixedTerm.charAt(0))) {
 			fixedTerm = Character.toUpperCase(fixedTerm.charAt(0)) + fixedTerm.substring(1);
 		}
 		return fixedTerm;
+	}
+
+	private static String urlFromTerm(String term) {
+		return "http://en.wikipedia.org/wiki/" + urlEncode(fixTitle(term));
 	}
 
 	@Override protected String getBody(final String term, final String url, final Document doc) throws BodyNotFound {

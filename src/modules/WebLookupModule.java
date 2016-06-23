@@ -25,23 +25,23 @@ public abstract class WebLookupModule extends NoiseModule {
 			doc = Jsoup.connect(url).get();
 		} catch(HttpStatusException e) {
 			if(e.getStatusCode() == 404) {
-				return new JSONObject().put("warning", String.format("No entry for %s", term));
+				return new JSONObject().put("fail_type", "no_entry").put("warning", String.format("No entry for %s", term));
 			} else {
 				Log.e(e);
-				return new JSONObject().put("warning", String.format("Unable to connect to %s: %s", this.getSiteName(), e.getMessage()));
+				return new JSONObject().put("fail_type", "connect").put("warning", String.format("Unable to connect to %s: %s", this.getSiteName(), e.getMessage()));
 			}
 		} catch(IOException e) {
 			Log.e(e);
-			return new JSONObject().put("warning", String.format("Unable to connect to %s: %s", this.getSiteName(), e.getMessage()));
+			return new JSONObject().put("fail_type", "connect").put("warning", String.format("Unable to connect to %s: %s", this.getSiteName(), e.getMessage()));
 		}
 
 		try {
 			final String text = this.getBody(term, url, doc);
 			return new JSONObject().put("term", term).put("url", url).put("text", text);
 		} catch(EntryNotFound e) {
-			return new JSONObject().put("warning", String.format("No entry for %s", term));
+			return new JSONObject().put("fail_type", "no_entry").put("warning", String.format("No entry for %s", term));
 		} catch(BodyNotFound e) {
-			return new JSONObject().put("warning", "Unable to find body");
+			return new JSONObject().put("fail_type", "no_body").put("warning", "Unable to find body");
 		}
 	}
 
