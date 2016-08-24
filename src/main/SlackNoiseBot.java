@@ -1,9 +1,8 @@
 package main;
 
 import com.google.gson.internal.StringMap;
-import com.ullink.slack.simpleslackapi.*;
-import com.ullink.slack.simpleslackapi.SlackTimestamped;
-import com.ullink.slack.simpleslackapi.events.SlackMessagePosted;
+import com.mrozekma.taut.*;
+import debugging.Log;
 import org.json.JSONException;
 
 import java.awt.*;
@@ -17,6 +16,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static main.Utilities.exceptionString;
 import static main.Utilities.pluralize;
 import static main.Utilities.substring;
 
@@ -28,19 +28,18 @@ public class SlackNoiseBot extends NoiseBot {
 	private static final int RECENT_MESSAGE_MEMORY = 100;
 
 	private final SlackServer server;
-	private final TreeMap<String, SlackMessagePosted> recentMessages;
 
 	public SlackNoiseBot(SlackServer server, String channel, boolean quiet, String[] fixedModules) {
 		super(channel, quiet, fixedModules);
 		this.server = server;
-		this.recentMessages = new TreeMap<>();
 	}
 
-	static void createBot(String connectionName, StringMap data) throws IOException {
+	static void createBot(String connectionName, StringMap data) throws IOException, TautException {
 		final String token = (String)data.get("token");
+		final String botToken = (String)data.get("bot-token");
 		final boolean quiet = data.containsKey("quiet") ? (Boolean)data.get("quiet") : false;
 		final String[] modules = data.containsKey("modules") ? ((List<String>)data.get("modules")).toArray(new String[0]) : null;
-		final SlackServer server = new SlackServer(token);
+		final SlackServer server = new SlackServer(token, botToken);
 
 		final Optional<String> general = server.connect();
 		if(!general.isPresent()) {
@@ -53,8 +52,8 @@ public class SlackNoiseBot extends NoiseBot {
 		bot.onChannelJoin();
 	}
 
-	private SlackChannel slackChannel() {
-		return this.server.findChannelByName(this.channel.substring(1));
+	private TautChannel slackChannel() throws TautException {
+		return this.server.getChannelByName(this.channel.substring(1));
 	}
 
 	@Override public Protocol getProtocol() {
@@ -62,12 +61,29 @@ public class SlackNoiseBot extends NoiseBot {
 	}
 
 	@Override public String getBotNick() {
-		return this.server.sessionPersona().getUserName();
+		try {
+			return this.server.getSelf().getName();
+		} catch(TautException e) {
+			Log.e(e);
+			//TODO Add IOException to the NoiseBot methods so these don't need to throw RuntimeException anymore (see other cases below)
+			throw new RuntimeException(e);
+		}
 	}
 
 	@Override public String[] getNicks() {
-		//TODO This appears to cache old data
-		return this.slackChannel().getMembers().stream().map(SlackPersona::getUserName).toArray(String[]::new);
+		try {
+			return this.slackChannel().getMembers().stream().map(user -> {
+				try {
+					return user.getName();
+				} catch(TautException e) {
+					Log.e(e);
+					throw new RuntimeException(e);
+				}
+			}).toArray(String[]::new);
+		} catch(TautException e) {
+			Log.e(e);
+			throw new RuntimeException(e);
+		}
 	}
 
 	@Override public boolean clearPendingSends() {
@@ -82,12 +98,17 @@ public class SlackNoiseBot extends NoiseBot {
 	}
 
 	@Override public void whois(String nick, WhoisHandler handler) {
-		final SlackUser user = this.server.findUserByUserName(nick);
-		handler.setUsername(user.getUserName());
-		handler.setHostname("slack");
-		handler.setGecos(user.getRealName());
-		handler.setServer("slack");
-		handler.setAccount(user.getUserName());
+		try {
+			final TautUser user = this.server.getUserByName(nick);
+			handler.setUsername(user.getName());
+			handler.setHostname("slack");
+			handler.setGecos(user.getFirstName() + " " + user.getLastName());
+			handler.setServer("slack");
+			handler.setAccount(user.getName());
+		} catch(TautException e) {
+			Log.e(e);
+			throw new RuntimeException(e);
+		}
 
 		// Synchronous communication -- what an idea
 		handler.notifyDone(true);
@@ -96,11 +117,18 @@ public class SlackNoiseBot extends NoiseBot {
 	@Override protected void outputSyncInfo(Git.Revision oldrev, Git.Revision[] revs, boolean coreChanged, String[] reloadedModules) {
 		final String title = "Synced " + pluralize(revs.length, "revision", "revisions");
 		final Stream<String> fmtRevs = Arrays.stream(revs).map(rev -> String.format("%c `%s` by _%s_ -- %s", MessageBuilder.BULLET, rev.getHash(), rev.getAuthor(), rev.getDescription()));
-		final SlackAttachment attachment = new SlackAttachment(title, title, fmtRevs.collect(Collectors.joining("\n")), null);
+		final TautAttachment attachment = this.makeAttachment();
+		attachment.setTitle(title);
+		attachment.setFallback(title);
+		attachment.setText(fmtRevs.collect(Collectors.joining("\n")), true);
 		attachment.setColor("#ff6d20");
 		attachment.setTitleLink(Git.diffLink(oldrev, this.revision));
-		attachment.addMarkdownIn("text");
-		this.sendAttachment(attachment);
+		try {
+			this.sendAttachment(attachment);
+		} catch(TautException e) {
+			Log.e(e);
+			throw new RuntimeException(e);
+		}
 
 		if(coreChanged) {
 			this.sendMessage("#bold Core files changed; NoiseBot will restart");
@@ -118,30 +146,22 @@ public class SlackNoiseBot extends NoiseBot {
 
 	@Override protected void onIssueEvent(String action, JSONObject issue) throws JSONException {
 		final String title = String.format("Issue #%d %s", issue.getInt("number"), action);
-		final SlackAttachment attachment = new SlackAttachment(title, title, issue.getString("title"), null);
+		final TautAttachment attachment = this.makeAttachment();
+		attachment.setTitle(title);
+		attachment.setFallback(title);
+		attachment.setText(issue.getString("title"), true);
 		attachment.setColor("#ff6d20");
 		attachment.setTitleLink(issue.getString("html_url"));
-		this.sendAttachment(attachment);
-	}
-
-	public String getUserID(String username) {
-		return this.server.findUserByUserName(username).getId();
-	}
-
-	// We remember the most recent messages so we can find them on events (e.g. reactionAdded)
-	void recordIncomingMessage(SlackMessagePosted message) {
-		synchronized(this.recentMessages) {
-			this.recentMessages.put(message.getTimestamp(), message);
-			while(this.recentMessages.size() > RECENT_MESSAGE_MEMORY) {
-				this.recentMessages.remove(this.recentMessages.firstKey());
-			}
+		try {
+			this.sendAttachment(attachment);
+		} catch(TautException e) {
+			Log.e(e);
+			throw new RuntimeException(e);
 		}
 	}
 
-	Optional<SlackMessagePosted> getRecordedMessage(String ts) {
-		synchronized(this.recentMessages) {
-			return Optional.ofNullable(this.recentMessages.get(ts));
-		}
+	public String getUserID(String username) throws TautException {
+		return this.server.getUserByName(username).getId();
 	}
 
 	public String escape(String text) {
@@ -158,7 +178,7 @@ public class SlackNoiseBot extends NoiseBot {
 	}
 
 	private static final Pattern UNESCAPE_PATTERN = Pattern.compile("<([^|>]+)(?:|([^>]+))?>");
-	public String unescape(String text) {
+	public String unescape(String text) throws TautException {
 		final Matcher matcher = UNESCAPE_PATTERN.matcher(text);
 		final StringBuffer rtn = new StringBuffer();
 		while(matcher.find()) {
@@ -172,12 +192,12 @@ public class SlackNoiseBot extends NoiseBot {
 					switch(what.charAt(0)) {
 					case '@':
 						// Strip the '@'
-						final SlackUser user = this.server.findUserById(what.substring(1));
-						matcher.appendReplacement(rtn, (user == null) ? what.substring(1) : user.getUserName());
+						final TautUser user = this.server.getUserById(what.substring(1));
+						matcher.appendReplacement(rtn, (user == null) ? what.substring(1) : user.getName());
 						break;
 					case '#':
 						// Include the '#'
-						final SlackChannel channel = this.server.findChannelById(what.substring(1));
+						final TautChannel channel = this.server.getChannelById(what.substring(1));
 						matcher.appendReplacement(rtn, (channel == null) ? what : ("#" + channel.getName()));
 						break;
 					}
@@ -199,8 +219,13 @@ public class SlackNoiseBot extends NoiseBot {
 	}
 
 	public String formatUser(String username) {
-		final SlackUser user = this.server.findUserByUserName(username);
-		return String.format("<@%s>", user.getId());
+		try {
+			final TautUser user = this.server.getUserByName(username);
+			return String.format("<@%s>", user.getId());
+		} catch(TautException e) {
+			Log.e(e);
+			return username;
+		}
 	}
 
 	@Override public String format(Style style, String text) {
@@ -249,43 +274,46 @@ public class SlackNoiseBot extends NoiseBot {
 				if(blockStyle.isPresent() && (last.type == MessageBuilder.Type.MESSAGE || last.type == MessageBuilder.Type.NOTICE)) {
 					final Style style = blockStyle.get();
 					if(style == Style.ERROR || style == Style.COREERROR) {
-						if(last.replacing.isPresent()) {
-							rtn.add(this.editTitled(last.replacing.get(), Style.ERROR.color, "Error", text));
-						} else {
-							rtn.add(this.sendTitledTo(last.target, Style.ERROR.color, "Error", text));
+						try {
+							if(last.replacing.isPresent()) {
+								rtn.add(this.editTitled(last.replacing.get(), Style.ERROR.color, "Error", text));
+							} else {
+								rtn.add(this.sendTitledTo(last.target, Style.ERROR.color, "Error", text));
+							}
+						} catch(TautException e) {
+							Log.e(e);
+							throw new RuntimeException(e);
 						}
 						handled = true;
 					}
 				}
 
 				if(!handled) {
-					final SlackChannel target = (last.target.charAt(0) == '#') ? this.server.findChannelByName(last.target.substring(1)) : null;
-					switch(last.type) {
-					case ACTION:
-						// There's currently no way to send me_message events through the Slack API
-						// Instead we just italicize the whole message. Close enough?
-						text = this.format(Style.ITALIC, text, false);
-						// Fallthrough
-					case MESSAGE:
-					case NOTICE:
-					default:
-						final SlackMessageHandle<? extends SlackTimestamped> handle;
-						if(last.replacing.isPresent()) {
-							final SlackSentMessage sent = (SlackSentMessage)last.replacing.get();
-							if(target != null) {
-								handle = this.server.updateMessage(sent.getTimestamp(), target, text);
+					try {
+						final TautChannel target = (last.target.charAt(0) == '#') ? this.server.getChannelByName(last.target.substring(1)) : null;
+						switch(last.type) {
+						case ACTION:
+							// There's currently no way to send me_message events through the Slack API
+							// Instead we just italicize the whole message. Close enough?
+							text = this.format(Style.ITALIC, text, false);
+							// Fallthrough
+						case MESSAGE:
+						case NOTICE:
+						default:
+							final TautMessage message;
+							if(last.replacing.isPresent()) {
+								final SlackSentMessage sent = (SlackSentMessage)last.replacing.get();
+								message = sent.getTautMessage();
+								message.update(text);
 							} else {
-								handle = this.server.updateMessageToUser(sent.getTimestamp(), last.target, text);
+								message = target.sendMessage(text);
 							}
-						} else {
-							if(target != null) {
-								handle = this.server.sendMessage(target, text, null, false);
-							} else {
-								handle = this.server.sendMessageToUser(last.target, text, null);
-							}
+							rtn.add(new SlackSentMessage(this, last.target, last.type, message));
+							break;
 						}
-						rtn.add(new SlackSentMessage(this, last.target, last.type, handle.getReply().getTimestamp()));
-						break;
+					} catch(TautException e) {
+						Log.e(e);
+						throw new RuntimeException(e);
 					}
 				}
 
@@ -302,57 +330,95 @@ public class SlackNoiseBot extends NoiseBot {
 		return rtn.toArray(new SentMessage[0]);
 	}
 
-	public SlackSentMessage sendAttachment(SlackAttachment attachment) {
+	public SentMessage[] sendMessageTo(TautAbstractChannel channel, String fmt, Object... args) throws TautException {
+		if(channel instanceof TautChannel) {
+			return this.sendMessageTo("#" + ((TautChannel)channel).getName(), fmt, args);
+		} else if(channel instanceof TautDirectChannel) {
+			return this.sendMessageTo(((TautDirectChannel)channel).getUser().getName(), fmt, args);
+		} else {
+			throw new TautException("Unsupported TautAbstractChannel class: " + channel.getClass());
+		}
+	}
+
+	public SentMessage[] trySendMessageTo(TautAbstractChannel channel, String fmt, Object... args) {
+		try {
+			return this.sendMessageTo(channel, fmt, args);
+		} catch(TautException e) {
+			Log.e(e);
+			return new SentMessage[0];
+		}
+	}
+
+	public void reportErrorTo(TautAbstractChannel channel, Throwable t) {
+		Log.e(t);
+		this.trySendMessageTo(channel, "#error %s", exceptionString(t));
+	}
+
+	public void reportErrorTo(String target, Throwable t) {
+		Log.e(t);
+		this.sendMessageTo(target, "#error %s", exceptionString(t));
+	}
+
+	public SlackSentMessage sendAttachment(TautAttachment attachment) throws TautException {
 		return this.sendAttachmentTo(this.channel, attachment);
 	}
 
-	public SlackSentMessage sendAttachmentTo(String target, SlackAttachment attachment) {
-		final SlackMessageHandle<? extends SlackTimestamped> handle;
+	public SlackSentMessage sendAttachmentTo(String target, TautAttachment attachment) throws TautException {
+		final TautAbstractChannel channel;
 		if(!target.isEmpty() && target.charAt(0) == '#') {
-			handle = this.server.sendMessage(this.server.findChannelByName(target.substring(1)), "\n", attachment);
+			channel = this.server.getChannelByName(target.substring(1));
 		} else {
-			handle = this.server.sendMessageToUser(target, "\n", attachment);
+			channel = this.server.getUserByName(target).getDirectChannel();
 		}
-		return new SlackSentMessage(this, target, MessageBuilder.Type.MESSAGE, handle.getReply().getTimestamp());
+		final TautMessage message = channel.sendAttachment(attachment);
+		return new SlackSentMessage(this, target, MessageBuilder.Type.MESSAGE, message);
 	}
 
-	public SentMessage editAttachment(SentMessage replacing, SlackAttachment attachment) {
+	public SentMessage editAttachment(SentMessage replacing, TautAttachment attachment) throws TautException {
 		final SlackSentMessage sent = (SlackSentMessage)replacing;
 		final String target = replacing.target;
-		final SlackMessageHandle<? extends SlackTimestamped> handle;
+		final TautAbstractChannel channel;
 		if(!target.isEmpty() && target.charAt(0) == '#') {
-			handle = this.server.updateMessage(sent.getTimestamp(), this.server.findChannelByName(target.substring(1)), "\n", attachment);
+			channel = this.server.getChannelByName(target.substring(1));
 		} else {
-			handle = this.server.updateMessageToUser(sent.getTimestamp(), target, "\n", attachment);
+			channel = this.server.getUserByName(target).getDirectChannel();
 		}
-		return new SlackSentMessage(this, target, MessageBuilder.Type.MESSAGE, handle.getReply().getTimestamp());
+		final TautMessage message = sent.getTautMessage().update(new TautMessageDraft("\n").setAttachments(attachment));
+		return new SlackSentMessage(this, target, MessageBuilder.Type.MESSAGE, message);
 	}
 
-	public SentMessage sendTitledTo(String target, Color color, String title, String text) {
-		final SlackAttachment attachment = new SlackAttachment(title, text, text, null);
-		attachment.setColor(String.format("#%02x%02x%02x", color.getRed(), color.getGreen(), color.getBlue()));
+	public SentMessage sendTitledTo(String target, Color color, String title, String text) throws TautException {
+		final TautAttachment attachment = this.makeAttachment();
+		attachment.setTitle(title);
+		attachment.setText(text);
+		attachment.setFallback(text);
+		attachment.setColor(color);
 		return this.sendAttachmentTo(target, attachment);
 	}
 
-	public SentMessage editTitled(SentMessage replacing, Color color, String title, String text) {
-		final SlackAttachment attachment = new SlackAttachment(title, text, text, null);
-		attachment.setColor(String.format("#%02x%02x%02x", color.getRed(), color.getGreen(), color.getBlue()));
+	public SentMessage editTitled(SentMessage replacing, Color color, String title, String text) throws TautException {
+		final TautAttachment attachment = this.makeAttachment();
+		attachment.setTitle(title);
+		attachment.setText(text);
+		attachment.setFallback(text);
+		attachment.setColor(color);
 		return this.editAttachment(replacing, attachment);
 	}
 
-	public void deleteMessage(SlackSentMessage message) {
-		if(!message.target.isEmpty() && message.target.charAt(0) == '#') {
-			this.server.deleteMessage(message.getTimestamp(), this.server.findChannelByName(message.target.substring(1)));
-		} else {
-			this.server.deleteMessageToUser(message.getTimestamp(), message.target);
-		}
+	public void deleteMessage(SlackSentMessage message) throws TautException {
+		message.getTautMessage().delete();
 	}
 
-	public void uploadFile(byte[] data, String title) {
+	public void uploadFile(byte[] data, String title) throws TautException {
 		this.uploadFileTo(this.channel, data, title);
 	}
 
-	public void uploadFileTo(String channel, byte[] data, String title) {
-		this.server.uploadFile(this.server.findChannelByName(channel.substring(1)), data, title);
+	public void uploadFileTo(String channel, byte[] data, String title) throws TautException {
+		// This uses the bot connection so the file will be uploaded by the bot, not the auth user
+		this.server.getBotConnection().getChannelByName(channel.substring(1)).uploadFile(new TautFileUpload(data).setTitle(title));
+	}
+
+	public TautAttachment makeAttachment() {
+		return new TautAttachment(this.server);
 	}
 }

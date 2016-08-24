@@ -1,6 +1,7 @@
 package modules;
 
-import com.ullink.slack.simpleslackapi.SlackAttachment;
+import com.mrozekma.taut.TautAttachment;
+import com.mrozekma.taut.TautException;
 import debugging.Log;
 import main.*;
 import org.json.JSONException;
@@ -69,11 +70,20 @@ public abstract class WebLookupModule extends NoiseModule {
 			return;
 		}
 
+		final SlackNoiseBot bot = (SlackNoiseBot)this.bot;
+
 		final String text = data.getString("text");
-		final SlackAttachment attachment = new SlackAttachment(data.getString("term"), text, text, null);
+		final TautAttachment attachment = bot.makeAttachment();
+		attachment.setTitle(data.getString("term"));
+		attachment.setText(text);
+		attachment.setFallback(text);
 		attachment.setTitleLink(data.getString("url")); // We include the link regardless of shouldIncludeLink(), since it doesn't take up any space
-		attachment.setThumbURL(this.getThumbnailURL());
-		((SlackNoiseBot)this.bot).sendAttachmentTo(ctx.getResponseTarget(), attachment);
+		attachment.setThumbUrl(this.getThumbnailURL());
+		try {
+			bot.sendAttachmentTo(ctx.getResponseTarget(), attachment);
+		} catch(TautException e) {
+			bot.reportErrorTo(ctx.getResponseTarget(), e);
+		}
 	}
 
 	protected String getSiteName() {

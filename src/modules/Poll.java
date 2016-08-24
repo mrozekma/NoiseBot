@@ -11,7 +11,9 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.stream.Collectors;
 
-import com.ullink.slack.simpleslackapi.SlackAttachment;
+import com.mrozekma.taut.TautAttachment;
+import com.mrozekma.taut.TautException;
+import com.mrozekma.taut.TautMessage;
 import debugging.Log;
 
 import au.com.bytecode.opencsv.CSVParser;
@@ -87,15 +89,15 @@ public class Poll extends NoiseModule {
 			private int minutesLeft = WAIT_TIME;
 			@Override public void run() {
 				if(minutesLeft-- == 0) {
-					Poll.this.finished();
+					Poll.this.finished(ctx);
 				} else {
-					Poll.this.updateInPlace();
+					Poll.this.updateInPlace(ctx);
 				}
 			}
 		}, 60 * 1000, 60 * 1000);
 		this.startTime = System.currentTimeMillis();
 
-		if(!this.updateInPlace()) {
+		if(!this.updateInPlace(ctx)) {
 			this.bot.sendMessage(
 					"%s has started a poll (vote with .%(#command)s {#([|] #argument %s)} in the next %d minutes): %s",
 					ctx.getMessageSender(),
@@ -127,7 +129,7 @@ public class Poll extends NoiseModule {
 		
 		this.votes.put(ctx.getMessageSender(), vote);
 
-		if(!this.updateInPlace()) {
+		if(!this.updateInPlace(ctx)) {
 			if(this.pollTimer == null) {
 				Slap.slap(this.bot, ctx);
 			}
@@ -170,16 +172,16 @@ public class Poll extends NoiseModule {
 			this.pollTimer.cancel();
 			this.pollTimer = null;
 			this.pollText = "";
-			if(!this.updateInPlace()) {
+			if(!this.updateInPlace(ctx)) {
 				ctx.respond("#success Poll canceled");
 			}
 		}
 	}
 	
-	private void finished() {
+	private void finished(CommandContext ctx) {
 		this.pollTimer.cancel();
 		this.pollTimer = null;
-		if(!this.updateInPlace()) {
+		if(!this.updateInPlace(ctx)) {
 			// This method isn't called from the normal event processing framework, so our styles aren't attached
 			Style.pushOverrideMap(this.styles());
 			try {
@@ -227,69 +229,78 @@ public class Poll extends NoiseModule {
 		builder.add("#([, ] #vote %d %s#plain %s)", new Object[] {args.toArray()});
 	}
 
-	private boolean updateInPlace() {
+	private boolean updateInPlace(CommandContext ctx) {
 		if(this.bot.getProtocol() != Protocol.Slack) {
 			return false;
 		}
 		final SlackNoiseBot bot = (SlackNoiseBot)this.bot;
+		try {
+			// Poll canceled
+			if(this.pollStartMessage != null && this.pollText.isEmpty()) {
+				final TautMessage sentMessage = ((SlackSentMessage)this.pollStartMessage).getTautMessage();
+				sentMessage.delete();
+				this.pollStartMessage = null;
+				return true;
+			}
 
-		// Poll canceled
-		if(this.pollStartMessage != null && this.pollText.isEmpty()) {
-			bot.deleteMessage((SlackSentMessage)this.pollStartMessage);
-			this.pollStartMessage = null;
+			final StringBuilder pretext = new StringBuilder();
+			if(this.pollTimer != null) {
+				pretext.append(String.format("%s started a poll (", bot.formatUser(this.pollOwner)));
+				final int minutesLeft = WAIT_TIME + (int)(this.startTime - System.currentTimeMillis()) / 1000 / 60;
+				switch(minutesLeft) {
+				case 0:
+					pretext.append("<1 minute remains");
+					break;
+				case 1:
+					pretext.append("1 minute remains");
+					break;
+				default:
+					pretext.append(String.format("%d minutes remain", minutesLeft));
+					break;
+				}
+				pretext.append(')');
+			}
+
+			final StringBuilder text = new StringBuilder();
+			text.append(this.pollText).append('\n');
+			final Map<String, LinkedList<String>> nicksPerVote = this.nicksPerVote();
+			for(String vote : this.validVotes) {
+				final LinkedList<String> nicks = nicksPerVote.get(vote);
+				text.append('\n').append(MessageBuilder.BULLET).append(' ').append(vote);
+				if(!nicks.isEmpty()) {
+					text.append(" (")
+					    .append(nicks.stream().map(bot::formatUser).collect(Collectors.joining(" ")))
+					    .append(')');
+				}
+			}
+
+			final TautAttachment attachment = bot.makeAttachment();
+			attachment.setTitle("Poll");
+			attachment.setFallback("Poll: " + this.pollText);
+			attachment.setText(text.toString());
+			attachment.setPretext(pretext.toString());
+			attachment.setColor(Color.BLUE);
+
+			// Slack attachment fields look so bad, I can't bring myself to use them
+			/*
+			for(String vote : this.validVotes) {
+				final LinkedList<String> nicks = nicksPerVote.get(vote);
+				attachment.addField(vote, nicks.stream().collect(Collectors.joining("\n")), true);
+			}
+			*/
+
+			if(this.pollStartMessage == null) {
+				// Starting the poll
+				this.pollStartMessage = bot.sendAttachmentTo(ctx.getResponseTarget(), attachment);
+			} else {
+				// Edit the poll message to show current information
+				bot.editAttachment(this.pollStartMessage, attachment);
+			}
 			return true;
+		} catch(TautException e) {
+			bot.reportErrorTo(ctx.getResponseTarget(), e);
+			return false;
 		}
-
-		final StringBuilder pretext = new StringBuilder();
-		if(this.pollTimer != null) {
-			pretext.append(String.format("<@%s> started a poll (", bot.getUserID(this.pollOwner)));
-			final int minutesLeft = WAIT_TIME + (int)(this.startTime - System.currentTimeMillis()) / 1000 / 60;
-			switch(minutesLeft) {
-			case 0:
-				pretext.append("<1 minute remains");
-				break;
-			case 1:
-				pretext.append("1 minute remains");
-				break;
-			default:
-				pretext.append(String.format("%d minutes remain", minutesLeft));
-				break;
-			}
-			pretext.append(')');
-		}
-
-		final StringBuilder text = new StringBuilder();
-		text.append(this.pollText).append('\n');
-		final Map<String, LinkedList<String>> nicksPerVote = this.nicksPerVote();
-		for(String vote : this.validVotes) {
-			final LinkedList<String> nicks = nicksPerVote.get(vote);
-			text.append('\n').append(MessageBuilder.BULLET).append(' ').append(vote);
-			if(!nicks.isEmpty()) {
-				text.append(" (")
-				    .append(nicks.stream().map(nick -> String.format("<@%s>", bot.getUserID(nick))).collect(Collectors.joining(" ")))
-				    .append(')');
-			}
-		}
-
-		final SlackAttachment attachment = new SlackAttachment("Poll", "Poll: " + this.pollText, text.toString(), pretext.toString());
-		attachment.setColor(Color.BLUE);
-
-		// Slack attachment fields look so bad, I can't bring myself to use them
-		/*
-		for(String vote : this.validVotes) {
-			final LinkedList<String> nicks = nicksPerVote.get(vote);
-			attachment.addField(vote, nicks.stream().collect(Collectors.joining("\n")), true);
-		}
-		*/
-
-		if(this.pollStartMessage == null) {
-			// Starting the poll
-			this.pollStartMessage = bot.sendAttachment(attachment);
-		} else {
-			// Edit the poll message to show current information
-			bot.editAttachment(this.pollStartMessage, attachment);
-		}
-		return true;
 	}
 
 	@Override public String getFriendlyName() {return "Poll";}

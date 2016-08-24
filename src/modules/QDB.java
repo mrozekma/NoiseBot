@@ -4,7 +4,8 @@ import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import com.ullink.slack.simpleslackapi.SlackAttachment;
+import com.mrozekma.taut.TautAttachment;
+import com.mrozekma.taut.TautException;
 import main.*;
 import org.json.JSONException;
 import org.jsoup.Jsoup;
@@ -117,9 +118,16 @@ public class QDB extends NoiseModule {
 		for(int i = 0; i < data.optInt("downvotes", 0); i++) {
 			votes.append(":-1:");
 		}
-		final SlackAttachment attachment = new SlackAttachment(String.format("Quote #%d", data.getInt("id")), body, body + "\n" + votes, null);
+		final TautAttachment attachment = bot.makeAttachment();
+		attachment.setTitle(String.format("Quote #%d", data.getInt("id")));
+		attachment.setText(body);
+		attachment.setFallback(body + "\n" + votes);
 		attachment.setTitleLink(String.format("%s/%d", this.baseURL, data.getInt("id")));
-		bot.sendAttachmentTo(ctx.getResponseTarget(), attachment);
+		try {
+			bot.sendAttachmentTo(ctx.getResponseTarget(), attachment);
+		} catch(TautException e) {
+			bot.reportErrorTo(ctx.getResponseTarget(), e);
+		}
 	}
 
 	private void checkForNewQuotes() {

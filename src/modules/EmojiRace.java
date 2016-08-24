@@ -1,6 +1,8 @@
 package modules;
 
-import com.ullink.slack.simpleslackapi.SlackAttachment;
+import com.mrozekma.taut.TautAttachment;
+import com.mrozekma.taut.TautException;
+import debugging.Log;
 import main.*;
 
 import java.io.Serializable;
@@ -166,7 +168,11 @@ public class EmojiRace extends NoiseModule implements Serializable {
 		if(this.currentRace.isPresent()) {
 			// The race isn't even added to the list until it completes, so we don't resolve any bets until then either.
 			// Users can get out of bad bets by unloading the module before the race ends, but not sure what can be done.
-			this.bot.deleteMessage(this.currentRace.get().message);
+			try {
+				this.bot.deleteMessage(this.currentRace.get().message);
+			} catch(TautException e) {
+				Log.e(e);
+			}
 			this.currentRace.get().timer.cancel();
 		}
 	}
@@ -214,7 +220,7 @@ public class EmojiRace extends NoiseModule implements Serializable {
 		}
 
 		final Race race = new Race(String.format("Race #%d", this.races.size() + 1), members);
-		this.startRace(race);
+		this.startRace(ctx, race);
 	}
 
 	@Command("\\.bet (?:\\$([0-9]+) )?(?:on )?((?:(?::[^:]+:|#[0-9]) ?)+)(?: ?([a-zA-Z ]+))?")
@@ -286,10 +292,17 @@ public class EmojiRace extends NoiseModule implements Serializable {
 		}
 	}
 
-	private synchronized void startRace(Race race) {
-		final SlackAttachment attachment = new SlackAttachment(race.name, "", "A new race is about to begin\n" + Arrays.stream(race.members).map(member -> String.format(":%s:   ", member)).collect(Collectors.joining()), "");
-		attachment.addMarkdownIn("text");
-		this.currentRace = Optional.of(new CurrentRace(race, this.bot.sendAttachment(attachment)));
+	private synchronized void startRace(CommandContext ctx, Race race) {
+		final TautAttachment attachment = this.bot.makeAttachment();
+		attachment.setTitle(race.name);
+		attachment.setText("A new race is about to begin\n" + Arrays.stream(race.members).map(member -> String.format(":%s:   ", member)).collect(Collectors.joining()), true);
+		try {
+			this.currentRace = Optional.of(new CurrentRace(race, this.bot.sendAttachment(attachment)));
+		} catch(TautException e) {
+			Log.e(e);
+			ctx.respond("#error %s", exceptionString(e));
+			return;
+		}
 		this.updateMessage(this.currentRace.get());
 		this.currentRace.get().timer.scheduleAtFixedRate(new TimerTask() {
 			@Override public void run() {
@@ -403,7 +416,7 @@ public class EmojiRace extends NoiseModule implements Serializable {
 				track.append("|");
 			}
 			if(race.cachedRacerToBettors.containsKey(member)) {
-				track.append(String.format(" (%s)", race.cachedRacerToBettors.get(member).stream().map(this.bot::formatUser).collect(Collectors.joining(" "))));
+				track.append(String.format(" (%s)", race.cachedRacerToBettors.get(member).stream().map(nick -> this.bot.formatUser(nick)).collect(Collectors.joining(" "))));
 			}
 			text.add(track.toString());
 		}
@@ -412,9 +425,14 @@ public class EmojiRace extends NoiseModule implements Serializable {
 			text.add(0, String.format("*:%s: WINS!*", race.topFinishers[0]));
 		}
 
-		final SlackAttachment attachment = new SlackAttachment(race.race.name, "", text.stream().collect(Collectors.joining("\n")), "");
-		attachment.addMarkdownIn("text");
-		this.bot.editAttachment(race.message, attachment);
+		final TautAttachment attachment = this.bot.makeAttachment();
+		attachment.setTitle(race.race.name);
+		attachment.setText(text.stream().collect(Collectors.joining("\n")), true);
+		try {
+			this.bot.editAttachment(race.message, attachment);
+		} catch(TautException e) {
+			this.bot.reportErrorTo(race.message.getTautMessage().getChannel(), e);
+		}
 	}
 
 	private synchronized void tick() {

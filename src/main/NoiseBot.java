@@ -8,6 +8,7 @@ import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import com.mrozekma.taut.TautException;
 import debugging.Log;
 
 import static main.Utilities.exceptionString;
@@ -554,7 +555,7 @@ public abstract class NoiseBot {
 					SlackNoiseBot.createBot(connectionName, data);
 					break;
 				}
-			} catch(IOException e) {
+			} catch(IOException | TautException e) {
 				System.out.printf("%s\n", e.getMessage());
 				System.exit(1);
 			}

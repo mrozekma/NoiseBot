@@ -1,5 +1,7 @@
 package modules;
 
+import com.mrozekma.taut.TautException;
+import debugging.Log;
 import main.*;
 import org.scilab.forge.jlatexmath.TeXConstants;
 import org.scilab.forge.jlatexmath.TeXFormula;
@@ -37,7 +39,11 @@ public class LaTeXMath extends NoiseModule {
 			ctx.respond("#error Unable to generate image: " + e.getMessage());
 		}
 
-		this.bot.uploadFileTo(ctx.getResponseTarget(), baos.toByteArray(), expression);
+		try {
+			this.bot.uploadFileTo(ctx.getResponseTarget(), baos.toByteArray(), expression);
+		} catch(TautException e) {
+			this.bot.reportErrorTo(ctx.getResponseTarget(), e);
+		}
 	}
 
 	@Override public boolean supportsProtocol(Protocol protocol) {
