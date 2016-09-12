@@ -25,6 +25,7 @@ import static main.Utilities.substring;
  *         Created Dec 31, 2015.
  */
 public class SlackNoiseBot extends NoiseBot {
+	private static final int SLACK_SIGNAL_PORT = 41934;
 	private static final int RECENT_MESSAGE_MEMORY = 100;
 
 	private final SlackServer server;
@@ -40,6 +41,14 @@ public class SlackNoiseBot extends NoiseBot {
 		final boolean quiet = data.containsKey("quiet") ? (Boolean)data.get("quiet") : false;
 		final String[] modules = data.containsKey("modules") ? ((List<String>)data.get("modules")).toArray(new String[0]) : null;
 		final SlackServer server = new SlackServer(token, botToken);
+
+		if(data.containsKey("slack-listener")) {
+			final StringMap httpsData = (StringMap)data.get("slack-listener");
+			final String keyFile = (String)httpsData.get("key");
+			final String certFile = (String)httpsData.get("cert");
+			final String verificationToken = (String)httpsData.get("verification-token");
+			server.setActionHandler(new TautHTTPSServer(new File(certFile), new File(keyFile), SLACK_SIGNAL_PORT, verificationToken));
+		}
 
 		final Optional<String> general = server.connect();
 		if(!general.isPresent()) {

@@ -4,6 +4,7 @@ import com.mrozekma.taut.*;
 import com.mrozekma.taut.JSONObject;
 import debugging.Log;
 
+import java.io.IOException;
 import java.util.Optional;
 
 import static main.Utilities.exceptionString;
@@ -20,10 +21,14 @@ public class SlackServer extends TautConnection implements TautEventListener {
 		}
 	}
 
+	public static final int MAX_ACTION_BUTTONS_PER_MESSAGE = 5;
+	static final String ACTION_CALLBACK_PREFIX = "noisebot.modules.";
+
 	private final String token;
 	private final TautConnection botConnection;
 	private final TautRTMConnection rtm;
 	private SlackNoiseBot bot;
+	private Optional<TautHTTPSServer> actionHandler = Optional.empty();
 
 	SlackServer(String token, String botToken) throws TautException {
 		super(token);
@@ -40,6 +45,15 @@ public class SlackServer extends TautConnection implements TautEventListener {
 
 	void setBot(SlackNoiseBot bot) {
 		this.bot = bot;
+	}
+
+	void setActionHandler(TautHTTPSServer actionHandler) throws IOException {
+		this.actionHandler = Optional.of(actionHandler);
+		actionHandler.start(new TautHTTPSServer.ActionRequestHandler(this) {
+			@Override protected void onSlackRequest(UserAction action) {
+				SlackServer.this.onSlackAction(action);
+			}
+		});
 	}
 
 	TautConnection getBotConnection() {
@@ -171,5 +185,26 @@ public class SlackServer extends TautConnection implements TautEventListener {
 			Log.e(e);
 			bot.sendMessage("#coreerror %s", exceptionString(e));
 		}
+	}
+
+	private void onSlackAction(TautHTTPSServer.ActionRequestHandler.UserAction action) {
+		final String callbackId = action.getCallbackId();
+		if(!callbackId.startsWith(ACTION_CALLBACK_PREFIX)) {
+			Log.e("Bad slack action callback ID: %s", callbackId);
+			this.bot.sendMessage("#coreerror Unexpected Slack action");
+			return;
+		}
+		final NoiseModule module = this.bot.getModules().get(callbackId.substring(ACTION_CALLBACK_PREFIX.length()));
+		if(module == null) {
+			Log.e("Bad slack action callback ID: %s", callbackId);
+			this.bot.sendMessage("#coreerror Bad slack action; unknown or unloaded module");
+			return;
+		}
+		if(!(module instanceof SlackActionHandler)) {
+			Log.e("Slack action for non-action handler: %s", module.getFriendlyName());
+			this.bot.sendMessage("#coreerror Bad slack action; %s is not an action handler", module.getFriendlyName());
+			return;
+		}
+		((SlackActionHandler)module).onSlackAction(action);
 	}
 }

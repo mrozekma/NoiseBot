@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 
 import com.mrozekma.taut.TautAttachment;
 import com.mrozekma.taut.TautException;
+import com.mrozekma.taut.TautHTTPSServer;
 import com.mrozekma.taut.TautMessage;
 import debugging.Log;
 
@@ -26,7 +27,7 @@ import main.*;
  * @author Michael Mrozek
  *         Created Jun 16, 2009.
  */
-public class Poll extends NoiseModule {
+public class Poll extends NoiseModule implements SlackActionHandler {
 	private static final int WAIT_TIME = 3; // minutes
 
 	private final CSVParser parser = new CSVParser(' ');
@@ -137,13 +138,6 @@ public class Poll extends NoiseModule {
 			builder.add("#success Vote recorded#plain . Current standing: ");
 			this.tabulate(builder);
 			builder.send();
-
-			if(ctx.getMessage().isPM()) {
-				builder = this.bot.buildMessage();
-				builder.add("%s voted %#(vote)s. Current standing: ", new Object[] {ctx.getMessageSender(), vote});
-				this.tabulate(builder);
-				builder.send();
-			}
 		}
 	}
 	
@@ -230,6 +224,10 @@ public class Poll extends NoiseModule {
 	}
 
 	private boolean updateInPlace(CommandContext ctx) {
+		return this.updateInPlace(ctx.getResponseTarget());
+	}
+
+	private boolean updateInPlace(String responseTarget) {
 		if(this.bot.getProtocol() != Protocol.Slack) {
 			return false;
 		}
@@ -247,10 +245,7 @@ public class Poll extends NoiseModule {
 			if(this.pollTimer != null) {
 				pretext.append(String.format("%s started a poll (", bot.formatUser(this.pollOwner)));
 				final int minutesLeft = WAIT_TIME + (int)(this.startTime - System.currentTimeMillis()) / 1000 / 60;
-				switch(minutesLeft) {
-				case 0:
-					pretext.append("<1 minute remains");
-					break;
+				switch(minutesLeft + 1) {
 				case 1:
 					pretext.append("1 minute remains");
 					break;
@@ -289,17 +284,40 @@ public class Poll extends NoiseModule {
 			}
 			*/
 
+			if(this.validVotes.size() <= SlackServer.MAX_ACTION_BUTTONS_PER_MESSAGE) {
+				final TautAttachment.Action[] actions = this.validVotes.stream().map(vote -> new TautAttachment.Action(vote, vote)).toArray(TautAttachment.Action[]::new);
+				attachment.setActions(this.getCallbackId(), actions);
+			}
+
 			if(this.pollStartMessage == null) {
 				// Starting the poll
-				this.pollStartMessage = bot.sendAttachmentTo(ctx.getResponseTarget(), attachment);
+				this.pollStartMessage = bot.sendAttachmentTo(responseTarget, attachment);
 			} else {
 				// Edit the poll message to show current information
-				bot.editAttachment(this.pollStartMessage, attachment);
+				this.pollStartMessage = bot.editAttachment(this.pollStartMessage, attachment);
 			}
 			return true;
 		} catch(TautException e) {
-			bot.reportErrorTo(ctx.getResponseTarget(), e);
+			bot.reportErrorTo(responseTarget, e);
 			return false;
+		}
+	}
+
+	@Override public void onSlackAction(TautHTTPSServer.ActionRequestHandler.UserAction action) {
+		if(this.pollStartMessage == null) {
+			Log.w("Got Slack action hook for wrong Poll message");
+			return;
+		}
+		final TautMessage sentMessage = ((SlackSentMessage)this.pollStartMessage).getTautMessage();
+		if(!sentMessage.getCurrent().getTs().equals(action.getMessage().getCurrent().getTs())) {
+			Log.w("Got Slack action hook for wrong Poll message");
+			return;
+		}
+		try {
+			this.votes.put(action.getUser().getName(), action.getActionName());
+			this.updateInPlace("#" + action.getChannel().getName());
+		} catch(TautException e) {
+			Log.e(e);
 		}
 	}
 
