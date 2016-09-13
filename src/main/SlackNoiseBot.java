@@ -26,7 +26,6 @@ import static main.Utilities.substring;
  */
 public class SlackNoiseBot extends NoiseBot {
 	private static final int SLACK_SIGNAL_PORT = 41934;
-	private static final int RECENT_MESSAGE_MEMORY = 100;
 
 	private final SlackServer server;
 

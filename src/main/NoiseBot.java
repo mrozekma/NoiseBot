@@ -459,6 +459,10 @@ public abstract class NoiseBot {
 		return new MessageBuilder(this, this.channel, MessageBuilder.Type.NOTICE);
 	}
 
+	public MessageBuilder buildNoticeTo(String target) {
+		return new MessageBuilder(this, target, MessageBuilder.Type.NOTICE);
+	}
+
 	public SentMessage[] sendMessage(String fmt, Object... args) {
 		return this.buildMessage().add(fmt, args).send();
 	}
@@ -477,6 +481,10 @@ public abstract class NoiseBot {
 
 	public SentMessage[] sendNotice(String fmt, Object... args) {
 		return this.buildNotice().add(fmt, args).send();
+	}
+
+	public SentMessage[] sendNoticeTo(String target, String fmt, Object... args) {
+		return this.buildNoticeTo(target).add(fmt, args).send();
 	}
 
 	public static void broadcastMessage(String message) {

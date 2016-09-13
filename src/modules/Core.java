@@ -37,11 +37,11 @@ public class Core extends NoiseModule {
 					Log.e(e);
 				}
 
-				this.bot.sendNotice("Module %(#module)s loaded", moduleName);
+				this.bot.sendNoticeTo(ctx.getResponseTarget(), "Module %(#module)s loaded", moduleName);
 			} catch(ModuleInitException e) {
 				Log.e(e);
 				if(showErrors) {
-					this.bot.sendNotice("#error %s", e.getMessage());
+					this.bot.sendNoticeTo(ctx.getResponseTarget(), "#error %s", e.getMessage());
 				}
 			}
 		}
@@ -53,7 +53,7 @@ public class Core extends NoiseModule {
 		for(String moduleName : moduleNames.split(" ")) {
 			// Don't allow unloading Core
 			if(moduleName.equals(this.getClass().getSimpleName())) {
-				this.bot.sendNotice("#error .unload cannot unload the %(#module)s module", this.getFriendlyName());
+				this.bot.sendNoticeTo(ctx.getResponseTarget(), "#error .unload cannot unload the %(#module)s module", this.getFriendlyName());
 				continue;
 			}
 
@@ -65,11 +65,11 @@ public class Core extends NoiseModule {
 					Log.e(e);
 				}
 
-				this.bot.sendNotice("Module %(#module)s unloaded", moduleName);
+				this.bot.sendNoticeTo(ctx.getResponseTarget(), "Module %(#module)s unloaded", moduleName);
 			} catch(ModuleUnloadException e) {
 				Log.e(e);
 				if(showErrors) {
-					this.bot.sendNotice("#error %s", e.getMessage());
+					this.bot.sendNoticeTo(ctx.getResponseTarget(), "#error %s", e.getMessage());
 				}
 			}
 		}
@@ -82,15 +82,15 @@ public class Core extends NoiseModule {
 			try {
 				if(this.bot.getModules().containsKey(moduleName)) {
 					this.bot.reloadModule(moduleName);
-					this.bot.sendNotice("Module %(#module)s reloaded", moduleName);
+					this.bot.sendNoticeTo(ctx.getResponseTarget(), "Module %(#module)s reloaded", moduleName);
 				} else {
 					this.bot.loadModule(moduleName);
-					this.bot.sendNotice("Module %(#module)s loaded", moduleName);
+					this.bot.sendNoticeTo(ctx.getResponseTarget(), "Module %(#module)s loaded", moduleName);
 				}
 			} catch(ModuleInitException | ModuleUnloadException e) {
 				Log.e(e);
 				if(showErrors) {
-					this.bot.sendNotice("#error %s", e.getMessage());
+					this.bot.sendNoticeTo(ctx.getResponseTarget(), "#error %s", e.getMessage());
 				}
 			}
 		}

@@ -44,7 +44,7 @@ public class Slap extends NoiseModule {
 
 	@View
 	public void view(ViewContext ctx, JSONObject data) throws JSONException {
-		this.bot.sendAction("%s", data.get("action"));
+		ctx.respondAction("%s", data.get("action"));
 	}
 
 	// A lot of modules are very interested in slapping people
