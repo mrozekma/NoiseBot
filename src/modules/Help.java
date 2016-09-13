@@ -1,5 +1,6 @@
 package modules;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -32,10 +33,11 @@ public class Help extends NoiseModule {
 	}
 
 	@Command(value = "(?:\\.help|:question:) (.+)", allowPM = true)
-	public JSONObject specific(CommandContext ctx, String moduleName) throws JSONException {
+	public JSONObject specific(CommandContext ctx, String search) throws JSONException, InvocationTargetException {
+		// First, try module names
 		for(NoiseModule module : this.bot.getModules().values()) {
 			if(!module.showInHelp()) {continue;}
-			if(moduleName.equalsIgnoreCase(module.getFriendlyName())) {
+			if(search.equalsIgnoreCase(module.getFriendlyName())) {
 				return new JSONObject()
 						.put("name", module.getFriendlyName())
 						.put("description", module.getDescription())
@@ -43,7 +45,18 @@ public class Help extends NoiseModule {
 			}
 		}
 
-		return new JSONObject().put("error", "Unknown module: " + moduleName);
+		// Then try command pattern matching. This depends on BotUtils
+		final NoiseModule botUtilsModule = this.bot.getModules().get("BotUtils");
+		if(botUtilsModule != null) {
+			final MessageResult result = botUtilsModule.processMessage(ctx.deriveMessage(".which " + search));
+			final String[] modules = result.data.get().getStringArray("modules");
+			if(modules.length > 0) {
+				//TODO Show all modules if the command matches more than one?
+				return this.specific(ctx, modules[0]);
+			}
+		}
+
+		return new JSONObject().put("error", "Unknown module: " + search);
 	}
 
 	@View(method = "specific")
@@ -86,7 +99,8 @@ public class Help extends NoiseModule {
 	@Override public String[] getExamples() {
 		return new String[] {
 				".help -- Shows a list of all modules and their descriptions",
-				".help _module_ -- Shows the description of _module_ and some usage examples"
+				".help _module_ -- Shows the description of _module_ and some usage examples",
+				".help _command_ -- Shows the help for the module that handles _command_",
 		};
 	}
 }
