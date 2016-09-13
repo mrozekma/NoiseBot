@@ -80,14 +80,24 @@ public class SlackNoiseBot extends NoiseBot {
 
 	@Override public String[] getNicks() {
 		try {
-			return this.slackChannel().getMembers().stream().map(user -> {
-				try {
-					return user.getName();
-				} catch(TautException e) {
-					Log.e(e);
-					throw new RuntimeException(e);
-				}
-			}).toArray(String[]::new);
+			return this.slackChannel().getMembers().stream()
+					.filter(user -> {
+						try {
+							return !user.isDeleted();
+						} catch(TautException e) {
+							Log.e(e);
+							throw new RuntimeException(e);
+						}
+					})
+					.map(user -> {
+						try {
+							return user.getName();
+						} catch(TautException e) {
+							Log.e(e);
+							throw new RuntimeException(e);
+						}
+					})
+					.toArray(String[]::new);
 		} catch(TautException e) {
 			Log.e(e);
 			throw new RuntimeException(e);
