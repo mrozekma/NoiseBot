@@ -152,14 +152,14 @@ public class SlackNoiseBot extends NoiseBot {
 		}
 	}
 
-	@Override protected void onIssueEvent(String action, JSONObject issue) throws JSONException {
+	@Override protected void onIssueEvent(String action, JSONObject issue, String url) throws JSONException {
 		final String title = String.format("Issue #%d %s", issue.getInt("number"), action);
 		final TautAttachment attachment = this.makeAttachment();
 		attachment.setTitle(title);
 		attachment.setFallback(title);
 		attachment.setText(issue.getString("title"), true);
 		attachment.setColor("#ff6d20");
-		attachment.setTitleLink(issue.getString("html_url"));
+		attachment.setTitleLink(url);
 		try {
 			this.sendAttachment(attachment);
 		} catch(TautException e) {

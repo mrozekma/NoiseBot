@@ -400,7 +400,7 @@ public abstract class NoiseBot {
 		}
 	}
 
-	static void broadcastIssueEvent(String action, JSONObject issue) throws JSONException {
+	static void broadcastIssueEvent(String action, JSONObject issue, String url) throws JSONException {
 		// If tagged with a particular protocol, only show the issue on bots connected under that protocol
 		// (e.g. IRC users probably don't care about Slack-specific issues)
 		List<Protocol> protocols = new LinkedList<>();
@@ -419,13 +419,13 @@ public abstract class NoiseBot {
 
 		for(NoiseBot bot : bots.values()) {
 			if(protocols.isEmpty() || protocols.contains(bot.getProtocol())) {
-				bot.onIssueEvent(action, issue);
+				bot.onIssueEvent(action, issue, url);
 			}
 		}
 	}
 
-	protected void onIssueEvent(String action, JSONObject issue) throws JSONException {
-		this.sendNotice("Issue ##%d %s: %s -- %s", issue.getInt("number"), action, issue.getString("title"), issue.getString("html_url"));
+	protected void onIssueEvent(String action, JSONObject issue, String url) throws JSONException {
+		this.sendNotice("Issue ##%d %s: %s -- %s", issue.getInt("number"), action, issue.getString("title"), url);
 	}
 
 	// By default, just ignore the style entirely. Child classes will probably override this

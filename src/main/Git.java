@@ -240,13 +240,14 @@ public class Git {
 								} else if(event.equals("issues")) {
 									final String action = json.getString("action");
 									if(action.equals("opened") || action.equals("closed") || action.equals("reopened")) { // The others we don't care about are 'assigned', 'unassigned', 'labeled', and 'unlabeled'
-										NoiseBot.broadcastIssueEvent(action, new main.JSONObject(json.getJSONObject("issue")));
+										final JSONObject issue = json.getJSONObject("issue");
+										NoiseBot.broadcastIssueEvent(action, new main.JSONObject(issue), issue.getString("html_url"));
 									}
 								} else if(event.equals("issue_comment")) {
 									final JSONObject issue = json.getJSONObject("issue");
 									final JSONObject comment = json.getJSONObject("comment");
 									final JSONObject user = comment.getJSONObject("user");
-									NoiseBot.broadcastNotice(String.format("Issue #%d new comment by %s -- %s", issue.getInt("number"), user.getString("login"), comment.getString("html_url")));
+									NoiseBot.broadcastIssueEvent("new comment by " + user.getString("login"), new main.JSONObject(issue), comment.getString("html_url"));
 								}
 							} catch(SyncException | IOException | HttpException | JSONException e) {
 								Log.e(e);
