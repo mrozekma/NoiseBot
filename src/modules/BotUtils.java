@@ -41,7 +41,7 @@ public class BotUtils extends NoiseModule {
 		}
 	}
 
-	@Command("`([^`]+)`")
+	@Command("\\$\\(([^`]+)\\)")
 	public JSONObject rawEcho(CommandContext ctx, String command) throws InvocationTargetException, JSONException {
 		final String[] modules = this.which(ctx, command).getStringArray("modules");
 		switch(modules.length) {
