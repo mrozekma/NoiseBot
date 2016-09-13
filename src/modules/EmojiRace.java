@@ -151,7 +151,7 @@ public class EmojiRace extends NoiseModule implements Serializable {
 	private static final int RACE_DISTANCE = 10;
 	private static final int PERIOD = 500; // ms
 	private static final int MAX_BETS_INDIVIDUAL_MESSAGES = 5;
-	private static final Pattern EMOJI_RE = Pattern.compile("(:[^:]+:|#[0-9])");
+	private static final Pattern EMOJI_RE = Pattern.compile("(:[^:]+:|#?[0-9])");
 	private static final String[] MEDALS = {"gold_medal_first_place", "silver_medal_second_place", "bronze_medal_third_place"};
 
 	private transient SlackNoiseBot bot;
@@ -188,8 +188,8 @@ public class EmojiRace extends NoiseModule implements Serializable {
 			final String str = matcher.group(1);
 			if(str.charAt(0) == ':') {
 				rtn.add(str.substring(1, str.length() - 1));
-			} else if(str.charAt(0) == '#') {
-				final int n = Integer.parseInt(str.substring(1)) - 1;
+			} else {
+				final int n = Integer.parseInt(str.charAt(0) == '#' ? str.substring(1) : str) - 1;
 				if(n < numLookup.length) {
 					rtn.add(numLookup[n]);
 				}
@@ -223,7 +223,7 @@ public class EmojiRace extends NoiseModule implements Serializable {
 		this.startRace(ctx, race);
 	}
 
-	@Command("\\.bet (?:\\$([0-9]+) )?(?:on )?((?:(?::[^:]+:|#[0-9]) ?)+)(?: ?([a-zA-Z ]+))?")
+	@Command("\\.bet (?:\\$?([0-9]+) )?(?:on )?((?:(?::[^:]+:|#?[0-9]) ?)+)(?: ?([a-zA-Z ]+))?")
 	public synchronized void bet(CommandContext ctx, String _bet, String membersStr, String type) {
 		if(!this.currentRace.isPresent()) {
 			ctx.respond("#error No race is organized");
@@ -280,11 +280,11 @@ public class EmojiRace extends NoiseModule implements Serializable {
 
 		race.bets.addAll(bets);
 		if(bets.size() >= MAX_BETS_INDIVIDUAL_MESSAGES) {
-			this.bot.sendMessage("Placed %d bets (too many to report individual results)");
+			ctx.respond("Placed %d bets (too many to report individual results)");
 		}
 		for(Bet b : bets) {
 			if(bets.size() < MAX_BETS_INDIVIDUAL_MESSAGES) {
-				b.message = Optional.of((SlackSentMessage)this.bot.sendMessage(":question: %s", b)[0]);
+				b.message = Optional.of((SlackSentMessage)this.bot.sendMessageTo(ctx.getResponseTarget(), ":question: %s", b)[0]);
 			}
 			for(String emoji : b.racers) {
 				race.cachedRacerToBettors.computeIfAbsent(emoji, b2 -> new TreeSet<>()).add(bettor);
@@ -297,7 +297,7 @@ public class EmojiRace extends NoiseModule implements Serializable {
 		attachment.setTitle(race.name);
 		attachment.setText("A new race is about to begin\n" + Arrays.stream(race.members).map(member -> String.format(":%s:   ", member)).collect(Collectors.joining()), true);
 		try {
-			this.currentRace = Optional.of(new CurrentRace(race, this.bot.sendAttachment(attachment)));
+			this.currentRace = Optional.of(new CurrentRace(race, this.bot.sendAttachmentTo(ctx.getResponseTarget(), attachment)));
 		} catch(TautException e) {
 			Log.e(e);
 			ctx.respond("#error %s", exceptionString(e));
