@@ -43,7 +43,7 @@ public class Bitcoin extends NoiseModule {
 
 	private final Map<String, Price> exchanges = new HashMap<>();
 
-	@Command("\\.bitcoin ([a-zA-Z]+)")
+	@Command("(?:\\.bitcoin|:bitcoin:) ([a-zA-Z]+)")
 	public JSONObject bitcoin(CommandContext ctx, String exchange) throws JSONException {
 		exchange = exchange.toLowerCase();
 		try {
@@ -68,7 +68,7 @@ public class Bitcoin extends NoiseModule {
 		}
 	}
 
-	@Command("\\.bitcoin")
+	@Command("(?:\\.bitcoin|:bitcoin:)")
 	public JSONObject bitcoinAvg(CommandContext ctx) throws JSONException {
 		try {
 			this.refresh();

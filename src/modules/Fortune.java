@@ -43,12 +43,12 @@ public class Fortune extends NoiseModule {
 		}
 	}
 
-	@Command("\\.fortune")
+	@Command("\\.fortune|:crystal_ball:")
 	public JSONObject fortune(CommandContext ctx) throws JSONException {
 		return new JSONObject().put("fortune", getRandom(this.fortunes));
 	}
 
-	@Command("\\.fortune (.*)")
+	@Command("(?:\\.fortune|:crystal_ball:) (.*)")
 	public JSONObject fortune(CommandContext ctx, String keyword) throws JSONException {
 		final JSONObject rtn = new JSONObject().put("keyword", keyword);
 		final String match = getRandomMatch(this.fortunes, ".*" + keyword + ".*");

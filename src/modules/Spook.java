@@ -90,7 +90,7 @@ public class Spook extends NoiseModule implements Serializable {
 		}
 	}
 
-	@Command("\\.spook ([0-9]+)")
+	@Command("(?:\\.spook|:sleuth_or_spy:) ([0-9]+)")
 	public JSONObject spook(CommandContext ctx, int num) throws JSONException {
 		final int totalLines = this.emacsLines.length + this.customLines.size();
 		num = range(num, 1, Math.min(totalLines, 20));
@@ -106,7 +106,7 @@ public class Spook extends NoiseModule implements Serializable {
 		return new JSONObject().put("spook", packedChoices);
 	}
 
-	@Command("\\.spook")
+	@Command("\\.spook|:sleuth_or_spy:")
 	public JSONObject spookDefault(CommandContext ctx) throws JSONException {
 		return this.spook(ctx, 10);
 	}

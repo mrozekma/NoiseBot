@@ -31,13 +31,13 @@ public class Slap extends NoiseModule {
 		"with Osama bin Laden's bloated corpse",
 	};
 		
-	@Command("\\.slap ([^,]*).*")
+	@Command("(?:\\.slap|:raised_hand_with_fingers_splayed:) ([^,]*).*")
 	public JSONObject slap(CommandContext ctx, String target) throws JSONException {
 		final String adverb = getRandom(adverbs);
 		return new JSONObject().put("victim", target).put("adverb", adverb).put("action", String.format("slaps %s %s", target, adverb));
 	}
 	
-	@Command("\\.slap")
+	@Command("\\.slap|:raised_hand_with_fingers_splayed:")
 	public JSONObject slapSelf(CommandContext ctx) throws JSONException {
 		return this.slap(ctx, ctx.getMessageSender());
 	}

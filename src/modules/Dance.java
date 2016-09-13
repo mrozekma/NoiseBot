@@ -25,7 +25,7 @@ public class Dance extends NoiseModule {
 		}};
 	}
 
-	@Command(value = ".*\\bdanc(?:e|ing).*", caseSensitive = false)
+	@Command(value = ".*\\b(?:dance|dancing|:dancers?:).*", caseSensitive = false)
 	public void dance(CommandContext ctx) {
 		// Not sure if this should be a view; I don't really want this to return data
 		if(this.bot.getProtocol() == Protocol.Slack) {

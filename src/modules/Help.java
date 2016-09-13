@@ -19,7 +19,7 @@ public class Help extends NoiseModule {
 		}};
 	}
 
-	@Command("\\.help")
+	@Command("\\.help|:question:")
 	public JSONObject general(CommandContext ctx) throws JSONException {
 		final String[] modules = this.bot.getModules().values().stream().filter(m -> m.showInHelp()).map(m -> m.getFriendlyName()).sorted().toArray(String[]::new);
 		return new JSONObject().put("modules", modules);
@@ -31,7 +31,7 @@ public class Help extends NoiseModule {
 		ctx.respond("List of modules: #([, ] #module %s)", (Object)data.getStringArray("modules"));
 	}
 
-	@Command(value = "\\.help (.+)", allowPM = true)
+	@Command(value = "(?:\\.help|:question:) (.+)", allowPM = true)
 	public JSONObject specific(CommandContext ctx, String moduleName) throws JSONException {
 		for(NoiseModule module : this.bot.getModules().values()) {
 			if(!module.showInHelp()) {continue;}

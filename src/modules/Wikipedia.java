@@ -27,7 +27,7 @@ import static main.Utilities.*;
 public class Wikipedia extends WebLookupModule {
 	final String API_URL = "https://en.wikipedia.org/w/api.php?action=query&format=json&list=search&utf8=1&srsearch=intitle%%3A%s";
 
-	@Command("\\.(?:wik|wp) (.+)")
+	@Command("(?:\\.wik|\\.wp|:wikipedia:) (.+)")
 	public JSONObject wikipedia(CommandContext ctx, String term) throws JSONException {
 		return this.lookup(term, urlFromTerm(term));
 	}

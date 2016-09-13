@@ -198,12 +198,12 @@ public class EmojiRace extends NoiseModule implements Serializable {
 		return rtn.toArray(new String[0]);
 	}
 
-	@Command(value = "\\.race", allowPM = false)
+	@Command(value = "\\.race|:racehorse:", allowPM = false)
 	public synchronized void raceDefault(CommandContext ctx) {
 		this.race(ctx, ":grinning::neutral_face::frowning:");
 	}
 
-	@Command(value = "\\.race (.+)", allowPM = false)
+	@Command(value = "(?:\\.race|:racehorse:) (.+)", allowPM = false)
 	public synchronized void race(CommandContext ctx, String membersStr) {
 		if(this.currentRace.isPresent()) {
 			ctx.respond("#error One race at a time, fellas");

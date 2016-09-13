@@ -37,7 +37,7 @@ public class Wolfram extends NoiseModule {
 		}};
 	}
 
-	@Command("\\.(?:wolfram|wolf) (.+)")
+	@Command("(?:\\.wolfram|\\.wolf|:wolfram:) (.+)")
 	public JSONObject wolfram(CommandContext ctx, String term) throws JSONException {
 		// this will be our returned object
 		String resultText = null;
