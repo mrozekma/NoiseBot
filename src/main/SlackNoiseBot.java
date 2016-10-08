@@ -308,7 +308,11 @@ public class SlackNoiseBot extends NoiseBot {
 
 				if(!handled) {
 					try {
-						final TautChannel target = (last.target.charAt(0) == '#') ? this.server.getChannelByName(last.target.substring(1)) : null;
+						// The bot connection doesn't have the scope to send to channels, so we use the regular connection
+						// However, we must use the bot connection for direct messages, or the direct message will come from the user who added the bot integration instead of coming from the bot's account
+						final TautAbstractChannel target = (last.target.charAt(0) == '#')
+								? this.server.getChannelByName(last.target.substring(1))
+								: this.server.getBotConnection().getUserByName(last.target).getDirectChannel();
 						switch(last.type) {
 						case ACTION:
 							// There's currently no way to send me_message events through the Slack API
