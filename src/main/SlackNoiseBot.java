@@ -313,26 +313,24 @@ public class SlackNoiseBot extends NoiseBot {
 						final TautAbstractChannel target = (last.target.charAt(0) == '#')
 								? this.server.getChannelByName(last.target.substring(1))
 								: this.server.getBotConnection().getUserByName(last.target).getDirectChannel();
-						switch(last.type) {
-						case ACTION:
-							// There's currently no way to send me_message events through the Slack API
-							// Instead we just italicize the whole message. Close enough?
-							text = this.format(Style.ITALIC, text, false);
-							// Fallthrough
-						case MESSAGE:
-						case NOTICE:
-						default:
-							final TautMessage message;
-							if(last.replacing.isPresent()) {
-								final SlackSentMessage sent = (SlackSentMessage)last.replacing.get();
-								message = sent.getTautMessage();
-								message.update(text);
-							} else {
+						final TautMessage message;
+						if(last.replacing.isPresent()) {
+							final SlackSentMessage sent = (SlackSentMessage)last.replacing.get();
+							message = sent.getTautMessage();
+							message.update(text);
+						} else {
+							switch(last.type) {
+							case ACTION:
+								message = target.sendMeMessage(text);
+								break;
+							case MESSAGE:
+							case NOTICE:
+							default:
 								message = target.sendMessage(text);
+								break;
 							}
-							rtn.add(new SlackSentMessage(this, last.target, last.type, message));
-							break;
 						}
+						rtn.add(new SlackSentMessage(this, last.target, last.type, message));
 					} catch(TautException e) {
 						Log.e(e);
 						throw new RuntimeException(e);
