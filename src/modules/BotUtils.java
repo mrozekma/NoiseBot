@@ -61,8 +61,8 @@ public class BotUtils extends NoiseModule {
 	@Override public String getDescription() {return "I'm Mr. Meeseeks, look at me!";}
 	@Override public String[] getExamples() {
 		return new String[] {
-			".which `.b test`",
-			"`.b test`",
+			".which $(.b test)",
+			"$(.b test)",
 		};
 	}
 }
