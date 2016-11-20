@@ -308,29 +308,30 @@ public class SlackNoiseBot extends NoiseBot {
 
 				if(!handled) {
 					try {
-						// The bot connection doesn't have the scope to send to channels, so we use the regular connection
-						// However, we must use the bot connection for direct messages, or the direct message will come from the user who added the bot integration instead of coming from the bot's account
+						final TautConnection botConnection = this.server.getBotConnection();
 						final TautAbstractChannel target = (last.target.charAt(0) == '#')
-								? this.server.getChannelByName(last.target.substring(1))
-								: this.server.getBotConnection().getUserByName(last.target).getDirectChannel();
-						final TautMessage message;
-						if(last.replacing.isPresent()) {
-							final SlackSentMessage sent = (SlackSentMessage)last.replacing.get();
-							message = sent.getTautMessage();
-							message.update(text);
-						} else {
-							switch(last.type) {
-							case ACTION:
-								message = target.sendMeMessage(text);
-								break;
-							case MESSAGE:
-							case NOTICE:
-							default:
+								? botConnection.getChannelByName(last.target.substring(1))
+								: botConnection.getUserByName(last.target).getDirectChannel();
+						switch(last.type) {
+						case ACTION:
+							// me_messages in Slack don't have 'as_user' or 'username' fields like regular messages, so they don't look like regular NoiseBot messages
+							// Instead we just italicize the whole message. Close enough?
+							text = this.format(Style.ITALIC, text, false);
+							// Fallthrough
+						case MESSAGE:
+						case NOTICE:
+						default:
+							final TautMessage message;
+							if(last.replacing.isPresent()) {
+								final SlackSentMessage sent = (SlackSentMessage)last.replacing.get();
+								message = sent.getTautMessage();
+								message.update(text);
+							} else {
 								message = target.sendMessage(text);
-								break;
 							}
+							rtn.add(new SlackSentMessage(this, last.target, last.type, message));
+							break;
 						}
-						rtn.add(new SlackSentMessage(this, last.target, last.type, message));
 					} catch(TautException e) {
 						Log.e(e);
 						throw new RuntimeException(e);
