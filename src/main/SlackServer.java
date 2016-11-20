@@ -35,6 +35,7 @@ public class SlackServer extends TautConnection implements TautEventListener {
 		this.token = token;
 
 		this.botConnection = new TautConnection(botToken);
+		this.botConnection.setHistoryConnection(this);
 		this.rtm = this.botConnection.rtmStart();
 		this.rtm.addListener(this);
 	}
