@@ -37,7 +37,7 @@ public class BeerAdvocate extends NoiseModule {
     return Jsoup.connect(url).timeout(10000).userAgent(USER_AGENT).get();
   }
 
-  @Command(".*(http://(?:www\\.)?beeradvocate.com/beer/profile/[0-9]+/[0-9]+).*")
+  @Command(".*(https?://(?:www\\.)?beeradvocate.com/beer/profile/[0-9]+/[0-9]+).*")
   public JSONObject beer(CommandContext ctx, String beerUrl) throws JSONException
   {
     Document page;
