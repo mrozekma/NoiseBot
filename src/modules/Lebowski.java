@@ -115,7 +115,7 @@ public class Lebowski extends NoiseModule {
 	private String[] lines;
 	private String lastNick = "";
 	private int lastNickMatches = 0;
-	private int lastLineMatched = -1;
+	private int lastLineMatched;
 	private int linesSinceLastQuote = SPACER_LINES;
 	private RateLimiter limiter = null;
 	private JSONArray undisplayedMatches = null;
@@ -136,6 +136,7 @@ public class Lebowski extends NoiseModule {
 				}
 			}
 			this.lines = linesVec.toArray(new String[0]);
+			this.lastLineMatched = getRandomInt(0, this.lines.length - 1); // Start on a random line
 			Log.i("Loaded lebowski file: %d", this.lines.length);
 		} catch(FileNotFoundException e) {
 			this.bot.sendNotice("No lebowski quotes file found");
@@ -214,9 +215,7 @@ public class Lebowski extends NoiseModule {
 	}
 
 	@Command("\\.next") public void nextLine(CommandContext ctx) {
-		if(this.lastLineMatched < 0) {
-			ctx.respond("#error No matches yet");
-		} else if(this.lastLineMatched+1 == this.lines.length) {
+		if(this.lastLineMatched+1 == this.lines.length) {
 			ctx.respond("#error Out of lines");
 		} else {
 			this.undisplayedMatches = null;
@@ -229,9 +228,7 @@ public class Lebowski extends NoiseModule {
 	}
 
 	@Command("\\.other") public void other(CommandContext ctx) throws JSONException {
-		if(this.lastLineMatched < 0 || this.undisplayedMatches == null) {
-			ctx.respond("#error No matches yet");
-		} else if(this.undisplayedMatches.length() == 0) {
+		if(this.undisplayedMatches == null || this.undisplayedMatches.length() == 0) {
 			ctx.respond("#error No other matches to display");
 		} else {
 			final int idx = getRandomInt(0, this.undisplayedMatches.length() - 1);
