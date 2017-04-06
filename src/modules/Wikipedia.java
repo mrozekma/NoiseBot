@@ -172,6 +172,16 @@ public class Wikipedia extends WebLookupModule {
 		return new JSONObject().put("error", "No title found");
 	}
 
+	@Override
+	public void slackView(ViewContext ctx, JSONObject data) throws JSONException {
+		if(ctx.wasCommandTriggered() && ctx.getCommandMethod().getName().equals("wikipediaLink")) {
+			// Slack has mandatory Wikipedia unfurling for the moment, so do nothing
+			return;
+		}
+
+		super.slackView(ctx, data);
+	}
+
 	@Override public String getFriendlyName() {return "Wikipedia";}
 	@Override public String getDescription() {return "Returns the beginning of the wikipedia article for the specified term";}
 	@Override public String[] getExamples() {
