@@ -10,7 +10,7 @@ import java.io.IOException;
  *         Created Dec 12, 2017.
  */
 public class SlackMessage extends Message {
-    private final TautMessage tautMessage;
+    private transient final TautMessage tautMessage;
 
     SlackMessage(NoiseBot bot, String message, String sender, String responseTarget, TautMessage tautMessage) {
         super(bot, message, sender, responseTarget);
