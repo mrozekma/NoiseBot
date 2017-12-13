@@ -3,19 +3,14 @@ package modules;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Scanner;
 
-import main.JSONArray;
-import main.JSONObject;
+import main.*;
 import org.json.JSONException;
 
 import debugging.Log;
 
-import main.CommandContext;
-import main.NoiseModule;
-import main.ViewContext;
+import static main.Utilities.getJSON;
 
 /**
  * Bitcoin
@@ -41,87 +36,91 @@ public class Bitcoin extends NoiseModule {
 		}
 	}
 
-	private final Map<String, Price> exchanges = new HashMap<>();
-
-	@Command("(?:\\.bitcoin|:bitcoin:) ([a-zA-Z]+)")
-	public JSONObject bitcoin(CommandContext ctx, String exchange) throws JSONException {
-		exchange = exchange.toLowerCase();
+	@Command("(?:\\.bitcoin|\\.btc|:bitcoin:) ([a-zA-Z]+)")
+	public JSONObject bitcoinExchange(CommandContext ctx, String exchange) throws JSONException {
 		try {
-			this.refresh();
-			if(this.exchanges.isEmpty()) {
-				return new JSONObject().put("error", "No exchanges found");
+			final URLConnection c = new URL("http://api.bitcoincharts.com/v1/markets.json").openConnection();
+			final Scanner s = new Scanner(c.getInputStream());
+			final StringBuffer buffer = new StringBuffer();
+			while(s.hasNextLine()) {
+				buffer.append(s.nextLine());
 			}
 
-			final Price price;
-			if(this.exchanges.containsKey(exchange)) {
-				price = this.exchanges.get(exchange);
-			} else if(this.exchanges.containsKey(exchange + "usd")) {
-				price = this.exchanges.get(exchange + "usd");
-			} else {
-				return new JSONObject().put("error", "Unknown exchange");
+			final JSONArray json = new JSONArray(buffer.toString());
+			for(int i = 0; i < json.length(); i++) {
+				final JSONObject obj = json.getJSONObject(i);
+				if(obj.getString("currency").equals("USD")) {
+					final String symbol = obj.getString("symbol");
+					if(symbol.equalsIgnoreCase(exchange) || symbol.equalsIgnoreCase(exchange + "usd")) {
+						final double bid = obj.isNull("bid") ? 0.0 : obj.getDouble("bid");
+						final double ask = obj.isNull("ask") ? 0.0 : obj.getDouble("ask");
+						final double avg = obj.isNull("avg") ? 0.0 : obj.getDouble("avg");
+						return new JSONObject().put("exchange", symbol).put("price", new Price(bid, ask, avg).pack());
+					}
+				}
 			}
 
-			return new JSONObject().put("exchange", exchange).put("price", price.pack());
+			return new JSONObject().put("error", "Unknown exchange");
 		} catch(Exception e) {
 			Log.e(e);
 			return new JSONObject().put("error", "Problem parsing data");
 		}
 	}
 
-	@Command("(?:\\.bitcoin|:bitcoin:)")
-	public JSONObject bitcoinAvg(CommandContext ctx) throws JSONException {
-		try {
-			this.refresh();
-			if(this.exchanges.isEmpty()) {
-				return new JSONObject().put("error", "No exchanges found");
-			}
+	@Command("(?:\\.bitcoin|\\.btc|:bitcoin:)")
+	public JSONObject bitcoin(CommandContext ctx) throws JSONException {
+		return this.coinbase(ctx, "BTC");
+	}
 
-			final double avg = this.exchanges.values().stream().filter(p -> p.avg > 0).mapToDouble(p -> p.avg).average().orElse(0.0);
-			return new JSONObject().put("average", avg);
-		} catch(Exception e) {
+	@Command("(?:\\.ethereum|\\.eth)")
+	public JSONObject ethereum(CommandContext ctx) throws JSONException {
+		return this.coinbase(ctx, "ETH");
+	}
+
+	@Command("(?:\\.litecoin|\\.ltc)")
+	public JSONObject litecoin(CommandContext ctx) throws JSONException {
+		return this.coinbase(ctx, "LTC");
+	}
+
+	private JSONObject coinbase(CommandContext ctx, String currency) throws JSONException {
+		final JSONObject json;
+		try {
+			json = getJSON(String.format("https://api.coinbase.com/v2/prices/%s-USD/spot", currency));
+		} catch(IOException e) {
+			Log.e(e);
+			return new JSONObject().put("error", "Unable to communicate with Coinbase");
+		}
+
+		try {
+			final JSONObject rtn = json.getJSONObject("data");
+			// Make sure this keys exists
+			rtn.getDouble("amount");
+			return rtn;
+		} catch(JSONException e) {
 			Log.e(e);
 			return new JSONObject().put("error", "Problem parsing data");
 		}
 	}
 
-	@View(method = "bitcoin")
+	@View(method = "bitcoinExchange")
 	public void plainBitcoinView(ViewContext ctx, JSONObject data) throws JSONException {
 		final Price price = Price.unpack(data.getJSONObject("price"));
-		ctx.respond("$%.2f / $%.2f", price.ask, price.bid);
+		ctx.respond("$%.2f ($%.2f / $%.2f)", price.avg, price.ask, price.bid);
 	}
 
-	@View(method = "bitcoinAvg")
-	public void plainBitcoinAvgView(ViewContext ctx, JSONObject data) throws JSONException {
-		ctx.respond("$%.2f", data.getDouble("average"));
+	@View
+	public void plainCoinbaseView(ViewContext ctx, JSONObject data) throws JSONException {
+		ctx.respond("$%.2f", data.getDouble("amount"));
 	}
 
 	@Override public String getFriendlyName() {return "Bitcoin";}
-	@Override public String getDescription() {return "Outputs current Bitcoin exchange rates";}
+	@Override public String getDescription() {return "Outputs current crypto currency exchange rates";}
 	@Override public String[] getExamples() {
 		return new String[] {
-			".bitcoin",
-			".bitcoin bitstamp"
+			".bitcoin _exchange_ -- Get the most recent advertised price on _exchange_",
+			".bitcoin -- Get the live Bitcoin price listed on Coinbase",
+			".ethereum -- Get the live Ethereum price listed on Coinbase",
+			".litecoin -- Get the live Litecoin price listed on Coinbase",
 		};
-	}
-
-	private void refresh() throws IOException, JSONException {
-		final URLConnection c = new URL("http://api.bitcoincharts.com/v1/markets.json").openConnection();
-		final Scanner s = new Scanner(c.getInputStream());
-		final StringBuffer buffer = new StringBuffer();
-		while(s.hasNextLine()) {
-			buffer.append(s.nextLine());
-		}
-
-		final JSONArray json = new JSONArray(buffer.toString());
-		this.exchanges.clear();
-		for(int i = 0; i < json.length(); i++) {
-			final JSONObject obj = json.getJSONObject(i);
-			if(obj.getString("currency").equals("USD")) {
-				final double bid = obj.isNull("bid") ? 0.0 : obj.getDouble("bid");
-				final double ask = obj.isNull("ask") ? 0.0 : obj.getDouble("ask");
-				final double avg = obj.isNull("avg") ? 0.0 : obj.getDouble("avg");
-				this.exchanges.put(obj.getString("symbol").toLowerCase(), new Price(bid, ask, avg));
-			}
-		}
 	}
 }
