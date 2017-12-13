@@ -1,5 +1,6 @@
 package main;
 
+import java.io.IOException;
 import java.util.LinkedList;
 import java.util.Optional;
 import java.util.Queue;
@@ -78,6 +79,10 @@ public class Message {
 
 	public MessageBuilder buildActionResponse() {
 		return this.new BufferedBuilder(this.bot, this.responseTarget, MessageBuilder.Type.ACTION);
+	}
+
+	public void respondReaction(String reaction) {
+		throw new UnsupportedOperationException("This message cannot be reacted to");
 	}
 
 	@Override public String toString() {return "<" + this.sender + "> " + this.message;}

@@ -1,9 +1,6 @@
 package modules;
 
-import main.CommandContext;
-import main.NoiseModule;
-import main.Protocol;
-import main.Style;
+import main.*;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -29,7 +26,8 @@ public class Dance extends NoiseModule {
 	public void dance(CommandContext ctx) {
 		// Not sure if this should be a view; I don't really want this to return data
 		if(this.bot.getProtocol() == Protocol.Slack) {
-			ctx.respond(":dancer: :dancers: :dancer: :dancers: :dancer:");
+			ctx.respondReaction("dancer");
+			ctx.respondReaction("dancers");
 		} else {
 			ctx.respondAction("dances :D-<");
 			ctx.respondAction("dances :D|-<");

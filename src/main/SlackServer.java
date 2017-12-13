@@ -113,7 +113,7 @@ public class SlackServer extends TautConnection implements TautEventListener {
 		TautEventListener.super.fire(this, json);
 	}
 
-	@Override public void onMessage(TautMessage message) {
+	@Override public void onMessage(final TautMessage message) {
 		try {
 			final TautUser sender = message.getCurrent().getUser().get();
 			final String senderName = sender.getName();
@@ -134,7 +134,7 @@ public class SlackServer extends TautConnection implements TautEventListener {
 			this.moduleDispatch(responseTarget, new ModuleCall() {
 				@Override public void call(NoiseBot bot, NoiseModule module) throws Exception {
 					if(!sender.isBot()) {
-						module.processMessageAndDisplayResult(new Message(bot, ((SlackNoiseBot)bot).unescape(text), senderName, responseTarget));
+						module.processMessageAndDisplayResult(new SlackMessage(bot, ((SlackNoiseBot)bot).unescape(text), senderName, responseTarget, message));
 					}
 				}
 
@@ -151,7 +151,7 @@ public class SlackServer extends TautConnection implements TautEventListener {
 	}
 
 	//TODO Listen to ReactionRemoved?
-	@Override public void onMessageReactionAdded(TautMessage message, TautReaction reaction) {
+	@Override public void onMessageReactionAdded(final TautMessage message, TautReaction reaction) {
 		try {
 			final TautUser sender = message.getCurrent().getUser().get();
 			final String senderName = sender.getName();
@@ -172,7 +172,7 @@ public class SlackServer extends TautConnection implements TautEventListener {
 			this.moduleDispatch(responseTarget, new ModuleCall() {
 				@Override public void call(NoiseBot bot, NoiseModule module) throws Exception {
 					if(!sender.isBot()) {
-						module.processReaction(new Message(bot, ((SlackNoiseBot)bot).unescape(message.getText()), targetSender, targetSender), senderName, reaction.getName());
+						module.processReaction(new SlackMessage(bot, ((SlackNoiseBot)bot).unescape(message.getText()), targetSender, targetSender, message), senderName, reaction.getName());
 					}
 				}
 

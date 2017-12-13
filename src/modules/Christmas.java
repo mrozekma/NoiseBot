@@ -12,7 +12,7 @@ import static main.Utilities.getRandom;
 import static main.Utilities.getRandomInt;
 
 public class Christmas extends NoiseModule {
-	private static String[] lyrics = {
+	private static final String[] lyrics = {
 		"Deck the halls with boughs of holly,\nFa la la la la la, la la la la.\nTis the season to be jolly,\nFa la la la la la, la la la la.",
 		"Frosty the snowman was a jolly happy soul\nWith a corncob pipe and a button nose\nand two eyes made out of coal\nFrosty the snowman is a fairy tale they say\nHe was made of snow but the children\nknow how he came to life one day",
 		"Have yourself a merry little Christmas.\nLet your heart be light,\nFrom now on our troubles\nWill be out of sight.",
@@ -23,7 +23,9 @@ public class Christmas extends NoiseModule {
 		"He knows when you are sleeping\nHe knows when you're on the can\nHe'll hunt you down and blast your ass from here to Pakistan\nOh, you'd better not breathe, you'd better not move\nYou're better off dead, I'm telling you, dude\nSanta Claus is gunning you down",
 	};
 
-	private boolean odd = false;
+	private static final String[] reactions = {"santa", "christmas_tree", "gift"};
+
+	private int count = 0;
 
 	@Override public void init(NoiseBot bot) throws ModuleInitException {
 		super.init(bot);
@@ -53,18 +55,15 @@ public class Christmas extends NoiseModule {
 
 	@View(value = Protocol.IRC, method = "talked")
 	public void ircTalkedView(ViewContext ctx, JSONObject data) {
-		final Style first = this.odd ? Style.RED : Style.GREEN,
-		            second = this.odd ? Style.GREEN : Style.RED;
+		final Style first = (this.count % 2 == 0) ? Style.RED : Style.GREEN,
+		            second = (this.count % 2 == 0) ? Style.GREEN : Style.RED;
 		ctx.respond("%#s %#s %#s", first, "Ho", second, "Ho", first, "Ho!");
-		this.odd = !this.odd;
+		this.count++;
 	}
 
 	@View(value = Protocol.Slack, method = "talked")
 	public void slackTalkedView(ViewContext ctx, JSONObject data) {
-		final String first = this.odd ? ":santa:" : ":christmas_tree:",
-		             second = this.odd ? ":christmas_tree:" : ":santa:";
-		ctx.respond("%s %s %s!", first, second, first);
-		this.odd = !this.odd;
+		ctx.respondReaction(reactions[this.count++ % reactions.length]);
 	}
 
 	@Command("\\.jingle")

@@ -31,6 +31,9 @@ public class CommandContext {
 	public MessageBuilder buildActionResponse() {
 		return this.message.buildActionResponse();
 	}
+	public void respondReaction(String reaction) {
+		this.message.respondReaction(reaction);
+	}
 
 	public String getMessageSender() {
 		return this.message.getSender();
