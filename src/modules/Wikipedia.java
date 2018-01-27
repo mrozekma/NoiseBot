@@ -136,7 +136,7 @@ public class Wikipedia extends WebLookupModule {
 		}
 
 		if (el != null) {
-			return el.text();
+			return el.text().replaceAll("\\[[0-9]+\\]", "");
 		} else {
 			throw new BodyNotFound();
 		}
