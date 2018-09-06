@@ -100,7 +100,7 @@ public class Poll extends NoiseModule implements SlackActionHandler {
 
 		if(!this.updateInPlace(ctx)) {
 			this.bot.sendMessage(
-					"%s has started a poll (vote with .%(#command)s {#([|] #argument %s)} in the next %d minutes): %s",
+					"%s has started a poll (vote with .%(#command)s {#([ | ] #argument %s)} in the next %d minutes): %s",
 					ctx.getMessageSender(),
 					"vote",
 					this.validVotes.stream().toArray(String[]::new),
@@ -295,6 +295,11 @@ public class Poll extends NoiseModule implements SlackActionHandler {
 			} else {
 				// Edit the poll message to show current information
 				this.pollStartMessage = bot.editAttachment(this.pollStartMessage, attachment);
+			}
+
+			if(this.pollTimer == null) {
+				// The poll is over
+				this.pollStartMessage = null;
 			}
 			return true;
 		} catch(TautException e) {
