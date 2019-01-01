@@ -61,7 +61,7 @@ public class EmojiRace extends NoiseModule implements Serializable {
 		final String[] topFinishers = new String[MEDALS.length]; // Can't have an array of Optional<String>
 		final List<String> steps = new LinkedList<>();
 		final List<Bet> bets = new LinkedList<>(); // It's important that bets be processed in order so money totals make sense chronologically
-		final Map<String, Set<String>> cachedRacerToBettors = new HashMap<>();
+		final Map<String, Set<String>> cachedRacerToBettors = new HashMap<>(); // The bettor names here are formatted
 
 		CurrentRace(Race race, SlackSentMessage message) {
 			this.race = race;
@@ -76,13 +76,14 @@ public class EmojiRace extends NoiseModule implements Serializable {
 
 	//TODO quinella, exacta, trifecta, superfecta, boxes
 	private static abstract class Bet {
-		final String bettor;
+		final String bettor, formattedBettor;
 		final String[] racers;
 		final int bet;
 		Optional<SlackSentMessage> message = Optional.empty();
 
-		Bet(String bettor, String[] racers, int bet) {
+		Bet(SlackNoiseBot bot, String bettor, String[] racers, int bet) {
 			this.bettor = bettor;
+			this.formattedBettor = bot.formatUser(this.bettor);
 			this.racers = racers;
 			this.bet = bet;
 		}
@@ -106,13 +107,13 @@ public class EmojiRace extends NoiseModule implements Serializable {
 
 		final int n;
 
-		SingleBetTopN(String bettor, String racer, int bet, int n) {
-			super(bettor, new String[] {racer}, bet);
+		SingleBetTopN(SlackNoiseBot bot, String bettor, String racer, int bet, int n) {
+			super(bot, bettor, new String[] {racer}, bet);
 			this.n = n;
 		}
 
-		SingleBetTopN(String bettor, String racer, int bet, String type) {
-			this(bettor, racer, bet, keywordToN(type));
+		SingleBetTopN(SlackNoiseBot bot, String bettor, String racer, int bet, String type) {
+			this(bot, bettor, racer, bet, keywordToN(type));
 		}
 
 		@Override int cost() {
@@ -260,18 +261,18 @@ public class EmojiRace extends NoiseModule implements Serializable {
 		final List<Bet> bets = new LinkedList<>();
 		if(type.equals("win") || type.equals("place") || type.equals("show")) {
 			for(String target : targets) {
-				bets.add(new SingleBetTopN(bettor, target, bet, type));
+				bets.add(new SingleBetTopN(this.bot, bettor, target, bet, type));
 			}
 		} else if(type.equals("win-place")) {
 			for(String target : targets) {
-				bets.add(new SingleBetTopN(bettor, target, bet, "win"));
-				bets.add(new SingleBetTopN(bettor, target, bet, "place"));
+				bets.add(new SingleBetTopN(this.bot, bettor, target, bet, "win"));
+				bets.add(new SingleBetTopN(this.bot, bettor, target, bet, "place"));
 			}
 		} else if(type.equals("across the board")) {
 			for(String target : targets) {
-				bets.add(new SingleBetTopN(bettor, target, bet, "win"));
-				bets.add(new SingleBetTopN(bettor, target, bet, "place"));
-				bets.add(new SingleBetTopN(bettor, target, bet, "show"));
+				bets.add(new SingleBetTopN(this.bot, bettor, target, bet, "win"));
+				bets.add(new SingleBetTopN(this.bot, bettor, target, bet, "place"));
+				bets.add(new SingleBetTopN(this.bot, bettor, target, bet, "show"));
 			}
 		} else {
 			ctx.respond("#error Unrecognized bet type");
@@ -287,7 +288,7 @@ public class EmojiRace extends NoiseModule implements Serializable {
 				b.message = Optional.of((SlackSentMessage)this.bot.sendMessageTo(ctx.getResponseTarget(), ":question: %s", b)[0]);
 			}
 			for(String emoji : b.racers) {
-				race.cachedRacerToBettors.computeIfAbsent(emoji, b2 -> new TreeSet<>()).add(bettor);
+				race.cachedRacerToBettors.computeIfAbsent(emoji, b2 -> new TreeSet<>()).add(b.formattedBettor);
 			}
 		}
 	}
@@ -416,7 +417,7 @@ public class EmojiRace extends NoiseModule implements Serializable {
 				track.append("|");
 			}
 			if(race.cachedRacerToBettors.containsKey(member)) {
-				track.append(String.format(" (%s)", race.cachedRacerToBettors.get(member).stream().map(nick -> this.bot.formatUser(nick)).collect(Collectors.joining(" "))));
+				track.append(String.format(" (%s)", race.cachedRacerToBettors.get(member).stream().collect(Collectors.joining(" "))));
 			}
 			text.add(track.toString());
 		}
