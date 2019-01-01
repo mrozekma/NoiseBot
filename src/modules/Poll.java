@@ -84,7 +84,7 @@ public class Poll extends NoiseModule implements SlackActionHandler {
 		this.pollTimer.scheduleAtFixedRate(new TimerTask() {
 			private int minutesLeft = WAIT_TIME;
 			@Override public void run() {
-				if(minutesLeft-- == 0) {
+				if(--minutesLeft == 0) {
 					Poll.this.finished(ctx);
 				} else {
 					Poll.this.updateInPlace(ctx);
@@ -240,14 +240,7 @@ public class Poll extends NoiseModule implements SlackActionHandler {
 			if(this.pollTimer != null) {
 				pretext.append(String.format("%s started a poll (", bot.formatUser(this.pollOwner)));
 				final int minutesLeft = WAIT_TIME + (int)(this.startTime - System.currentTimeMillis()) / 1000 / 60;
-				switch(minutesLeft + 1) {
-				case 1:
-					pretext.append("1 minute remains");
-					break;
-				default:
-					pretext.append(String.format("%d minutes remain", minutesLeft));
-					break;
-				}
+				pretext.append((minutesLeft < 2) ? "1 minute remains" : String.format("%d minutes remain", minutesLeft));
 				pretext.append(')');
 			}
 
