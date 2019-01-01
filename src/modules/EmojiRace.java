@@ -153,7 +153,7 @@ public class EmojiRace extends NoiseModule implements Serializable {
 	private static final int PERIOD = 500; // ms
 	private static final int MAX_BETS_INDIVIDUAL_MESSAGES = 5;
 	private static final Pattern EMOJI_RE = Pattern.compile("(:[^:]+:|#?[0-9])");
-	private static final String[] MEDALS = {"gold_medal_first_place", "silver_medal_second_place", "bronze_medal_third_place"};
+	private static final String[] MEDALS = {"first_place_medal", "second_place_medal", "third_place_medal"};
 
 	private transient SlackNoiseBot bot;
 	private List<Race> races = new LinkedList<>();
@@ -323,7 +323,7 @@ public class EmojiRace extends NoiseModule implements Serializable {
 				final double profit = bet.payout(finishOrder) - bet.bet;
 				this.money.put(bet.bettor, this.money.getOrDefault(bet.bettor, 0) + (int)(profit * 100));
 				if(bet.message.isPresent()) {
-					bet.message.get().edit(":white_check_mark: %s and won $%.2f. Up to $%.2f", bet, profit, this.money.get(bet.bettor) / 100.0);
+					bet.message.get().edit(":heavy_check_mark: %s and won $%.2f. Up to $%.2f", bet, profit, this.money.get(bet.bettor) / 100.0);
 				}
 			} else {
 				this.money.put(bet.bettor, this.money.getOrDefault(bet.bettor, 0) - bet.bet * 100);
