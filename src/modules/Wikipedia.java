@@ -115,7 +115,7 @@ public class Wikipedia extends WebLookupModule {
 			}
 		}
 		if (el == null && anchor != null) {
-			el = doc.select("span.mw-headline#" + anchor).first(); // <span>
+			el = doc.select("span.mw-headline[id=" + anchor + "]").first(); // <span>
 			if(el != null) {
 				el = el.parent(); // <h2>
 				while((el = el.nextElementSibling()) != null) {
