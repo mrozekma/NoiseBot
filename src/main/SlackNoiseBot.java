@@ -195,7 +195,7 @@ public class SlackNoiseBot extends NoiseBot {
 		return text;
 	}
 
-	private static final Pattern UNESCAPE_PATTERN = Pattern.compile("<([^|>]+)(?:|([^>]+))?>");
+	private static final Pattern UNESCAPE_PATTERN = Pattern.compile("<([^|>]+)(?:\\|([^>]+))?>");
 	public String unescape(String text) throws TautException {
 		final Matcher matcher = UNESCAPE_PATTERN.matcher(text);
 		final StringBuffer rtn = new StringBuffer();
@@ -222,7 +222,7 @@ public class SlackNoiseBot extends NoiseBot {
 				}
 			} else {
 				// For URLs, use the canonical version
-				matcher.appendReplacement(rtn, what);
+				matcher.appendReplacement(rtn, Pattern.quote(what));
 			}
 		}
 		matcher.appendTail(rtn);
