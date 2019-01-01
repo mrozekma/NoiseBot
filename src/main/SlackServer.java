@@ -21,7 +21,6 @@ public class SlackServer extends TautConnection implements TautEventListener {
 		}
 	}
 
-	public static final int MAX_ACTION_BUTTONS_PER_MESSAGE = 5;
 	static final String ACTION_CALLBACK_PREFIX = "noisebot.modules.";
 
 	private final String token;

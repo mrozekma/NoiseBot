@@ -2,13 +2,8 @@ package modules;
 
 import java.awt.*;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map;
+import java.util.*;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.stream.Collectors;
 
 import com.mrozekma.taut.TautAttachment;
@@ -284,9 +279,13 @@ public class Poll extends NoiseModule implements SlackActionHandler {
 			}
 			*/
 
-			if(this.validVotes.size() <= SlackServer.MAX_ACTION_BUTTONS_PER_MESSAGE) {
-				final TautAttachment.Action[] actions = this.validVotes.stream().map(vote -> new TautAttachment.Action(vote, vote)).toArray(TautAttachment.Action[]::new);
+			if(this.validVotes.size() <= 3) {
+				final TautAttachment.Action[] actions = this.validVotes.stream().map(vote -> new TautAttachment.ButtonAction("vote", vote, vote)).toArray(TautAttachment.Action[]::new);
 				attachment.setActions(this.getCallbackId(), actions);
+			} else {
+				final TautAttachment.MenuAction action = new TautAttachment.MenuAction("vote", "Vote");
+				this.validVotes.stream().forEach(vote -> action.addOption(vote, vote));
+				attachment.setActions(this.getCallbackId(), action);
 			}
 
 			if(this.pollStartMessage == null) {
@@ -318,10 +317,14 @@ public class Poll extends NoiseModule implements SlackActionHandler {
 			Log.w("Got Slack action hook for wrong Poll message");
 			return;
 		}
+		if(!action.getActionName().equals("vote")) {
+			Log.w("Got unexpected action name: " + action.getActionName());
+			return;
+		}
 		try {
-			this.votes.put(action.getUser().getName(), action.getActionName());
+			this.votes.put(action.getUser().getName(), action.getValue().get());
 			this.updateInPlace("#" + action.getChannel().getName());
-		} catch(TautException e) {
+		} catch(TautException | NoSuchElementException e) {
 			Log.e(e);
 		}
 	}
