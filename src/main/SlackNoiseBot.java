@@ -222,7 +222,7 @@ public class SlackNoiseBot extends NoiseBot {
 				}
 			} else {
 				// For URLs, use the canonical version
-				matcher.appendReplacement(rtn, Pattern.quote(what));
+				matcher.appendReplacement(rtn, what);
 			}
 		}
 		matcher.appendTail(rtn);
